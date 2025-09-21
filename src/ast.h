@@ -45,13 +45,13 @@ namespace alvo::ast {
     };
 
     template<typename T>
-    struct ListNode {
-        T value;
-        ListNode* next;
-    };
-
-    template<typename T>
     class List {
+    private:
+        struct Node {
+            T value;
+            Node* next;
+        };
+
     public:
         class Iterator {
         public:
@@ -64,7 +64,7 @@ namespace alvo::ast {
             Iterator() :
                 m_node(nullptr) { }
 
-            Iterator(ListNode<T>* node) :
+            Iterator(Node* node) :
                 m_node(node) { }
 
             reference operator*() { return m_node->value; }
@@ -93,7 +93,7 @@ namespace alvo::ast {
             }
 
         private:
-            ListNode<T>* m_node;
+            Node* m_node;
         };
 
         static_assert(std::forward_iterator<Iterator>);
@@ -104,8 +104,8 @@ namespace alvo::ast {
             m_size(0) { }
 
         void push_back(mem::Arena& arena, const T& val) {
-            void* mem = arena.alloc(sizeof(ListNode<T>), alignof(ListNode<T>));
-            ListNode<T>* node = new (mem) ListNode<T> { val, nullptr };
+            void* mem = arena.alloc(sizeof(Node), alignof(Node));
+            Node* node = new (mem) Node { val, nullptr };
             if (m_tail) {
                 m_tail->next = node;
             } else {
@@ -116,9 +116,8 @@ namespace alvo::ast {
         }
 
         void push_back(mem::Arena& arena, T&& val) {
-            void* mem = arena.alloc(sizeof(ListNode<T>), alignof(ListNode<T>));
-            ListNode<T>* node =
-                new (mem) ListNode<T> { std::move(val), nullptr };
+            void* mem = arena.alloc(sizeof(Node), alignof(Node));
+            Node* node = new (mem) Node { std::move(val), nullptr };
             if (m_tail) {
                 m_tail->next = node;
             } else {
@@ -161,8 +160,8 @@ namespace alvo::ast {
         }
 
     private:
-        ListNode<T>* m_head;
-        ListNode<T>* m_tail;
+        Node* m_head;
+        Node* m_tail;
         std::size_t m_size;
     };
 
