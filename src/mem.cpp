@@ -65,8 +65,12 @@ namespace alvo::mem {
         }
         if (!m_blocks.back().can_fit(size, alignment)) {
             std::size_t new_block_size = m_block_size;
-            while (new_block_size < _align_up(size, alignment)) {
-                new_block_size *= 2;
+            if (new_block_size == 0) {
+                new_block_size = size;
+            } else {
+                while (new_block_size < _align_up(size, alignment)) {
+                    new_block_size *= 2;
+                }
             }
             m_blocks.emplace_back(new_block_size);
             m_total_allocated += new_block_size;
