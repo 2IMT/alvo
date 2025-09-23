@@ -15,13 +15,18 @@ namespace alvo::mem {
     ArenaBlock::ArenaBlock(std::size_t size) :
         m_data(new char[size]),
         m_size(size),
-        m_used(0) { }
+        m_used(0) {
+        std::memset(m_data.get(), 0, size);
+    }
 
     std::size_t ArenaBlock::size() const { return m_size; }
 
     std::size_t ArenaBlock::used() const { return m_used; }
 
     bool ArenaBlock::can_fit(std::size_t size, std::size_t alignment) const {
+        if (!_is_power_of_two(alignment)) {
+            return false;
+        }
         std::size_t used = _align_up(m_used, alignment);
         return used + size <= m_size;
     }
