@@ -33,8 +33,6 @@ namespace alvo::mem {
     public:
         Arena(std::size_t block_size);
 
-        void* alloc(std::size_t size);
-
         void* alloc(std::size_t size, std::size_t alignment);
 
         std::size_t get_total_allocated() const;
