@@ -8,7 +8,7 @@ namespace alvo::ast::print {
     void OstreamSink::write(std::string_view sv) { (*m_ostream) << sv; }
 
     bool Color::operator==(Color rhs) const {
-        return r == rhs.r & g == rhs.g && b == rhs.b;
+        return r == rhs.r && g == rhs.g && b == rhs.b;
     }
 
     bool Color::operator!=(Color rhs) const { return !(*this == rhs); }
