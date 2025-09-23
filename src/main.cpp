@@ -84,7 +84,7 @@ std::optional<std::string> read_file(std::string_view path) {
         fmt::println(std::cerr, "error: failed to read file `{}`", path);
         return std::nullopt;
     }
-    return std::move(data);
+    return data;
 }
 
 void eat_all_tokens(alvo::lex::Lexer& lexer) {
