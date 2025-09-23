@@ -384,8 +384,7 @@ namespace alvo::ast::print {
             field(name, *value);
         }
 
-        template<>
-        void field(std::string_view name, const bool& value) {
+        void field(std::string_view name, bool value) {
             field_name(name);
             set_style_boolean();
             if (value) {
@@ -397,8 +396,7 @@ namespace alvo::ast::print {
             m_sink->write("\n");
         }
 
-        template<>
-        void field(std::string_view name, const std::string_view& value) {
+        void field(std::string_view name, std::string_view value) {
             field_name(name);
             set_style_string();
             m_sink->write("`");
