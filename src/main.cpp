@@ -45,7 +45,7 @@ public:
         case alvo::parse::SectionEvent::Exit:
             m_state->indent--;
             indent();
-            fmt::println("}}\n");
+            fmt::println("}}");
             break;
         }
     }
