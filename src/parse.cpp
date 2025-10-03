@@ -6,6 +6,7 @@
 namespace alvo::parse {
 
     using enum lex::TokKind;
+    using namespace ast;
 
     SectionEmitter::SectionEmitter(SectionHandler handler) :
         m_handler(handler) { }
@@ -22,135 +23,144 @@ namespace alvo::parse {
         m_section_emitter = &section_emitter;
     }
 
-    ast::PathSegment Parser::parse_path_segment() {
+    PathSegment Parser::parse_path_segment() {
         SectionGuard section_guard(this, __func__);
 
-        ast::PathSegment res;
+        PathSegment::Val val;
         std::optional<lex::Tok> name;
         if (accept(KwRoot)) {
-            res.val = ast::PathSegment::Root {};
+            val = PathSegment::Root {};
         } else if (accept(KwSuper)) {
-            res.val = ast::PathSegment::Super {};
+            val = PathSegment::Super {};
         } else if ((name = accept_and_get(Ident)).has_value()) {
-            res.val = ast::PathSegment::Name { (*name).value };
+            util::List<Type> generic_params;
+            std::string_view value = (*name).value;
+            if (accept(LAngle)) {
+                generic_params.push_back(*m_arena, parse_type());
+                while (accept(Comma)) {
+                    generic_params.push_back(*m_arena, parse_type());
+                }
+                if (!expect(RAngle)) {
+                    // Err
+                }
+            }
+            val = PathSegment::Name(value, generic_params);
         } else {
-            res.val = ast::Invalid {};
+            // Err
         }
-        return res;
+        return PathSegment(val);
     }
 
-    ast::Import Parser::parse_import() {
+    Import Parser::parse_import() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Import res;
-        res.kind = ast::Import::Normal {};
+        Import::Kind kind = Import::Normal {};
+        util::List<PathSegment> segments;
         if (!expect(KwImport)) {
             // Err
         }
         while (true) {
             if (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
-                res.segments.push_back(*m_arena, parse_path_segment());
+                segments.push_back(*m_arena, parse_path_segment());
                 if (!accept(ColonColon)) {
                     break;
                 }
             } else if (accept(Star)) {
-                res.kind = ast::Import::Glob {};
+                kind = Import::Glob {};
                 break;
             } else {
                 // Err
             }
         }
         if (accept(KwAs)) {
-            if (std::holds_alternative<ast::Import::Glob>(res.kind)) {
+            if (std::holds_alternative<Import::Glob>(kind)) {
                 // Err
             }
             std::optional<lex::Tok> name = expect_and_get(Ident);
             if (!name) {
                 // Err
             }
-            res.kind = ast::Import::Renamed { (*name).value };
+            kind = Import::Renamed { (*name).value };
         }
         if (!expect(Semicolon)) {
             // Err
         }
-        return res;
+        return Import(kind, segments);
     }
 
-    ast::Type Parser::parse_type() {
+    Type Parser::parse_type() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Type res;
+        Type::Val val;
         if (accept(KwString)) {
-            res.val = ast::Type::String {};
+            val = Type::String {};
         } else if (accept(KwChar)) {
-            res.val = ast::Type::Char {};
+            val = Type::Char {};
         } else if (accept(KwInt)) {
-            res.val = ast::Type::Int {};
+            val = Type::Int {};
         } else if (accept(KwByte)) {
-            res.val = ast::Type::Byte {};
+            val = Type::Byte {};
         } else if (accept(KwFloat)) {
-            res.val = ast::Type::Float {};
+            val = Type::Float {};
         } else if (accept(KwBool)) {
-            res.val = ast::Type::Bool {};
+            val = Type::Bool {};
         } else if (accept(KwUnit)) {
-            res.val = ast::Type::Unit {};
+            val = Type::Unit {};
         } else if (curr_is(LBracket)) {
-            res.val = parse_type_array();
+            val = parse_type_array();
         } else if (curr_is(KwTup)) {
-            res.val = parse_type_tup();
+            val = parse_type_tup();
         } else if (accept(KwFunc)) {
-            res.val = parse_type_func();
+            val = parse_type_func();
         } else if (curr_is(Ident) || curr_is(KwRoot) || curr_is(KwSuper)) {
-            res.val = parse_type_path();
+            val = parse_type_path();
         } else {
             // Err
         }
-        return res;
+        return Type(val);
     }
 
-    ast::Type::Array Parser::parse_type_array() {
+    Type::Array Parser::parse_type_array() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Type::Array res;
         if (!expect(LBracket)) {
             // Err
         }
-        res.type = m_node_ctx.make_node<ast::Type>(parse_type());
+        util::Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
         if (!expect(RBracket)) {
             // Err
         }
-        return res;
+        return Type::Array(type);
     }
 
-    ast::Type::Tup Parser::parse_type_tup() {
+    Type::Tup Parser::parse_type_tup() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Type::Tup res;
+        util::List<Type> types;
         if (!expect(KwTup)) {
             // Err
         }
         if (!expect(LParen)) {
             // Err
         }
-        res.types.push_back(*m_arena, parse_type());
+        types.push_back(*m_arena, parse_type());
         while (accept(Comma)) {
             if (curr_is(RParen)) {
                 break;
             }
-            res.types.push_back(*m_arena, parse_type());
+            types.push_back(*m_arena, parse_type());
         }
         if (!expect(RParen)) {
             // Err
         }
-        return res;
+        return Type::Tup(types);
     }
 
-    ast::Type::Func Parser::parse_type_func() {
+    Type::Func Parser::parse_type_func() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Type::Func res;
-        ast::Type return_type;
-        return_type.val = ast::Type::Unit {};
+        util::List<Type> params;
+        util::Ptr<Type> return_type = m_node_ctx.make_node<Type>(Type::Unit {});
         if (!expect(KwFunc)) {
             // Err
         }
@@ -158,113 +168,111 @@ namespace alvo::parse {
             // Err
         }
         if (!curr_is(RParen)) {
-            res.params.push_back(*m_arena, parse_type());
+            params.push_back(*m_arena, parse_type());
             while (accept(Comma)) {
                 if (curr_is(RParen)) {
                     break;
                 }
-                res.params.push_back(*m_arena, parse_type());
+                params.push_back(*m_arena, parse_type());
             }
         }
         if (!expect(RParen)) {
             // Err
         }
         if (accept(DashRAngle)) {
-            return_type = parse_type();
+            *return_type = parse_type();
         }
-        res.return_type = m_node_ctx.make_node<ast::Type>(return_type);
-        return res;
+        return Type::Func(params, return_type);
     }
 
-    ast::Type::Path Parser::parse_type_path() {
+    Type::Path Parser::parse_type_path() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Type::Path res;
+        util::List<PathSegment> segments;
         while (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
-            res.segments.push_back(*m_arena, parse_path_segment());
+            segments.push_back(*m_arena, parse_path_segment());
             if (!accept(ColonColon)) {
                 break;
             }
         }
-        return res;
+        return Type::Path(segments);
     }
 
-    ast::Expr Parser::parse_expr() {
+    Expr Parser::parse_expr() {
         SectionGuard section_guard(this, __func__);
 
         return parse_expr_bp(0);
     }
 
-    ast::Expr::Literal Parser::parse_expr_literal() {
+    Expr::Literal Parser::parse_expr_literal() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Expr::Literal res;
+        Expr::Literal::Val val;
         std::optional<lex::Tok> tok;
         if (accept(KwUnit)) {
-            res.val = ast::Expr::Literal::Unit {};
+            val = Expr::Literal::Unit {};
         } else if (accept(KwNull)) {
-            res.val = ast::Expr::Literal::Null {};
+            val = Expr::Literal::Null {};
         } else if ((tok = accept_and_get(LitString)).has_value()) {
-            res.val = ast::Expr::Literal::String { (*tok).value };
+            val = Expr::Literal::String { (*tok).value };
         } else if ((tok = accept_and_get(LitCharacter)).has_value()) {
-            res.val = ast::Expr::Literal::Character { (*tok).value };
+            val = Expr::Literal::Character { (*tok).value };
         } else if ((tok = accept_and_get(LitInteger)).has_value()) {
-            res.val = ast::Expr::Literal::Integer { (*tok).value };
+            val = Expr::Literal::Integer { (*tok).value };
         } else if ((tok = accept_and_get(LitByte)).has_value()) {
-            res.val = ast::Expr::Literal::Byte { (*tok).value };
+            val = Expr::Literal::Byte { (*tok).value };
         } else if ((tok = accept_and_get(LitFloating)).has_value()) {
-            res.val = ast::Expr::Literal::Floating { (*tok).value };
+            val = Expr::Literal::Floating { (*tok).value };
         } else if ((tok = accept_and_get(LitBoolean)).has_value()) {
-            res.val = ast::Expr::Literal::Boolean { (*tok).value };
+            val = Expr::Literal::Boolean { (*tok).value };
         } else if (curr_is(LBracket)) {
-            res.val = parse_expr_literal_array();
+            val = parse_expr_literal_array();
         } else if (curr_is(KwTup)) {
-            res.val = parse_expr_literal_tup();
+            val = parse_expr_literal_tup();
         } else if (curr_is(KwFunc)) {
-            res.val = m_node_ctx.make_node<ast::Func>(parse_func());
+            val = m_node_ctx.make_node<Func>(parse_func());
         } else {
             // Err
         }
-        return res;
+        return Expr::Literal(val);
     }
 
-    ast::Expr::Literal::Array Parser::parse_expr_literal_array() {
+    Expr::Literal::Array Parser::parse_expr_literal_array() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Expr::Literal::Array res;
+        Expr::Literal::Array::Val val;
         if (!expect(LBracket)) {
             // Err
         }
         if (accept(RBracket)) {
-            res.val = ast::Expr::Literal::Array::Regular {};
+            val = Expr::Literal::Array::Regular { util::List<Expr>() };
         } else {
             if (accept(KwDefault)) {
                 if (!expect(KwFor)) {
                     // Err
                 }
-                res.val = ast::Expr::Literal::Array::DefaultNTimes {
-                    m_node_ctx.make_node<ast::Expr>(parse_expr())
+                val = Expr::Literal::Array::DefaultNTimes {
+                    m_node_ctx.make_node<Expr>(parse_expr())
                 };
             } else {
-                ast::Expr first = parse_expr();
+                Expr first = parse_expr();
                 if (accept(KwFor)) {
-                    ast::Expr times = parse_expr();
-                    res.val = ast::Expr::Literal::Array::ExprNTimes {
-                        m_node_ctx.make_node<ast::Expr>(first),
-                        m_node_ctx.make_node<ast::Expr>(times)
-                    };
+                    Expr times = parse_expr();
+                    val = Expr::Literal::Array::ExprNTimes(
+                        m_node_ctx.make_node<Expr>(first),
+                        m_node_ctx.make_node<Expr>(times));
                 } else {
-                    ast::Expr::Literal::Array::Regular regular;
-                    regular.elements.push_back(*m_arena, first);
+                    util::List<Expr> elements;
+                    elements.push_back(*m_arena, first);
                     if (curr_is(Comma)) {
                         while (accept(Comma)) {
                             if (curr_is(RBracket)) {
                                 break;
                             }
-                            regular.elements.push_back(*m_arena, parse_expr());
+                            elements.push_back(*m_arena, parse_expr());
                         }
                     }
-                    res.val = regular;
+                    val = Expr::Literal::Array::Regular(elements);
                 }
             }
 
@@ -272,254 +280,249 @@ namespace alvo::parse {
                 // Err
             }
         }
-        return res;
+        return Expr::Literal::Array(val);
     }
 
-    ast::Expr::Literal::Tup Parser::parse_expr_literal_tup() {
+    Expr::Literal::Tup Parser::parse_expr_literal_tup() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Expr::Literal::Tup res;
+        util::List<Expr> exprs;
         if (!expect(KwTup)) {
             // Err
         }
         if (!expect(LParen)) {
             // Err
         }
-        res.exprs.push_back(*m_arena, parse_expr());
+        exprs.push_back(*m_arena, parse_expr());
         while (accept(Comma)) {
             if (curr_is(RParen)) {
                 break;
             }
-            res.exprs.push_back(*m_arena, parse_expr());
+            exprs.push_back(*m_arena, parse_expr());
         }
         if (!expect(RParen)) {
             // Err
         }
-        return res;
+        return Expr::Literal::Tup(exprs);
     }
 
-    ast::Block Parser::parse_block() {
+    Block Parser::parse_block() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Block res;
+        util::List<Stmt> stmts;
         if (!expect(LBrace)) {
             // Err
         }
         if (!curr_is(RBrace)) {
-            res.stmts.push_back(*m_arena, parse_stmt());
+            stmts.push_back(*m_arena, parse_stmt());
             while (!curr_is(RBrace)) {
-                res.stmts.push_back(*m_arena, parse_stmt());
+                stmts.push_back(*m_arena, parse_stmt());
             }
         }
         if (!expect(RBrace)) {
             // Err
         }
-        return res;
+        return Block(stmts);
     }
 
-    ast::Stmt Parser::parse_stmt() {
+    Stmt Parser::parse_stmt() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt res;
+        Stmt::Val val;
         while (accept(Semicolon))
             ;
         if (curr_is(KwLet)) {
-            res.val = parse_stmt_let();
+            val = parse_stmt_let();
         } else if (curr_is(KwIf)) {
-            res.val = parse_stmt_if();
+            val = parse_stmt_if();
         } else if (curr_is(KwSwitch)) {
-            res.val = parse_stmt_switch();
+            val = parse_stmt_switch();
         } else if (curr_is(KwLoop)) {
-            res.val = parse_stmt_loop();
+            val = parse_stmt_loop();
         } else if (curr_is(KwFor)) {
-            res.val = parse_stmt_for();
+            val = parse_stmt_for();
         } else if (curr_is(KwWhile)) {
-            res.val = parse_stmt_while();
+            val = parse_stmt_while();
         } else if (curr_is(KwReturn)) {
-            res.val = parse_stmt_return();
+            val = parse_stmt_return();
         } else if (curr_is(KwDefer)) {
-            res.val = parse_stmt_defer();
+            val = parse_stmt_defer();
         } else if (curr_is(LBrace)) {
-            res.val = parse_block();
+            val = parse_block();
         } else if (accept(KwContinue)) {
-            res.val = ast::Stmt::Continue {};
+            val = Stmt::Continue {};
         } else if (accept(KwBreak)) {
-            res.val = ast::Stmt::Break {};
+            val = Stmt::Break {};
         } else {
-            res.val = parse_expr();
+            val = parse_expr();
             if (!expect(Semicolon)) {
                 // Err
             }
         }
-        return res;
+        return Stmt(val);
     }
 
-    ast::Stmt::Let Parser::parse_stmt_let() {
+    Stmt::Let Parser::parse_stmt_let() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::Let res;
-        res.type = std::nullopt;
-        res.expr = std::nullopt;
+        std::string_view name;
+        std::optional<Type> type = std::nullopt;
+        std::optional<Expr> expr = std::nullopt;
         if (!expect(KwLet)) {
             // Err
         }
-        std::optional<lex::Tok> name = expect_and_get(Ident);
-        if (!name) {
+        std::optional<lex::Tok> name_tok = expect_and_get(Ident);
+        if (!name_tok) {
             // Err
         }
-        res.name = (*name).value;
+        name = (*name_tok).value;
         if (accept(Colon)) {
-            res.type = parse_type();
+            type = parse_type();
         }
         if (accept(Eq)) {
-            res.expr = parse_expr();
+            expr = parse_expr();
         }
         if (!expect(Semicolon)) {
             // Err
         }
-        return res;
+        return Stmt::Let(name, type, expr);
     }
 
-    ast::Stmt::If Parser::parse_stmt_if() {
+    Stmt::If Parser::parse_stmt_if() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::If res;
-        res.else_ = std::nullopt;
         if (!expect(KwIf)) {
             // Err
         }
-        res.expr = parse_expr();
-        res.main = parse_block();
+        Expr expr = parse_expr();
+        Block main = parse_block();
+        util::List<Stmt::If::Elif> elifs;
         while (accept(KwElif)) {
-            ast::Stmt::If::Elif elif;
-            elif.expr = parse_expr();
-            elif.block = parse_block();
-            res.elifs.push_back(*m_arena, elif);
+            Expr expr = parse_expr();
+            Block block = parse_block();
+            elifs.push_back(*m_arena, Stmt::If::Elif(expr, block));
         }
+        std::optional<Block> else_ = std::nullopt;
         if (accept(KwElse)) {
-            res.else_ = parse_block();
+            else_ = parse_block();
         }
-        return res;
+        return Stmt::If(expr, main, elifs, else_);
     }
 
-    ast::Stmt::Switch Parser::parse_stmt_switch() {
+    Stmt::Switch Parser::parse_stmt_switch() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::Switch res;
+        util::List<Stmt::Switch::Case> cases;
         if (!expect(KwSwitch)) {
             // Err
         }
+        Expr expr = parse_expr();
         if (!expect(LBrace)) {
             // Err
         }
         if (!curr_is(RBrace)) {
-            res.cases.push_back(*m_arena, parse_stmt_switch_case());
+            cases.push_back(*m_arena, parse_stmt_switch_case());
             while (!curr_is(RBrace)) {
-                res.cases.push_back(*m_arena, parse_stmt_switch_case());
+                cases.push_back(*m_arena, parse_stmt_switch_case());
             }
         }
         if (!expect(RBrace)) {
             // Err
         }
-        return res;
+        return Stmt::Switch(expr, cases);
     }
 
-    ast::Stmt::Switch::Case Parser::parse_stmt_switch_case() {
+    Stmt::Switch::Case Parser::parse_stmt_switch_case() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::Switch::Case res;
+        std::optional<Expr> expr = std::nullopt;
         if (accept(KwDefault)) {
-            res.expr = std::nullopt;
+            expr = std::nullopt;
         } else {
-            res.expr = parse_expr();
+            expr = parse_expr();
         }
         if (!expect(EqRAngle)) {
             // Err
         }
-        res.block = parse_block();
-        return res;
+        Block block = parse_block();
+        return Stmt::Switch::Case(expr, block);
     }
 
-    ast::Stmt::Loop Parser::parse_stmt_loop() {
+    Stmt::Loop Parser::parse_stmt_loop() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::Loop res;
         if (!expect(KwLoop)) {
             // Err
         }
-        res.block = parse_block();
-        return res;
+        Block block = parse_block();
+        return Stmt::Loop(block);
     }
 
-    ast::Stmt::For Parser::parse_stmt_for() {
+    Stmt::For Parser::parse_stmt_for() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::For res;
         if (!expect(KwFor)) {
             // Err
         }
-        std::optional<lex::Tok> name = expect_and_get(Ident);
-        if (!name) {
+        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
             // Err
         }
-        res.name = (*name).value;
+        std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             // Err
         }
-        res.expr = parse_expr();
-        res.block = parse_block();
-        return res;
+        Expr expr = parse_expr();
+        Block block = parse_block();
+        return Stmt::For(name, expr, block);
     }
 
-    ast::Stmt::While Parser::parse_stmt_while() {
+    Stmt::While Parser::parse_stmt_while() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::While res;
         if (!expect(KwWhile)) {
             // Err
         }
-        res.expr = parse_expr();
-        res.block = parse_block();
-        return res;
+        Expr expr = parse_expr();
+        Block block = parse_block();
+        return Stmt::While(expr, block);
     }
 
-    ast::Stmt::Return Parser::parse_stmt_return() {
+    Stmt::Return Parser::parse_stmt_return() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::Return res;
-        res.expr = std::nullopt;
+        std::optional<Expr> expr = std::nullopt;
         if (!expect(KwReturn)) {
             // Err
         }
         if (accept(Semicolon)) {
-            return res;
+            return Stmt::Return(expr);
         }
-        res.expr = parse_expr();
+        expr = parse_expr();
         if (!expect(Semicolon)) {
             // Err
         }
-        return res;
+        return Stmt::Return(expr);
     }
 
-    ast::Stmt::Defer Parser::parse_stmt_defer() {
+    Stmt::Defer Parser::parse_stmt_defer() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Stmt::Defer res;
         if (!expect(KwDefer)) {
             // Err
         }
-        res.expr = parse_expr();
+        Expr expr = parse_expr();
         if (!expect(Semicolon)) {
             // Err
         }
-        return res;
+        return Stmt::Defer(expr);
     }
 
-    ast::Func Parser::parse_func() {
+    Func Parser::parse_func() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Func res;
-        res.ret.val = ast::Type::Unit {};
+        util::List<Func::Param> params;
+        Type ret(Type::Unit {});
         if (!expect(KwFunc)) {
             // Err
         }
@@ -527,63 +530,61 @@ namespace alvo::parse {
             // Err
         }
         if (curr_is(Ident)) {
-            res.params.push_back(*m_arena, parse_func_param());
+            params.push_back(*m_arena, parse_func_param());
             while (accept(Comma)) {
                 if (curr_is(RParen)) {
                     break;
                 }
-                res.params.push_back(*m_arena, parse_func_param());
+                params.push_back(*m_arena, parse_func_param());
             }
         }
         if (!expect(RParen)) {
             // Err
         }
         if (accept(DashRAngle)) {
-            res.ret = parse_type();
+            ret = parse_type();
         }
-        res.block = parse_block();
-        return res;
+        Block block = parse_block();
+        return Func(params, ret, block);
     }
 
-    ast::Func::Param Parser::parse_func_param() {
+    Func::Param Parser::parse_func_param() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Func::Param res;
-        std::optional<lex::Tok> name = expect_and_get(Ident);
-        if (!name) {
+        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
             // Err
         }
-        res.name = (*name).value;
+        std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             // Err
         }
-        res.type = parse_type();
-        return res;
+        Type type = parse_type();
+        return Func::Param(name, type);
     }
 
-    ast::Decl Parser::parse_decl() {
+    Decl Parser::parse_decl() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl res;
-        res.is_export = false;
+        bool is_export = false;
+        util::List<Decl::GenericParam> generic_params;
         if (accept(KwExport)) {
-            res.is_export = true;
+            is_export = true;
         }
 
-        std::optional<lex::Tok> name = expect_and_get(Ident);
-        if (!name) {
+        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
             // Err
         }
-        res.name = (*name).value;
+        std::string_view name = (*tok_name).value;
 
         if (accept(LAngle)) {
-            res.generic_params.push_back(*m_arena, parse_decl_generic_param());
+            generic_params.push_back(*m_arena, parse_decl_generic_param());
             while (accept(Comma)) {
                 if (curr_is(RAngle)) {
                     break;
                 }
-                res.generic_params.push_back(
-                    *m_arena, parse_decl_generic_param());
+                generic_params.push_back(*m_arena, parse_decl_generic_param());
             }
             if (!expect(RAngle)) {
                 // Err
@@ -594,204 +595,202 @@ namespace alvo::parse {
             // Err
         }
 
+        Decl::Val val;
         if (curr_is(KwFunc)) {
-            res.val = parse_func();
+            val = parse_func();
         } else if (curr_is(KwStruct)) {
-            res.val = parse_decl_struct();
+            val = parse_decl_struct();
         } else if (curr_is(KwEnum)) {
-            res.val = parse_decl_enum();
+            val = parse_decl_enum();
         } else if (curr_is(KwType)) {
-            res.val = parse_decl_type_alias();
+            val = parse_decl_type_alias();
         } else if (curr_is(KwConst)) {
-            res.val = parse_decl_const();
+            val = parse_decl_const();
         } else if (curr_is(KwDefines)) {
-            res.val = parse_decl_defines();
+            val = parse_decl_defines();
         } else {
             // Err
         }
 
-        return res;
+        return Decl(is_export, name, generic_params, val);
     }
 
-    ast::Decl::GenericParam Parser::parse_decl_generic_param() {
+    Decl::GenericParam Parser::parse_decl_generic_param() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::GenericParam res;
-        std::optional<lex::Tok> name = expect_and_get(Ident);
-        if (!name) {
+        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
             // Err
         }
-        res.name = (*name).value;
+        std::string_view name = (*tok_name).value;
+        util::List<Type> interfaces;
         if (accept(Colon)) {
-            res.interfaces.push_back(*m_arena, parse_type());
+            interfaces.push_back(*m_arena, parse_type());
             while (accept(Plus)) {
-                res.interfaces.push_back(*m_arena, parse_type());
+                interfaces.push_back(*m_arena, parse_type());
             }
         }
-        return res;
+        return Decl::GenericParam(name, interfaces);
     }
 
-    ast::Decl::Struct Parser::parse_decl_struct() {
+    Decl::Struct Parser::parse_decl_struct() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Struct res;
         if (!expect(KwStruct)) {
             // Err
         }
         if (!expect(LBrace)) {
             // Err
         }
+        util::List<Decl::Struct::Field> fields;
         if (curr_is(KwExport) || curr_is(Ident)) {
-            res.fields.push_back(*m_arena, parse_decl_struct_field());
+            fields.push_back(*m_arena, parse_decl_struct_field());
             while (accept(Comma)) {
                 if (curr_is(RBrace)) {
                     break;
                 }
-                res.fields.push_back(*m_arena, parse_decl_struct_field());
+                fields.push_back(*m_arena, parse_decl_struct_field());
             }
         }
         if (!expect(RBrace)) {
             // Err
         }
-        return res;
+        return Decl::Struct(fields);
     }
 
-    ast::Decl::Struct::Field Parser::parse_decl_struct_field() {
+    Decl::Struct::Field Parser::parse_decl_struct_field() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Struct::Field res;
-        res.is_export = false;
+        bool is_export = false;
         if (accept(KwExport)) {
-            res.is_export = true;
+            is_export = true;
         }
-        std::optional<lex::Tok> name = expect_and_get(Ident);
-        if (!name) {
+        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
             // Err
         }
-        res.name = (*name).value;
+        std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             // Err
         }
-        res.type = parse_type();
-        return res;
+        Type type = parse_type();
+        return Decl::Struct::Field(name, type, is_export);
     }
 
-    ast::Decl::Enum Parser::parse_decl_enum() {
+    Decl::Enum Parser::parse_decl_enum() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Enum res;
         if (!expect(KwEnum)) {
             // Err
         }
         if (!expect(LBrace)) {
             // Err
         }
-        std::optional<lex::Tok> item = expect_and_get(Ident);
-        if (!item) {
-            // Err
-        }
-        res.elements.push_back(*m_arena, parse_decl_enum_element());
+        util::List<Decl::Enum::Element> elements;
+        elements.push_back(*m_arena, parse_decl_enum_element());
         while (accept(Comma)) {
             if (curr_is(RBrace)) {
                 break;
             }
-            res.elements.push_back(*m_arena, parse_decl_enum_element());
+            elements.push_back(*m_arena, parse_decl_enum_element());
         }
-        return res;
+        if (!expect(RBrace)) {
+            // Err
+        }
+        return Decl::Enum(elements);
     }
 
-    ast::Decl::Enum::Element Parser::parse_decl_enum_element() {
+    Decl::Enum::Element Parser::parse_decl_enum_element() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Enum::Element res;
         std::optional<lex::Tok> name = expect_and_get(Ident);
         if (!name) {
             // Err
         }
-        res.name = (*name).value;
-        return res;
+        return Decl::Enum::Element((*name).value);
     }
 
-    ast::Decl::TypeAlias Parser::parse_decl_type_alias() {
+    Decl::TypeAlias Parser::parse_decl_type_alias() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::TypeAlias res;
         if (!expect(KwType)) {
             // Err
         }
         if (!expect(Eq)) {
             // Err
         }
-        res.type = parse_type();
+        Type type = parse_type();
         if (!expect(Semicolon)) {
             // Err
         }
-        return res;
+        return Decl::TypeAlias(type);
     }
 
-    ast::Decl::Const Parser::parse_decl_const() {
+    Decl::Const Parser::parse_decl_const() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Const res;
         if (!expect(KwConst)) {
             // Err
         }
         if (!expect(Colon)) {
             // Err
         }
-        res.type = parse_type();
+        Type type = parse_type();
         if (!expect(Eq)) {
             // Err
         }
-        res.expr = parse_expr();
+        Expr expr = parse_expr();
         if (!expect(Semicolon)) {
             // Err
         }
-        return res;
+        return Decl::Const(type, expr);
     }
 
-    ast::Decl::Defines Parser::parse_decl_defines() {
+    Decl::Defines Parser::parse_decl_defines() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Defines res;
         if (!expect(KwDefines)) {
             // Err
         }
+        std::optional<Type> interface = std::nullopt;
         if (!accept(LBrace)) {
-            res.interface = parse_type();
+            interface = parse_type();
             if (!expect(LBrace)) {
                 // Err
             }
         }
+        util::List<Decl> decls;
         while (!curr_is(RBrace)) {
-            res.decls.push_back(*m_arena, parse_decl());
+            decls.push_back(*m_arena, parse_decl());
         }
         if (!expect(RBrace)) {
             // Err
         }
-        return res;
+        return Decl::Defines(interface, decls);
     }
 
-    ast::TopLevel Parser::parse_top_level() {
+    TopLevel Parser::parse_top_level() {
         SectionGuard section_guard(this, __func__);
 
-        ast::TopLevel res;
+        TopLevel::Val val;
         if (curr_is(KwImport)) {
-            res.val = parse_import();
+            val = parse_import();
         } else if (curr_is(Ident) || curr_is(KwExport)) {
-            res.val = parse_decl();
+            val = parse_decl();
+        } else {
+            // Err
         }
-        return res;
+        return TopLevel(val);
     }
 
-    ast::Module Parser::parse_module() {
+    Module Parser::parse_module() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Module res;
+        util::List<TopLevel> top_levels;
         while (!curr_is(Eof)) {
-            res.top_levels.push_back(*m_arena, parse_top_level());
+            top_levels.push_back(*m_arena, parse_top_level());
         }
-        return res;
+        return Module(top_levels);
     }
 
     std::optional<int> Parser::prefix_bp(lex::TokKind kind) {
@@ -881,8 +880,8 @@ namespace alvo::parse {
         }
     }
 
-    ast::Expr Parser::parse_expr_bp(int min_bp) {
-        ast::Expr lhs;
+    Expr Parser::parse_expr_bp(int min_bp) {
+        Expr lhs(Invalid {});
         std::optional<int> bp_prefix;
         std::optional<int> bp_postfix;
         std::optional<std::pair<int, int>> bp_infix;
@@ -894,11 +893,10 @@ namespace alvo::parse {
         } else if (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
             lhs.val = parse_path_segment();
         } else if ((bp_prefix = prefix_bp(m_lexer->peek().kind)).has_value()) {
-            ast::Expr::Unop unop;
-            unop.op = parse_unop_op();
-            unop.expr =
-                m_node_ctx.make_node<ast::Expr>(parse_expr_bp(*bp_prefix));
-            lhs.val = unop;
+            Expr::Unop::Op op = parse_unop_op();
+            util::Ptr<Expr> expr =
+                m_node_ctx.make_node<Expr>(parse_expr_bp(*bp_prefix));
+            lhs.val = Expr::Unop(expr, op);
         } else if (curr_is(KwUnit) || curr_is(KwNull) || curr_is(LitString) ||
                    curr_is(LitCharacter) || curr_is(LitInteger) ||
                    curr_is(LitByte) || curr_is(LitByte) ||
@@ -914,9 +912,8 @@ namespace alvo::parse {
                 break;
             }
 
-            ast::Expr res;
-            ast::util::Ptr<ast::Expr> res_lhs =
-                m_node_ctx.make_node<ast::Expr>(lhs);
+            Expr res(Invalid {});
+            util::Ptr<Expr> res_lhs = m_node_ctx.make_node<Expr>(lhs);
 
             if ((bp_postfix = postfix_bp(m_lexer->peek().kind)).has_value()) {
                 if (*bp_postfix < min_bp) {
@@ -924,37 +921,37 @@ namespace alvo::parse {
                 }
 
                 if (accept(LBracket)) {
-                    res.val = ast::Expr::Index { res_lhs,
-                        m_node_ctx.make_node<ast::Expr>(parse_expr()) };
+                    res.val = Expr::Index { res_lhs,
+                        m_node_ctx.make_node<Expr>(parse_expr()) };
                     lhs = res;
                     if (!expect(RBracket)) {
                         // Err
                     }
                 } else if (accept(LParen)) {
-                    ast::Expr::Call call;
-                    call.expr = res_lhs;
+                    util::Ptr<Expr> expr = res_lhs;
+                    util::List<Expr> args;
                     if (accept(RParen)) {
-                        res.val = call;
+                        res.val = Expr::Call(expr, args);
                         lhs = res;
                         continue;
                     }
-                    call.args.push_back(*m_arena, parse_expr());
+                    args.push_back(*m_arena, parse_expr());
                     while (accept(Comma)) {
                         if (curr_is(RParen)) {
                             break;
                         }
-                        call.args.push_back(*m_arena, parse_expr());
+                        args.push_back(*m_arena, parse_expr());
                     }
                     if (!expect(RParen)) {
                         // Err
                     }
-                    res.val = call;
+                    res.val = Expr::Call(expr, args);
                     lhs = res;
                 } else if (accept(KwAs)) {
-                    res.val = ast::Expr::Cast { res_lhs, parse_type() };
+                    res.val = Expr::Cast { res_lhs, parse_type() };
                     lhs = res;
                 } else if (accept(KwTryAs)) {
-                    res.val = ast::Expr::TryCast { res_lhs, parse_type() };
+                    res.val = Expr::TryCast { res_lhs, parse_type() };
                     lhs = res;
                 }
                 continue;
@@ -964,12 +961,11 @@ namespace alvo::parse {
                 if ((*bp_infix).first < min_bp) {
                     break;
                 }
-                ast::Expr::Binop::Op op = parse_binop_op();
-                ast::util::Ptr<ast::Expr> res_rhs =
-                    m_node_ctx.make_node<ast::Expr>(
-                        parse_expr_bp((*bp_infix).second));
+                Expr::Binop::Op op = parse_binop_op();
+                util::Ptr<Expr> res_rhs = m_node_ctx.make_node<Expr>(
+                    parse_expr_bp((*bp_infix).second));
 
-                res.val = ast::Expr::Binop { res_lhs, res_rhs, op };
+                res.val = Expr::Binop { res_lhs, res_rhs, op };
                 lhs = res;
                 continue;
             }
@@ -978,12 +974,12 @@ namespace alvo::parse {
         return lhs;
     }
 
-    ast::Expr::Unop::Op Parser::parse_unop_op() {
+    Expr::Unop::Op Parser::parse_unop_op() {
         SectionGuard section_guard(this, __func__);
 
         lex::Tok tok = m_lexer->next();
         switch (tok.kind) {
-            using Unop = ast::Expr::Unop::Op;
+            using Unop = Expr::Unop::Op;
         case Plus:
             return Unop::Plus;
         case Dash:
@@ -997,12 +993,12 @@ namespace alvo::parse {
         }
     }
 
-    ast::Expr::Binop::Op Parser::parse_binop_op() {
+    Expr::Binop::Op Parser::parse_binop_op() {
         SectionGuard section_guard(this, __func__);
 
         lex::Tok tok = m_lexer->next();
         switch (tok.kind) {
-            using Binop = ast::Expr::Binop::Op;
+            using Binop = Expr::Binop::Op;
         case Eq:
             return Binop::Assign;
         case PlusEq:

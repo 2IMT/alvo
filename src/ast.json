@@ -11,7 +11,8 @@
         "value": "std::string_view",
         "generic_params": "util::List<Type>"
       },
-      "val": "std::variant<Invalid, Root, Super, Name>"
+      "@Val": "std::variant<Invalid, Root, Super, Name>",
+      "val": "Val"
     },
     "Import": {
       "Normal": {},
@@ -19,7 +20,8 @@
       "Renamed": {
         "renamed_to": "std::string_view"
       },
-      "kind": "std::variant<Invalid, Normal, Glob, Renamed>",
+      "@Kind": "std::variant<Invalid, Normal, Glob, Renamed>",
+      "kind": "Kind",
       "segments": "util::List<PathSegment>"
     },
     "Type": {
@@ -43,7 +45,8 @@
       "Path": {
         "segments": "util::List<PathSegment>"
       },
-      "val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>"
+      "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>",
+      "val": "Val"
     },
     "Expr": {
       "Literal": {
@@ -78,12 +81,14 @@
             "expr": "util::Ptr<Expr>",
             "times": "util::Ptr<Expr>"
           },
-          "val": "std::variant<Regular, DefaultNTimes, ExprNTimes>"
+          "@Val": "std::variant<Invalid, Regular, DefaultNTimes, ExprNTimes>",
+          "val": "Val"
         },
         "Tup": {
           "exprs": "util::List<Expr>"
         },
-        "val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, util::Ptr<Func>>"
+        "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, util::Ptr<Func>>",
+        "val": "Val"
       },
       "Unop": {
         "Op": ["Invalid", "Plus", "Minus", "Not", "BinaryNot"],
@@ -145,7 +150,8 @@
         "expr": "util::Ptr<Expr>",
         "type": "Type"
       },
-      "val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, PathSegment>"
+      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, PathSegment>",
+      "val": "Val"
     },
     "Block": {
       "stmts": "util::List<Stmt>"
@@ -194,7 +200,8 @@
       },
       "Continue": {},
       "Break": {},
-      "val": "std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return, Defer, Block, Continue, Break>"
+      "@Val": "std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return, Defer, Block, Continue, Break>",
+      "val": "Val"
     },
     "Func": {
       "Param": {
@@ -235,13 +242,15 @@
         "interface": "std::optional<Type>",
         "decls": "util::List<Decl>"
       },
+      "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines>",
       "is_export": "bool",
       "name": "std::string_view",
       "generic_params": "util::List<GenericParam>",
-      "val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines>"
+      "val": "Val"
     },
     "TopLevel": {
-      "val": "std::variant<Import, Decl>"
+      "@Val": "std::variant<Invalid, Import, Decl>",
+      "val": "Val"
     },
     "Module": {
       "top_levels": "util::List<TopLevel>"

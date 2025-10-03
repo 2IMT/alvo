@@ -38,9 +38,18 @@ namespace alvo::ast {
         struct Name {
             std::string_view value;
             util::List<Type> generic_params;
+
+            Name(const std::string_view& value,
+                const util::List<Type>& generic_params) :
+                value(value),
+                generic_params(generic_params) { }
         };
 
-        std::variant<Invalid, Root, Super, Name> val;
+        using Val = std::variant<Invalid, Root, Super, Name>;
+        Val val;
+
+        PathSegment(const Val& val) :
+            val(val) { }
     };
 
     struct Import {
@@ -50,10 +59,18 @@ namespace alvo::ast {
 
         struct Renamed {
             std::string_view renamed_to;
+
+            Renamed(const std::string_view& renamed_to) :
+                renamed_to(renamed_to) { }
         };
 
-        std::variant<Invalid, Normal, Glob, Renamed> kind;
+        using Kind = std::variant<Invalid, Normal, Glob, Renamed>;
+        Kind kind;
         util::List<PathSegment> segments;
+
+        Import(const Kind& kind, const util::List<PathSegment>& segments) :
+            kind(kind),
+            segments(segments) { }
     };
 
     struct Type {
@@ -73,24 +90,41 @@ namespace alvo::ast {
 
         struct Array {
             util::Ptr<Type> type;
+
+            Array(const util::Ptr<Type>& type) :
+                type(type) { }
         };
 
         struct Tup {
             util::List<Type> types;
+
+            Tup(const util::List<Type>& types) :
+                types(types) { }
         };
 
         struct Func {
             util::List<Type> params;
             util::Ptr<Type> return_type;
+
+            Func(const util::List<Type>& params,
+                const util::Ptr<Type>& return_type) :
+                params(params),
+                return_type(return_type) { }
         };
 
         struct Path {
             util::List<PathSegment> segments;
+
+            Path(const util::List<PathSegment>& segments) :
+                segments(segments) { }
         };
 
-        std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array,
-            Tup, Func, Path>
-            val;
+        using Val = std::variant<Invalid, Unit, String, Char, Int, Byte, Float,
+            Bool, Array, Tup, Func, Path>;
+        Val val;
+
+        Type(const Val& val) :
+            val(val) { }
     };
 
     struct Expr {
@@ -101,52 +135,92 @@ namespace alvo::ast {
 
             struct String {
                 std::string_view value;
+
+                String(const std::string_view& value) :
+                    value(value) { }
             };
 
             struct Character {
                 std::string_view value;
+
+                Character(const std::string_view& value) :
+                    value(value) { }
             };
 
             struct Integer {
                 std::string_view value;
+
+                Integer(const std::string_view& value) :
+                    value(value) { }
             };
 
             struct Byte {
                 std::string_view value;
+
+                Byte(const std::string_view& value) :
+                    value(value) { }
             };
 
             struct Floating {
                 std::string_view value;
+
+                Floating(const std::string_view& value) :
+                    value(value) { }
             };
 
             struct Boolean {
                 std::string_view value;
+
+                Boolean(const std::string_view& value) :
+                    value(value) { }
             };
 
             struct Array {
                 struct Regular {
                     util::List<Expr> elements;
+
+                    Regular(const util::List<Expr>& elements) :
+                        elements(elements) { }
                 };
 
                 struct DefaultNTimes {
                     util::Ptr<Expr> times;
+
+                    DefaultNTimes(const util::Ptr<Expr>& times) :
+                        times(times) { }
                 };
 
                 struct ExprNTimes {
                     util::Ptr<Expr> expr;
                     util::Ptr<Expr> times;
+
+                    ExprNTimes(const util::Ptr<Expr>& expr,
+                        const util::Ptr<Expr>& times) :
+                        expr(expr),
+                        times(times) { }
                 };
 
-                std::variant<Regular, DefaultNTimes, ExprNTimes> val;
+                using Val =
+                    std::variant<Invalid, Regular, DefaultNTimes, ExprNTimes>;
+                Val val;
+
+                Array(const Val& val) :
+                    val(val) { }
             };
 
             struct Tup {
                 util::List<Expr> exprs;
+
+                Tup(const util::List<Expr>& exprs) :
+                    exprs(exprs) { }
             };
 
-            std::variant<Invalid, Unit, Null, String, Character, Integer, Byte,
-                Floating, Boolean, Array, Tup, util::Ptr<Func>>
-                val;
+            using Val = std::variant<Invalid, Unit, Null, String, Character,
+                Integer, Byte, Floating, Boolean, Array, Tup, util::Ptr<Func>>;
+            Val val;
+
+            Literal(const Val& val) :
+                val(val) { }
         };
 
         struct Unop {
@@ -159,6 +233,10 @@ namespace alvo::ast {
             };
             util::Ptr<Expr> expr;
             Op op;
+
+            Unop(const util::Ptr<Expr>& expr, const Op& op) :
+                expr(expr),
+                op(op) { }
         };
 
         struct Binop {
@@ -199,35 +277,63 @@ namespace alvo::ast {
             util::Ptr<Expr> lhs;
             util::Ptr<Expr> rhs;
             Op op;
+
+            Binop(const util::Ptr<Expr>& lhs, const util::Ptr<Expr>& rhs,
+                const Op& op) :
+                lhs(lhs),
+                rhs(rhs),
+                op(op) { }
         };
 
         struct Index {
             util::Ptr<Expr> expr;
             util::Ptr<Expr> index;
+
+            Index(const util::Ptr<Expr>& expr, const util::Ptr<Expr>& index) :
+                expr(expr),
+                index(index) { }
         };
 
         struct Call {
             util::Ptr<Expr> expr;
             util::List<Expr> args;
+
+            Call(const util::Ptr<Expr>& expr, const util::List<Expr>& args) :
+                expr(expr),
+                args(args) { }
         };
 
         struct Cast {
             util::Ptr<Expr> expr;
             Type type;
+
+            Cast(const util::Ptr<Expr>& expr, const Type& type) :
+                expr(expr),
+                type(type) { }
         };
 
         struct TryCast {
             util::Ptr<Expr> expr;
             Type type;
+
+            TryCast(const util::Ptr<Expr>& expr, const Type& type) :
+                expr(expr),
+                type(type) { }
         };
 
-        std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast,
-            PathSegment>
-            val;
+        using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
+            Cast, TryCast, PathSegment>;
+        Val val;
+
+        Expr(const Val& val) :
+            val(val) { }
     };
 
     struct Block {
         util::List<Stmt> stmts;
+
+        Block(const util::List<Stmt>& stmts) :
+            stmts(stmts) { }
     };
 
     struct Stmt {
@@ -235,77 +341,140 @@ namespace alvo::ast {
             std::string_view name;
             std::optional<Type> type;
             std::optional<Expr> expr;
+
+            Let(const std::string_view& name, const std::optional<Type>& type,
+                const std::optional<Expr>& expr) :
+                name(name),
+                type(type),
+                expr(expr) { }
         };
 
         struct If {
             struct Elif {
                 Expr expr;
                 Block block;
+
+                Elif(const Expr& expr, const Block& block) :
+                    expr(expr),
+                    block(block) { }
             };
 
             Expr expr;
             Block main;
             util::List<Elif> elifs;
             std::optional<Block> else_;
+
+            If(const Expr& expr, const Block& main,
+                const util::List<Elif>& elifs,
+                const std::optional<Block>& else_) :
+                expr(expr),
+                main(main),
+                elifs(elifs),
+                else_(else_) { }
         };
 
         struct Switch {
             struct Case {
                 std::optional<Expr> expr;
                 Block block;
+
+                Case(const std::optional<Expr>& expr, const Block& block) :
+                    expr(expr),
+                    block(block) { }
             };
 
             Expr expr;
             util::List<Case> cases;
+
+            Switch(const Expr& expr, const util::List<Case>& cases) :
+                expr(expr),
+                cases(cases) { }
         };
 
         struct Loop {
             Block block;
+
+            Loop(const Block& block) :
+                block(block) { }
         };
 
         struct For {
             std::string_view name;
             Expr expr;
             Block block;
+
+            For(const std::string_view& name, const Expr& expr,
+                const Block& block) :
+                name(name),
+                expr(expr),
+                block(block) { }
         };
 
         struct While {
             Expr expr;
             Block block;
+
+            While(const Expr& expr, const Block& block) :
+                expr(expr),
+                block(block) { }
         };
 
         struct Return {
             std::optional<Expr> expr;
+
+            Return(const std::optional<Expr>& expr) :
+                expr(expr) { }
         };
 
         struct Defer {
             Expr expr;
+
+            Defer(const Expr& expr) :
+                expr(expr) { }
         };
 
         struct Continue { };
 
         struct Break { };
 
-        std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return,
-            Defer, Block, Continue, Break>
-            val;
+        using Val = std::variant<Invalid, Expr, Let, If, Switch, Loop, For,
+            While, Return, Defer, Block, Continue, Break>;
+        Val val;
+
+        Stmt(const Val& val) :
+            val(val) { }
     };
 
     struct Func {
         struct Param {
             std::string_view name;
             Type type;
+
+            Param(const std::string_view& name, const Type& type) :
+                name(name),
+                type(type) { }
         };
 
         util::List<Param> params;
         Type ret;
         Block block;
+
+        Func(const util::List<Param>& params, const Type& ret,
+            const Block& block) :
+            params(params),
+            ret(ret),
+            block(block) { }
     };
 
     struct Decl {
         struct GenericParam {
             std::string_view name;
             util::List<Type> interfaces;
+
+            GenericParam(const std::string_view& name,
+                const util::List<Type>& interfaces) :
+                name(name),
+                interfaces(interfaces) { }
         };
 
         struct Struct {
@@ -313,46 +482,88 @@ namespace alvo::ast {
                 std::string_view name;
                 Type type;
                 bool is_export;
+
+                Field(const std::string_view& name, const Type& type,
+                    const bool& is_export) :
+                    name(name),
+                    type(type),
+                    is_export(is_export) { }
             };
 
             util::List<Field> fields;
+
+            Struct(const util::List<Field>& fields) :
+                fields(fields) { }
         };
 
         struct Enum {
             struct Element {
                 std::string_view name;
+
+                Element(const std::string_view& name) :
+                    name(name) { }
             };
 
             util::List<Element> elements;
+
+            Enum(const util::List<Element>& elements) :
+                elements(elements) { }
         };
 
         struct TypeAlias {
             Type type;
+
+            TypeAlias(const Type& type) :
+                type(type) { }
         };
 
         struct Const {
             Type type;
             Expr expr;
+
+            Const(const Type& type, const Expr& expr) :
+                type(type),
+                expr(expr) { }
         };
 
         struct Defines {
             std::optional<Type> interface;
             util::List<Decl> decls;
+
+            Defines(const std::optional<Type>& interface,
+                const util::List<Decl>& decls) :
+                interface(interface),
+                decls(decls) { }
         };
 
+        using Val = std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const,
+            Defines>;
         bool is_export;
         std::string_view name;
         util::List<GenericParam> generic_params;
-        std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines>
-            val;
+        Val val;
+
+        Decl(const bool& is_export, const std::string_view& name,
+            const util::List<GenericParam>& generic_params, const Val& val) :
+            is_export(is_export),
+            name(name),
+            generic_params(generic_params),
+            val(val) { }
     };
 
     struct TopLevel {
-        std::variant<Import, Decl> val;
+        using Val = std::variant<Invalid, Import, Decl>;
+        Val val;
+
+        TopLevel(const Val& val) :
+            val(val) { }
     };
 
     struct Module {
         util::List<TopLevel> top_levels;
+
+        Module(const util::List<TopLevel>& top_levels) :
+            top_levels(top_levels) { }
     };
 
     bool operator==(
