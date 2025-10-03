@@ -132,6 +132,7 @@ int main(int argc, char** argv) {
         .boolean = Style::fg_color(Color { 255, 255, 0 }) | Style::bold(),
     });
     printer.print_node(module);
+    fmt::print("\n");
 
     std::size_t alloced = node_arena.get_total_allocated();
     std::size_t block_count = node_arena.get_block_count();
