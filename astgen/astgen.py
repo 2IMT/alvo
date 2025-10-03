@@ -11,13 +11,6 @@ class Field:
     name: str
     type: str
 
-    def to_decl_string(self) -> str:
-        if self.name[0] == '@':
-            name = self.name[1:]
-            return f"using {name} = {self.type};"
-        else:
-            return f"{self.type} {self.name};"
-
 
 @dataclass
 class Node:
