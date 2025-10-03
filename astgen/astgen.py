@@ -2,7 +2,7 @@ import json
 import argparse
 from io import StringIO
 from dataclasses import dataclass
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Literal
 import os
 
 
@@ -11,14 +11,22 @@ class Field:
     name: str
     type: str
 
+    def to_decl_string(self) -> str:
+        if self.name[0] == '@':
+            name = self.name[1:]
+            return f"using {name} = {self.type};"
+        else:
+            return f"{self.type} {self.name};"
+
 
 @dataclass
 class Node:
     name: str
+    kind: Literal["struct", "enum", "typedef"]
     subnodes: List["Node"]
-    is_enum: bool
     fields: List[Field]
     elements: List[str]
+    typedef: str
 
 
 @dataclass
@@ -53,10 +61,11 @@ class Schema:
     def _parse_enum(name: str, data: List[str]) -> Node:
         return Node(
             name=name,
-            is_enum=True,
+            kind="enum",
             subnodes=[],
             fields=[],
-            elements=data
+            elements=data,
+            typedef="",
         )
 
     @staticmethod
@@ -69,16 +78,27 @@ class Schema:
             elif isinstance(body, list):
                 subnodes.append(Schema._parse_enum(subname, body))
             elif isinstance(body, str):
-                fields.append(Field(name=subname, type=body))
+                if subname[0] == '@':
+                    subnodes.append(Node(
+                        name=subname[1:],
+                        kind="typedef",
+                        subnodes=[],
+                        fields=[],
+                        elements=[],
+                        typedef=body,
+                    ))
+                else:
+                    fields.append(Field(name=subname, type=body))
             else:
                 raise Exception(f"Invalid node definition (`{name}`)")
 
         return Node(
             name=name,
-            is_enum=False,
+            kind="struct",
             subnodes=subnodes,
             fields=fields,
-            elements=[]
+            elements=[],
+            typedef="",
         )
 
     @staticmethod
@@ -124,14 +144,15 @@ class Generator:
             self.out.write("    ")
 
     def _gen_forward_decl(self, node: Node):
-        self._indent()
-        if node.is_enum:
+        if node.kind == "enum":
+            self._indent()
             self.out.write(f"enum class {node.name};\n")
-        else:
+        elif node.kind == "struct":
+            self._indent()
             self.out.write(f"struct {node.name};\n")
 
     def _gen_decl(self, node: Node):
-        if node.is_enum:
+        if node.kind == "enum":
             self._indent()
             self.out.write(f"enum class {node.name} {{\n")
             self.indent += 1
@@ -141,7 +162,7 @@ class Generator:
             self.indent -= 1
             self._indent()
             self.out.write("};\n")
-        else:
+        elif node.kind == "struct":
             self._indent()
             self.out.write(f"struct {node.name} {{\n")
             self.indent += 1
@@ -150,9 +171,25 @@ class Generator:
             for field in node.fields:
                 self._indent()
                 self.out.write(f"{field.type} {field.name};\n")
+
+            if len(node.fields) > 0:
+                params = []
+                initializers = []
+                for field in node.fields:
+                    params.append(f"const {field.type}& {field.name}")
+                    initializers.append(f"{field.name}({field.name})")
+                params_str = ", ".join(params)
+                initializers_str = ", ".join(initializers)
+                self._indent()
+                self.out.write(
+                    f"{node.name}({params_str}) : {initializers_str} {{}}")
+
             self.indent -= 1
             self._indent()
             self.out.write("};\n")
+        elif node.kind == "typedef":
+            self._indent()
+            self.out.write(f"using {node.name} = {node.typedef};")
 
     def _get_equality_current_typename(self) -> str:
         return "::".join(self.equality_struct_stack)
@@ -174,7 +211,7 @@ class Generator:
 {attr}const {typename}& r)")
 
     def _gen_equality_forward_decl(self, node: Node, not_equal: bool):
-        if not node.is_enum:
+        if node.kind == "struct":
             self.equality_struct_stack.append(node.name)
             self._gen_equality_signature(node, not_equal)
             self.out.write(";\n")
@@ -183,7 +220,7 @@ class Generator:
             self.equality_struct_stack.pop()
 
     def _gen_equality_decl(self, node: Node, not_equal: bool):
-        if not node.is_enum:
+        if node.kind == "struct":
             op = ""
             if not_equal:
                 op = "!="
@@ -334,14 +371,17 @@ class Generator:
         node_infos: List[_PrinterNodeInfo],
         typename_stack: List[str]
     ):
+        if node.kind == "typedef":
+            return
+
         typename_stack.append(node.name)
 
         name = node.name
         type = "::".join(typename_stack)
-        is_enum = node.is_enum
+        is_enum = node.kind == "enum"
         fields = []
         elements = node.elements
-        if not node.is_enum:
+        if node.kind == "struct":
             for field in node.fields:
                 fields.append(field.name)
 
