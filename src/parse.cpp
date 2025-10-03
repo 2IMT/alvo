@@ -576,6 +576,20 @@ namespace alvo::parse {
         }
         res.name = (*name).value;
 
+        if (accept(LAngle)) {
+            res.generic_params.push_back(*m_arena, parse_decl_generic_param());
+            while (accept(Comma)) {
+                if (curr_is(RAngle)) {
+                    break;
+                }
+                res.generic_params.push_back(
+                    *m_arena, parse_decl_generic_param());
+            }
+            if (!expect(RAngle)) {
+                // Err
+            }
+        }
+
         if (!expect(ColonColon)) {
             // Err
         }
@@ -590,10 +604,30 @@ namespace alvo::parse {
             res.val = parse_decl_type_alias();
         } else if (curr_is(KwConst)) {
             res.val = parse_decl_const();
+        } else if (curr_is(KwDefines)) {
+            res.val = parse_decl_defines();
         } else {
             // Err
         }
 
+        return res;
+    }
+
+    ast::Decl::GenericParam Parser::parse_decl_generic_param() {
+        SectionGuard section_guard(this, __func__);
+
+        ast::Decl::GenericParam res;
+        std::optional<lex::Tok> name = expect_and_get(Ident);
+        if (!name) {
+            // Err
+        }
+        res.name = (*name).value;
+        if (accept(Colon)) {
+            res.interfaces.push_back(*m_arena, parse_type());
+            while (accept(Plus)) {
+                res.interfaces.push_back(*m_arena, parse_type());
+            }
+        }
         return res;
     }
 
@@ -608,12 +642,12 @@ namespace alvo::parse {
             // Err
         }
         if (curr_is(KwExport) || curr_is(Ident)) {
-            res.items.push_back(*m_arena, parse_decl_struct_item());
+            res.fields.push_back(*m_arena, parse_decl_struct_field());
             while (accept(Comma)) {
                 if (curr_is(RBrace)) {
                     break;
                 }
-                res.items.push_back(*m_arena, parse_decl_struct_item());
+                res.fields.push_back(*m_arena, parse_decl_struct_field());
             }
         }
         if (!expect(RBrace)) {
@@ -622,11 +656,10 @@ namespace alvo::parse {
         return res;
     }
 
-    ast::Decl::Struct::Item Parser::parse_decl_struct_item() {
+    ast::Decl::Struct::Field Parser::parse_decl_struct_field() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Struct::Item res;
-        ast::Decl::Struct::Item::Field field {};
+        ast::Decl::Struct::Field res;
         res.is_export = false;
         if (accept(KwExport)) {
             res.is_export = true;
@@ -635,12 +668,11 @@ namespace alvo::parse {
         if (!name) {
             // Err
         }
-        field.name = (*name).value;
+        res.name = (*name).value;
         if (!expect(Colon)) {
             // Err
         }
-        field.type = parse_type();
-        res.val = field;
+        res.type = parse_type();
         return res;
     }
 
@@ -658,27 +690,25 @@ namespace alvo::parse {
         if (!item) {
             // Err
         }
-        res.items.push_back(*m_arena, parse_decl_enum_item());
+        res.elements.push_back(*m_arena, parse_decl_enum_element());
         while (accept(Comma)) {
             if (curr_is(RBrace)) {
                 break;
             }
-            res.items.push_back(*m_arena, parse_decl_enum_item());
+            res.elements.push_back(*m_arena, parse_decl_enum_element());
         }
         return res;
     }
 
-    ast::Decl::Enum::Item Parser::parse_decl_enum_item() {
+    ast::Decl::Enum::Element Parser::parse_decl_enum_element() {
         SectionGuard section_guard(this, __func__);
 
-        ast::Decl::Enum::Item res;
-        ast::Decl::Enum::Item::Field field;
+        ast::Decl::Enum::Element res;
         std::optional<lex::Tok> name = expect_and_get(Ident);
         if (!name) {
             // Err
         }
-        field.name = (*name).value;
-        res.val = field;
+        res.name = (*name).value;
         return res;
     }
 
@@ -720,6 +750,28 @@ namespace alvo::parse {
         return res;
     }
 
+    ast::Decl::Defines Parser::parse_decl_defines() {
+        SectionGuard section_guard(this, __func__);
+
+        ast::Decl::Defines res;
+        if (!expect(KwDefines)) {
+            // Err
+        }
+        if (!accept(LBrace)) {
+            res.interface = parse_type();
+            if (!expect(LBrace)) {
+                // Err
+            }
+        }
+        while (!curr_is(RBrace)) {
+            res.decls.push_back(*m_arena, parse_decl());
+        }
+        if (!expect(RBrace)) {
+            // Err
+        }
+        return res;
+    }
+
     ast::TopLevel Parser::parse_top_level() {
         SectionGuard section_guard(this, __func__);
 
@@ -736,7 +788,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         ast::Module res;
-        while (curr_is(KwImport) || curr_is(Ident) || curr_is(KwExport)) {
+        while (!curr_is(Eof)) {
             res.top_levels.push_back(*m_arena, parse_top_level());
         }
         return res;
@@ -863,7 +915,8 @@ namespace alvo::parse {
             }
 
             ast::Expr res;
-            ast::Ptr<ast::Expr> res_lhs = m_node_ctx.make_node<ast::Expr>(lhs);
+            ast::util::Ptr<ast::Expr> res_lhs =
+                m_node_ctx.make_node<ast::Expr>(lhs);
 
             if ((bp_postfix = postfix_bp(m_lexer->peek().kind)).has_value()) {
                 if (*bp_postfix < min_bp) {
@@ -912,8 +965,9 @@ namespace alvo::parse {
                     break;
                 }
                 ast::Expr::Binop::Op op = parse_binop_op();
-                ast::Ptr<ast::Expr> res_rhs = m_node_ctx.make_node<ast::Expr>(
-                    parse_expr_bp((*bp_infix).second));
+                ast::util::Ptr<ast::Expr> res_rhs =
+                    m_node_ctx.make_node<ast::Expr>(
+                        parse_expr_bp((*bp_infix).second));
 
                 res.val = ast::Expr::Binop { res_lhs, res_rhs, op };
                 lhs = res;
@@ -929,7 +983,7 @@ namespace alvo::parse {
 
         lex::Tok tok = m_lexer->next();
         switch (tok.kind) {
-            using Unop = ast::Expr::Unop;
+            using Unop = ast::Expr::Unop::Op;
         case Plus:
             return Unop::Plus;
         case Dash:
@@ -948,7 +1002,7 @@ namespace alvo::parse {
 
         lex::Tok tok = m_lexer->next();
         switch (tok.kind) {
-            using Binop = ast::Expr::Binop;
+            using Binop = ast::Expr::Binop::Op;
         case Eq:
             return Binop::Assign;
         case PlusEq:
@@ -1050,6 +1104,17 @@ namespace alvo::parse {
     void Parser::section_exit(std::string_view name) {
         if (m_section_emitter) {
             m_section_emitter->emit(SectionEvent { SectionEvent::Exit, name });
+        }
+    }
+
+    void Parser::synchronize(std::initializer_list<lex::TokKind> kinds) {
+        while (!curr_is(Eof)) {
+            for (const auto& kind : kinds) {
+                if (curr_is(kind)) {
+                    break;
+                }
+            }
+            m_lexer->next();
         }
     }
 

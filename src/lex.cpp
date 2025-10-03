@@ -17,6 +17,7 @@ namespace alvo::lex {
         { "continue", TokKind::KwContinue },
         { "default", TokKind::KwDefault },
         { "defer", TokKind::KwDefer },
+        { "defines", TokKind::KwDefines },
         { "elif", TokKind::KwElif },
         { "else", TokKind::KwElse },
         { "enum", TokKind::KwEnum },

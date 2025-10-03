@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <functional>
+#include <initializer_list>
 
 #include "lex.h"
 #include "ast.h"
@@ -87,17 +88,21 @@ namespace alvo::parse {
 
         ast::Decl parse_decl();
 
+        ast::Decl::GenericParam parse_decl_generic_param();
+
         ast::Decl::Struct parse_decl_struct();
 
-        ast::Decl::Struct::Item parse_decl_struct_item();
+        ast::Decl::Struct::Field parse_decl_struct_field();
 
         ast::Decl::Enum parse_decl_enum();
 
-        ast::Decl::Enum::Item parse_decl_enum_item();
+        ast::Decl::Enum::Element parse_decl_enum_element();
 
         ast::Decl::TypeAlias parse_decl_type_alias();
 
         ast::Decl::Const parse_decl_const();
+
+        ast::Decl::Defines parse_decl_defines();
 
         ast::TopLevel parse_top_level();
 
@@ -153,9 +158,11 @@ namespace alvo::parse {
 
         void section_exit(std::string_view name);
 
+        void synchronize(std::initializer_list<lex::TokKind> kinds);
+
         lex::Lexer* m_lexer;
         mem::Arena* m_arena;
-        ast::NodeCtx m_node_ctx;
+        ast::util::NodeCtx m_node_ctx;
         SectionEmitter* m_section_emitter;
     };
 

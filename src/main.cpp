@@ -11,7 +11,6 @@
 #include "diag.h"
 #include "parse.h"
 #include "ast.h"
-#include "ast/print.h"
 #include "mem.h"
 
 class Handler {
@@ -121,7 +120,7 @@ int main(int argc, char** argv) {
 
     alvo::ast::Module module = parser.parse_module();
     alvo::ast::print::OstreamSink sink(std::cout);
-    alvo::ast::print::Printer printer(sink, 1);
+    alvo::ast::Printer printer(sink, 1);
     using alvo::ast::print::StyleConfig;
     using alvo::ast::print::Style;
     using alvo::ast::print::Color;

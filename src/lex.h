@@ -50,6 +50,7 @@ namespace alvo::lex {
         KwFunc,
         KwType,
         KwConst,
+        KwDefines,
         // Statements
         KwDefer,
         KwLet,
@@ -312,6 +313,9 @@ struct fmt::formatter<alvo::lex::TokKind> {
             break;
         case KwConst:
             res = "KwConst";
+            break;
+        case KwDefines:
+            res = "KwDefines";
             break;
         case KwDefer:
             res = "KwDefer";
