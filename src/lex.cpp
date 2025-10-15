@@ -28,6 +28,7 @@ namespace alvo::lex {
         { "if", TokKind::KwIf },
         { "import", TokKind::KwImport },
         { "int", TokKind::KwInt },
+        { "interface", TokKind::KwInterface },
         { "let", TokKind::KwLet },
         { "loop", TokKind::KwLoop },
         { "null", TokKind::KwNull },

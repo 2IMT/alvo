@@ -51,6 +51,7 @@ namespace alvo::lex {
         KwType,
         KwConst,
         KwDefines,
+        KwInterface,
         // Statements
         KwDefer,
         KwLet,
@@ -317,6 +318,9 @@ struct fmt::formatter<alvo::lex::TokKind> {
         case KwDefines:
             res = "KwDefines";
             break;
+        case KwInterface:
+            res = "KwInterface";
+            break;
         case KwDefer:
             res = "KwDefer";
             break;
@@ -493,9 +497,6 @@ struct fmt::formatter<alvo::lex::TokKind> {
             break;
         case Count:
             res = "Count";
-            break;
-        default:
-            res = "Unknown";
             break;
         }
         return fmt::format_to(ctx.out(), "{}", res);
