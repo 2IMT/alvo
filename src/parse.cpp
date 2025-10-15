@@ -116,7 +116,11 @@ namespace alvo::parse {
         } else {
             // Err
         }
-        return Type(val);
+        bool nullable = false;
+        if (accept(Question)) {
+            nullable = true;
+        }
+        return Type(val, nullable);
     }
 
     Type::Array Parser::parse_type_array() {
@@ -159,7 +163,8 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         util::List<Type> params;
-        util::Ptr<Type> return_type = m_node_ctx.make_node<Type>(Type::Unit {});
+        util::Ptr<Type> return_type =
+            m_node_ctx.make_node<Type>(Type::Unit {}, false);
         if (!expect(KwFunc)) {
             // Err
         }
@@ -521,7 +526,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         util::List<Func::Param> params;
-        Type ret(Type::Unit {});
+        Type ret(Type::Unit {}, false);
         if (!expect(KwFunc)) {
             // Err
         }

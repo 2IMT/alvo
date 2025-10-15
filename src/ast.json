@@ -46,7 +46,8 @@
         "segments": "util::List<PathSegment>"
       },
       "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>",
-      "val": "Val"
+      "val": "Val",
+      "nullable": "bool"
     },
     "Expr": {
       "Literal": {

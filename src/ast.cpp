@@ -50,7 +50,9 @@ namespace alvo::ast {
         return l.renamed_to == r.renamed_to;
     }
 
-    bool operator==(const Type& l, const Type& r) { return l.val == r.val; }
+    bool operator==(const Type& l, const Type& r) {
+        return l.val == r.val && l.nullable == r.nullable;
+    }
 
     bool operator==([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r) {
@@ -351,7 +353,9 @@ namespace alvo::ast {
         return l.renamed_to != r.renamed_to;
     }
 
-    bool operator!=(const Type& l, const Type& r) { return l.val != r.val; }
+    bool operator!=(const Type& l, const Type& r) {
+        return l.val != r.val && l.nullable != r.nullable;
+    }
 
     bool operator!=([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r) {
