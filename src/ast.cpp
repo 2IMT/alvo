@@ -175,6 +175,16 @@ namespace alvo::ast {
         return l.exprs == r.exprs;
     }
 
+    bool operator==(
+        const Expr::Literal::Struct& l, const Expr::Literal::Struct& r) {
+        return l.type == r.type && l.fields == r.fields;
+    }
+
+    bool operator==(const Expr::Literal::Struct::Field& l,
+        const Expr::Literal::Struct::Field& r) {
+        return l.name == r.name && l.expr == r.expr;
+    }
+
     bool operator==(const Expr::Unop& l, const Expr::Unop& r) {
         return l.expr == r.expr && l.op == r.op;
     }
@@ -491,6 +501,16 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::Literal::Tup& l, const Expr::Literal::Tup& r) {
         return l.exprs != r.exprs;
+    }
+
+    bool operator!=(
+        const Expr::Literal::Struct& l, const Expr::Literal::Struct& r) {
+        return l.type != r.type && l.fields != r.fields;
+    }
+
+    bool operator!=(const Expr::Literal::Struct::Field& l,
+        const Expr::Literal::Struct::Field& r) {
+        return l.name != r.name && l.expr != r.expr;
     }
 
     bool operator!=(const Expr::Unop& l, const Expr::Unop& r) {

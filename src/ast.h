@@ -217,8 +217,28 @@ namespace alvo::ast {
                     exprs(exprs) { }
             };
 
+            struct Struct {
+                struct Field {
+                    std::string_view name;
+                    util::Ptr<Expr> expr;
+
+                    Field(const std::string_view& name,
+                        const util::Ptr<Expr>& expr) :
+                        name(name),
+                        expr(expr) { }
+                };
+
+                Type type;
+                util::List<Field> fields;
+
+                Struct(const Type& type, const util::List<Field>& fields) :
+                    type(type),
+                    fields(fields) { }
+            };
+
             using Val = std::variant<Invalid, Unit, Null, String, Character,
-                Integer, Byte, Floating, Boolean, Array, Tup, util::Ptr<Func>>;
+                Integer, Byte, Floating, Boolean, Array, Tup, Struct,
+                util::Ptr<Func>>;
             Val val;
 
             Literal(const Val& val) :
@@ -653,6 +673,10 @@ namespace alvo::ast {
     bool operator==(const Expr::Literal::Array::ExprNTimes& l,
         const Expr::Literal::Array::ExprNTimes& r);
     bool operator==(const Expr::Literal::Tup& l, const Expr::Literal::Tup& r);
+    bool operator==(
+        const Expr::Literal::Struct& l, const Expr::Literal::Struct& r);
+    bool operator==(const Expr::Literal::Struct::Field& l,
+        const Expr::Literal::Struct::Field& r);
     bool operator==(const Expr::Unop& l, const Expr::Unop& r);
     bool operator==(const Expr::Binop& l, const Expr::Binop& r);
     bool operator==(const Expr::Index& l, const Expr::Index& r);
@@ -752,6 +776,10 @@ namespace alvo::ast {
     bool operator!=(const Expr::Literal::Array::ExprNTimes& l,
         const Expr::Literal::Array::ExprNTimes& r);
     bool operator!=(const Expr::Literal::Tup& l, const Expr::Literal::Tup& r);
+    bool operator!=(
+        const Expr::Literal::Struct& l, const Expr::Literal::Struct& r);
+    bool operator!=(const Expr::Literal::Struct::Field& l,
+        const Expr::Literal::Struct::Field& r);
     bool operator!=(const Expr::Unop& l, const Expr::Unop& r);
     bool operator!=(const Expr::Binop& l, const Expr::Binop& r);
     bool operator!=(const Expr::Index& l, const Expr::Index& r);
@@ -842,6 +870,8 @@ namespace alvo::ast {
         void print_node(const Expr::Literal::Array::DefaultNTimes& n);
         void print_node(const Expr::Literal::Array::ExprNTimes& n);
         void print_node(const Expr::Literal::Tup& n);
+        void print_node(const Expr::Literal::Struct& n);
+        void print_node(const Expr::Literal::Struct::Field& n);
         void print_node(const Expr::Unop& n);
         void print_node(const Expr::Unop::Op& n);
         void print_node(const Expr::Binop& n);
@@ -1113,6 +1143,22 @@ namespace alvo::ast {
     void Printer<Sink>::print_node(const Expr::Literal::Tup& n) {
         node_begin("Tup");
         field("exprs", n.exprs);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::Literal::Struct& n) {
+        node_begin("Struct");
+        field("type", n.type);
+        field("fields", n.fields);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::Literal::Struct::Field& n) {
+        node_begin("Field");
+        field("name", n.name);
+        field("expr", n.expr);
         node_end();
     }
 

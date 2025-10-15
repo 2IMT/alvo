@@ -235,6 +235,8 @@ namespace alvo::parse {
             val = parse_expr_literal_tup();
         } else if (curr_is(KwFunc)) {
             val = m_node_ctx.make_node<Func>(parse_func());
+        } else if (curr_is(KwStruct)) {
+            val = parse_expr_literal_struct();
         } else {
             // Err
         }
@@ -308,6 +310,47 @@ namespace alvo::parse {
             // Err
         }
         return Expr::Literal::Tup(exprs);
+    }
+
+    Expr::Literal::Struct Parser::parse_expr_literal_struct() {
+        SectionGuard section_guard(this, __func__);
+
+        if (!expect(KwStruct)) {
+            // Err
+        }
+        Type type = parse_type();
+        if (!expect(LBrace)) {
+            // Err
+        }
+        util::List<Expr::Literal::Struct::Field> fields;
+        if (!curr_is(RBrace)) {
+            fields.push_back(*m_arena, parse_expr_literal_struct_field());
+            while (accept(Comma)) {
+                if (curr_is(RBrace)) {
+                    break;
+                }
+                fields.push_back(*m_arena, parse_expr_literal_struct_field());
+            }
+        }
+        if (!expect(RBrace)) {
+            // Err
+        }
+        return Expr::Literal::Struct(type, fields);
+    }
+
+    Expr::Literal::Struct::Field Parser::parse_expr_literal_struct_field() {
+        SectionGuard section_guard(this, __func__);
+
+        std::optional<lex::Tok> tok_name = accept_and_get(Ident);
+        if (!tok_name) {
+            // Err
+        }
+        std::string_view name = (*tok_name).value;
+        if (!expect(Colon)) {
+            // Err
+        }
+        util::Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
+        return Expr::Literal::Struct::Field(name, expr);
     }
 
     Block Parser::parse_block() {
@@ -970,7 +1013,8 @@ namespace alvo::parse {
                    curr_is(LitCharacter) || curr_is(LitInteger) ||
                    curr_is(LitByte) || curr_is(LitByte) ||
                    curr_is(LitFloating) || curr_is(LitBoolean) ||
-                   curr_is(LBracket) || curr_is(KwTup) || curr_is(KwFunc)) {
+                   curr_is(LBracket) || curr_is(KwTup) || curr_is(KwStruct) ||
+                   curr_is(KwFunc)) {
             lhs.val = parse_expr_literal();
         } else {
             // Err

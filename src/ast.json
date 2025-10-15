@@ -88,7 +88,15 @@
         "Tup": {
           "exprs": "util::List<Expr>"
         },
-        "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, util::Ptr<Func>>",
+        "Struct": {
+          "Field": {
+            "name": "std::string_view",
+            "expr": "util::Ptr<Expr>"
+          },
+          "type": "Type",
+          "fields": "util::List<Field>"
+        },
+        "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, Struct, util::Ptr<Func>>",
         "val": "Val"
       },
       "Unop": {

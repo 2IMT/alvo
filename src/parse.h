@@ -60,6 +60,10 @@ namespace alvo::parse {
 
         ast::Expr::Literal::Tup parse_expr_literal_tup();
 
+        ast::Expr::Literal::Struct parse_expr_literal_struct();
+
+        ast::Expr::Literal::Struct::Field parse_expr_literal_struct_field();
+
         ast::Block parse_block();
 
         ast::Stmt parse_stmt();
