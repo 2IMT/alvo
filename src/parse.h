@@ -84,7 +84,9 @@ namespace alvo::parse {
 
         ast::Func parse_func();
 
-        ast::Func::Param parse_func_param();
+        ast::Func::Signature parse_func_signature();
+
+        ast::Func::Signature::Param parse_func_signature_param();
 
         ast::Decl parse_decl();
 
@@ -103,6 +105,10 @@ namespace alvo::parse {
         ast::Decl::Const parse_decl_const();
 
         ast::Decl::Defines parse_decl_defines();
+
+        ast::Decl::Interface parse_decl_interface();
+
+        ast::Decl::Interface::Member parse_decl_interface_member();
 
         ast::TopLevel parse_top_level();
 

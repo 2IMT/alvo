@@ -205,12 +205,15 @@
       "val": "Val"
     },
     "Func": {
-      "Param": {
-        "name": "std::string_view",
-        "type": "Type"
+      "Signature": {
+        "Param": {
+          "name": "std::string_view",
+          "type": "Type"
+        },
+        "params": "util::List<Param>",
+        "ret": "Type"
       },
-      "params": "util::List<Param>",
-      "ret": "Type",
+      "signature": "Signature",
       "block": "Block"
     },
     "Decl": {
@@ -243,7 +246,15 @@
         "interface": "std::optional<Type>",
         "decls": "util::List<Decl>"
       },
-      "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines>",
+      "Interface": {
+        "Member": {
+          "name": "std::string_view",
+          "generic_params": "util::List<GenericParam>",
+          "signature": "Func::Signature"
+        },
+        "members": "util::List<Member>"
+      },
+      "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines, Interface>",
       "is_export": "bool",
       "name": "std::string_view",
       "generic_params": "util::List<GenericParam>",

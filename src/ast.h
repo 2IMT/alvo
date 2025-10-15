@@ -448,23 +448,29 @@ namespace alvo::ast {
     };
 
     struct Func {
-        struct Param {
-            std::string_view name;
-            Type type;
+        struct Signature {
+            struct Param {
+                std::string_view name;
+                Type type;
 
-            Param(const std::string_view& name, const Type& type) :
-                name(name),
-                type(type) { }
+                Param(const std::string_view& name, const Type& type) :
+                    name(name),
+                    type(type) { }
+            };
+
+            util::List<Param> params;
+            Type ret;
+
+            Signature(const util::List<Param>& params, const Type& ret) :
+                params(params),
+                ret(ret) { }
         };
 
-        util::List<Param> params;
-        Type ret;
+        Signature signature;
         Block block;
 
-        Func(const util::List<Param>& params, const Type& ret,
-            const Block& block) :
-            params(params),
-            ret(ret),
+        Func(const Signature& signature, const Block& block) :
+            signature(signature),
             block(block) { }
     };
 
@@ -538,8 +544,28 @@ namespace alvo::ast {
                 decls(decls) { }
         };
 
+        struct Interface {
+            struct Member {
+                std::string_view name;
+                util::List<GenericParam> generic_params;
+                Func::Signature signature;
+
+                Member(const std::string_view& name,
+                    const util::List<GenericParam>& generic_params,
+                    const Func::Signature& signature) :
+                    name(name),
+                    generic_params(generic_params),
+                    signature(signature) { }
+            };
+
+            util::List<Member> members;
+
+            Interface(const util::List<Member>& members) :
+                members(members) { }
+        };
+
         using Val = std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const,
-            Defines>;
+            Defines, Interface>;
         bool is_export;
         std::string_view name;
         util::List<GenericParam> generic_params;
@@ -650,7 +676,9 @@ namespace alvo::ast {
     bool operator==([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r);
     bool operator==(const Func& l, const Func& r);
-    bool operator==(const Func::Param& l, const Func::Param& r);
+    bool operator==(const Func::Signature& l, const Func::Signature& r);
+    bool operator==(
+        const Func::Signature::Param& l, const Func::Signature::Param& r);
     bool operator==(const Decl& l, const Decl& r);
     bool operator==(const Decl::GenericParam& l, const Decl::GenericParam& r);
     bool operator==(const Decl::Struct& l, const Decl::Struct& r);
@@ -660,6 +688,9 @@ namespace alvo::ast {
     bool operator==(const Decl::TypeAlias& l, const Decl::TypeAlias& r);
     bool operator==(const Decl::Const& l, const Decl::Const& r);
     bool operator==(const Decl::Defines& l, const Decl::Defines& r);
+    bool operator==(const Decl::Interface& l, const Decl::Interface& r);
+    bool operator==(
+        const Decl::Interface::Member& l, const Decl::Interface::Member& r);
     bool operator==(const TopLevel& l, const TopLevel& r);
     bool operator==(const Module& l, const Module& r);
     bool operator!=(
@@ -744,7 +775,9 @@ namespace alvo::ast {
     bool operator!=([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r);
     bool operator!=(const Func& l, const Func& r);
-    bool operator!=(const Func::Param& l, const Func::Param& r);
+    bool operator!=(const Func::Signature& l, const Func::Signature& r);
+    bool operator!=(
+        const Func::Signature::Param& l, const Func::Signature::Param& r);
     bool operator!=(const Decl& l, const Decl& r);
     bool operator!=(const Decl::GenericParam& l, const Decl::GenericParam& r);
     bool operator!=(const Decl::Struct& l, const Decl::Struct& r);
@@ -754,6 +787,9 @@ namespace alvo::ast {
     bool operator!=(const Decl::TypeAlias& l, const Decl::TypeAlias& r);
     bool operator!=(const Decl::Const& l, const Decl::Const& r);
     bool operator!=(const Decl::Defines& l, const Decl::Defines& r);
+    bool operator!=(const Decl::Interface& l, const Decl::Interface& r);
+    bool operator!=(
+        const Decl::Interface::Member& l, const Decl::Interface::Member& r);
     bool operator!=(const TopLevel& l, const TopLevel& r);
     bool operator!=(const Module& l, const Module& r);
 
@@ -829,7 +865,8 @@ namespace alvo::ast {
         void print_node(const Stmt::Continue& n);
         void print_node(const Stmt::Break& n);
         void print_node(const Func& n);
-        void print_node(const Func::Param& n);
+        void print_node(const Func::Signature& n);
+        void print_node(const Func::Signature::Param& n);
         void print_node(const Decl& n);
         void print_node(const Decl::GenericParam& n);
         void print_node(const Decl::Struct& n);
@@ -839,6 +876,8 @@ namespace alvo::ast {
         void print_node(const Decl::TypeAlias& n);
         void print_node(const Decl::Const& n);
         void print_node(const Decl::Defines& n);
+        void print_node(const Decl::Interface& n);
+        void print_node(const Decl::Interface::Member& n);
         void print_node(const TopLevel& n);
         void print_node(const Module& n);
     };
@@ -1357,14 +1396,21 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Func& n) {
         node_begin("Func");
-        field("params", n.params);
-        field("ret", n.ret);
+        field("signature", n.signature);
         field("block", n.block);
         node_end();
     }
 
     template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Func::Param& n) {
+    void Printer<Sink>::print_node(const Func::Signature& n) {
+        node_begin("Signature");
+        field("params", n.params);
+        field("ret", n.ret);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Func::Signature::Param& n) {
         node_begin("Param");
         field("name", n.name);
         field("type", n.type);
@@ -1439,6 +1485,22 @@ namespace alvo::ast {
         node_begin("Defines");
         field("interface", n.interface);
         field("decls", n.decls);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Decl::Interface& n) {
+        node_begin("Interface");
+        field("members", n.members);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Decl::Interface::Member& n) {
+        node_begin("Member");
+        field("name", n.name);
+        field("generic_params", n.generic_params);
+        field("signature", n.signature);
         node_end();
     }
 

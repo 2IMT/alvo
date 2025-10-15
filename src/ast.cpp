@@ -257,10 +257,15 @@ namespace alvo::ast {
     }
 
     bool operator==(const Func& l, const Func& r) {
-        return l.params == r.params && l.ret == r.ret && l.block == r.block;
+        return l.signature == r.signature && l.block == r.block;
     }
 
-    bool operator==(const Func::Param& l, const Func::Param& r) {
+    bool operator==(const Func::Signature& l, const Func::Signature& r) {
+        return l.params == r.params && l.ret == r.ret;
+    }
+
+    bool operator==(
+        const Func::Signature::Param& l, const Func::Signature::Param& r) {
         return l.name == r.name && l.type == r.type;
     }
 
@@ -302,6 +307,16 @@ namespace alvo::ast {
 
     bool operator==(const Decl::Defines& l, const Decl::Defines& r) {
         return l.interface == r.interface && l.decls == r.decls;
+    }
+
+    bool operator==(const Decl::Interface& l, const Decl::Interface& r) {
+        return l.members == r.members;
+    }
+
+    bool operator==(
+        const Decl::Interface::Member& l, const Decl::Interface::Member& r) {
+        return l.name == r.name && l.generic_params == r.generic_params &&
+               l.signature == r.signature;
     }
 
     bool operator==(const TopLevel& l, const TopLevel& r) {
@@ -560,10 +575,15 @@ namespace alvo::ast {
     }
 
     bool operator!=(const Func& l, const Func& r) {
-        return l.params != r.params && l.ret != r.ret && l.block != r.block;
+        return l.signature != r.signature && l.block != r.block;
     }
 
-    bool operator!=(const Func::Param& l, const Func::Param& r) {
+    bool operator!=(const Func::Signature& l, const Func::Signature& r) {
+        return l.params != r.params && l.ret != r.ret;
+    }
+
+    bool operator!=(
+        const Func::Signature::Param& l, const Func::Signature::Param& r) {
         return l.name != r.name && l.type != r.type;
     }
 
@@ -605,6 +625,16 @@ namespace alvo::ast {
 
     bool operator!=(const Decl::Defines& l, const Decl::Defines& r) {
         return l.interface != r.interface && l.decls != r.decls;
+    }
+
+    bool operator!=(const Decl::Interface& l, const Decl::Interface& r) {
+        return l.members != r.members;
+    }
+
+    bool operator!=(
+        const Decl::Interface::Member& l, const Decl::Interface::Member& r) {
+        return l.name != r.name && l.generic_params != r.generic_params &&
+               l.signature != r.signature;
     }
 
     bool operator!=(const TopLevel& l, const TopLevel& r) {

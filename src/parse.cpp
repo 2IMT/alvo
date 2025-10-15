@@ -525,7 +525,15 @@ namespace alvo::parse {
     Func Parser::parse_func() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Func::Param> params;
+        Func::Signature signature = parse_func_signature();
+        Block block = parse_block();
+        return Func(signature, block);
+    }
+
+    Func::Signature Parser::parse_func_signature() {
+        SectionGuard section_guard(this, __func__);
+
+        util::List<Func::Signature::Param> params;
         Type ret(Type::Unit {}, false);
         if (!expect(KwFunc)) {
             // Err
@@ -534,12 +542,12 @@ namespace alvo::parse {
             // Err
         }
         if (curr_is(Ident)) {
-            params.push_back(*m_arena, parse_func_param());
+            params.push_back(*m_arena, parse_func_signature_param());
             while (accept(Comma)) {
                 if (curr_is(RParen)) {
                     break;
                 }
-                params.push_back(*m_arena, parse_func_param());
+                params.push_back(*m_arena, parse_func_signature_param());
             }
         }
         if (!expect(RParen)) {
@@ -548,11 +556,10 @@ namespace alvo::parse {
         if (accept(DashRAngle)) {
             ret = parse_type();
         }
-        Block block = parse_block();
-        return Func(params, ret, block);
+        return Func::Signature(params, ret);
     }
 
-    Func::Param Parser::parse_func_param() {
+    Func::Signature::Param Parser::parse_func_signature_param() {
         SectionGuard section_guard(this, __func__);
 
         std::optional<lex::Tok> tok_name = expect_and_get(Ident);
@@ -564,7 +571,7 @@ namespace alvo::parse {
             // Err
         }
         Type type = parse_type();
-        return Func::Param(name, type);
+        return Func::Signature::Param(name, type);
     }
 
     Decl Parser::parse_decl() {
@@ -612,6 +619,8 @@ namespace alvo::parse {
             val = parse_decl_const();
         } else if (curr_is(KwDefines)) {
             val = parse_decl_defines();
+        } else if (curr_is(KwInterface)) {
+            val = parse_decl_interface();
         } else {
             // Err
         }
@@ -771,6 +780,62 @@ namespace alvo::parse {
             // Err
         }
         return Decl::Defines(interface, decls);
+    }
+
+    Decl::Interface Parser::parse_decl_interface() {
+        SectionGuard section_guard(this, __func__);
+
+        if (!expect(KwInterface)) {
+            // Err
+        }
+        if (!expect(LBrace)) {
+            // Err
+        }
+        util::List<Decl::Interface::Member> members;
+        while (!curr_is(RBrace)) {
+            members.push_back(*m_arena, parse_decl_interface_member());
+        }
+        if (!expect(RBrace)) {
+            // Err
+        }
+        return Decl::Interface(members);
+    }
+
+    Decl::Interface::Member Parser::parse_decl_interface_member() {
+        SectionGuard section_guard(this, __func__);
+
+        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
+            // Err
+        }
+        std::string_view name = (*tok_name).value;
+
+        util::List<Decl::GenericParam> generic_params;
+
+        if (accept(LAngle)) {
+            generic_params.push_back(*m_arena, parse_decl_generic_param());
+            while (accept(Comma)) {
+                if (curr_is(RAngle)) {
+                    break;
+                }
+                generic_params.push_back(*m_arena, parse_decl_generic_param());
+            }
+            if (!expect(RAngle)) {
+                // Err
+            }
+        }
+
+        if (!expect(ColonColon)) {
+            // Err
+        }
+
+        Func::Signature signature = parse_func_signature();
+
+        if (!expect(Semicolon)) {
+            // Err
+        }
+
+        return Decl::Interface::Member(name, generic_params, signature);
     }
 
     TopLevel Parser::parse_top_level() {
