@@ -1,11 +1,13 @@
 # alvo
 
-## Dependencies
+## Building
+
+### Dependencies
 
 - C++ compiler with C++20 support
 - CMake 3.27+
 
-## Building
+### Build Process
 
 ```bash
 mkdir -p build # Create build directory
