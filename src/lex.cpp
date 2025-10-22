@@ -7,47 +7,51 @@
 
 namespace alvo::lex {
 
-    static constexpr std::pair<std::string_view, TokKind> _keyword_table[] = {
-        { "as", TokKind::KwAs },
-        { "bool", TokKind::KwBool },
-        { "break", TokKind::KwBreak },
-        { "byte", TokKind::KwByte },
-        { "char", TokKind::KwChar },
-        { "const", TokKind::KwConst },
-        { "continue", TokKind::KwContinue },
-        { "default", TokKind::KwDefault },
-        { "defer", TokKind::KwDefer },
-        { "defines", TokKind::KwDefines },
-        { "elif", TokKind::KwElif },
-        { "else", TokKind::KwElse },
-        { "enum", TokKind::KwEnum },
-        { "export", TokKind::KwExport },
-        { "float", TokKind::KwFloat },
-        { "for", TokKind::KwFor },
-        { "func", TokKind::KwFunc },
-        { "if", TokKind::KwIf },
-        { "import", TokKind::KwImport },
-        { "int", TokKind::KwInt },
-        { "interface", TokKind::KwInterface },
-        { "let", TokKind::KwLet },
-        { "loop", TokKind::KwLoop },
-        { "null", TokKind::KwNull },
-        { "return", TokKind::KwReturn },
-        { "root", TokKind::KwRoot },
-        { "string", TokKind::KwString },
-        { "struct", TokKind::KwStruct },
-        { "super", TokKind::KwSuper },
-        { "switch", TokKind::KwSwitch },
-        { "try_as", TokKind::KwTryAs },
-        { "tup", TokKind::KwTup },
-        { "type", TokKind::KwType },
-        { "unit", TokKind::KwUnit },
-        { "while", TokKind::KwWhile },
-    };
+    using enum tok::TokKind;
+
+    static constexpr std::pair<std::string_view, tok::TokKind>
+        _keyword_table[] = {
+
+            { "as", KwAs },
+            { "bool", KwBool },
+            { "break", KwBreak },
+            { "byte", KwByte },
+            { "char", KwChar },
+            { "const", KwConst },
+            { "continue", KwContinue },
+            { "default", KwDefault },
+            { "defer", KwDefer },
+            { "defines", KwDefines },
+            { "elif", KwElif },
+            { "else", KwElse },
+            { "enum", KwEnum },
+            { "export", KwExport },
+            { "float", KwFloat },
+            { "for", KwFor },
+            { "func", KwFunc },
+            { "if", KwIf },
+            { "import", KwImport },
+            { "int", KwInt },
+            { "interface", KwInterface },
+            { "let", KwLet },
+            { "loop", KwLoop },
+            { "null", KwNull },
+            { "return", KwReturn },
+            { "root", KwRoot },
+            { "string", KwString },
+            { "struct", KwStruct },
+            { "super", KwSuper },
+            { "switch", KwSwitch },
+            { "try_as", KwTryAs },
+            { "tup", KwTup },
+            { "type", KwType },
+            { "unit", KwUnit },
+            { "while", KwWhile },
+        };
 
     template<std::size_t N>
     static constexpr bool _is_keyword_table_sorted(
-        const std::pair<std::string_view, TokKind> (&arr)[N]) {
+        const std::pair<std::string_view, tok::TokKind> (&arr)[N]) {
         for (std::size_t i = 1; i < N; ++i) {
             if (!(arr[i - 1].first < arr[i].first)) {
                 return false;
@@ -59,7 +63,7 @@ namespace alvo::lex {
     static_assert(_is_keyword_table_sorted(_keyword_table),
         "Keyword table must be sorted lexicographically");
 
-    static std::optional<TokKind> _lookup_keyword(std::string_view str) {
+    static std::optional<tok::TokKind> _lookup_keyword(std::string_view str) {
         auto first = std::begin(_keyword_table);
         auto last = std::end(_keyword_table);
 
@@ -122,7 +126,7 @@ namespace alvo::lex {
     TokEmitter::TokEmitter(TokHandler handler) :
         m_handler(handler) { }
 
-    void TokEmitter::emit(const lex::Tok& tok) { m_handler(tok); }
+    void TokEmitter::emit(const tok::Tok& tok) { m_handler(tok); }
 
     Lexer::Lexer(std::string_view src) :
         m_src(src),
@@ -146,8 +150,8 @@ namespace alvo::lex {
         m_tok_emitter = &tok_emitter;
     }
 
-    Tok Lexer::next() {
-        Tok res = m_curr;
+    tok::Tok Lexer::next() {
+        tok::Tok res = m_curr;
         if (m_tok_emitter) {
             m_tok_emitter->emit(res);
         }
@@ -155,7 +159,7 @@ namespace alvo::lex {
         return res;
     }
 
-    Tok Lexer::lex_string() {
+    tok::Tok Lexer::lex_string() {
         if (m_ch == L'"' || m_ch == L'\'') {
             bool is_char = false;
             if (m_ch == L'\'') {
@@ -167,11 +171,11 @@ namespace alvo::lex {
             while (!m_eof) {
                 if (!utf8::is_print(m_ch)) {
                     if (is_char) {
-                        return create_err_and_emit(diag::ErrKind::
-                                NonPrintableCharacterInCharacterLiteral);
+                        return create_err_and_emit({ diag::Err::
+                                NonPrintableCharacterInCharacterLiteral {} });
                     } else {
-                        return create_err_and_emit(diag::ErrKind::
-                                NonPrintableCharacterInStringLiteral);
+                        return create_err_and_emit({ diag::Err::
+                                NonPrintableCharacterInStringLiteral {} });
                     }
                 }
                 if (escaped) {
@@ -188,19 +192,20 @@ namespace alvo::lex {
                 advance();
             }
             if (!closed) {
-                return create_err_and_emit(diag::ErrKind::UnterminatedString);
+                return create_err_and_emit(
+                    { diag::Err::UnterminatedString {} });
             }
             advance();
             if (is_char) {
-                return create_tok(TokKind::LitCharacter);
+                return create_tok(LitCharacter);
             } else {
-                return create_tok(TokKind::LitString);
+                return create_tok(LitString);
             }
         }
-        return create_tok(TokKind::None);
+        return create_tok(None);
     }
 
-    Tok Lexer::lex_num(bool negative) {
+    tok::Tok Lexer::lex_num(bool negative) {
         if (utf8::is_digit(m_ch)) {
             bool has_dot = false;
             bool has_digit_after_prefix = false;
@@ -226,10 +231,10 @@ namespace alvo::lex {
                     break;
                 default:
                     if (utf8::is_space(m_ch) || _is_sep(m_ch)) {
-                        return create_tok(TokKind::LitInteger);
+                        return create_tok(LitInteger);
                     }
                     return create_err_and_emit(
-                        diag::ErrKind::InvalidIntegerPrefix);
+                        { diag::Err::InvalidIntegerPrefix {} });
                 }
             }
 
@@ -258,22 +263,22 @@ namespace alvo::lex {
                 } else if ((_is_sep(m_ch) || utf8::is_space(m_ch))) {
                     if (base != 10 && !has_digit_after_prefix) {
                         return create_err_and_emit(
-                            diag::ErrKind::NoDigitsAfterIntegerPrefix);
+                            { diag::Err::NoDigitsAfterIntegerPrefix {} });
                     }
                     break;
                 } else if (m_ch == L'y' || m_ch == L'Y') {
                     if (has_dot) {
-                        return create_err_and_emit(
-                            diag::ErrKind::BytePostfixInFloatingPointLiteral);
+                        return create_err_and_emit({ diag::Err::
+                                BytePostfixInFloatingPointLiteral {} });
                     } else {
                         if (base != 10 && !has_digit_after_prefix) {
                             return create_err_and_emit(
-                                diag::ErrKind::NoDigitsAfterIntegerPrefix);
+                                { diag::Err::NoDigitsAfterIntegerPrefix {} });
                         }
                     }
                     if (negative) {
                         return create_err_and_emit(
-                            diag::ErrKind::NegativeByteLiteral);
+                            { diag::Err::NegativeByteLiteral {} });
                     }
                     has_byte_postfix = true;
                     advance();
@@ -282,25 +287,25 @@ namespace alvo::lex {
                     // OK
                 } else {
                     return create_err_and_emit(
-                        diag::ErrKind::UnexpectedCharacterInNumberLiteral);
+                        { diag::Err::UnexpectedCharacterInNumberLiteral {} });
                 }
                 advance();
             }
 
-            TokKind kind;
+            tok::TokKind kind;
             if (has_dot) {
-                kind = TokKind::LitFloating;
+                kind = LitFloating;
             } else if (has_byte_postfix) {
-                kind = TokKind::LitByte;
+                kind = LitByte;
             } else {
-                kind = TokKind::LitInteger;
+                kind = LitInteger;
             }
             return create_tok(kind);
         }
-        return create_tok(TokKind::None);
+        return create_tok(None);
     }
 
-    Tok Lexer::lex_word() {
+    tok::Tok Lexer::lex_word() {
         if (utf8::is_alpha(m_ch) || m_ch == L'_') {
             advance();
             while (!m_eof) {
@@ -311,25 +316,24 @@ namespace alvo::lex {
                 }
             }
             std::string_view value = get_curr_value();
-            std::optional<TokKind> keyword_kind = _lookup_keyword(value);
+            std::optional<tok::TokKind> keyword_kind = _lookup_keyword(value);
             if (keyword_kind) {
                 return create_tok(*keyword_kind);
             } else {
                 if (value == "true" || value == "false") {
-                    return create_tok(TokKind::LitBoolean);
+                    return create_tok(LitBoolean);
                 } else {
-                    return create_tok(TokKind::Ident);
+                    return create_tok(Ident);
                 }
             }
         }
-        return create_tok(TokKind::None);
+        return create_tok(None);
     }
 
-    Tok Lexer::lex_sym() {
+    tok::Tok Lexer::lex_sym() {
         if (_is_sep(m_ch)) {
-            TokKind sym_kind = TokKind::None;
+            tok::TokKind sym_kind = None;
             switch (m_ch) {
-                using enum TokKind;
             case L'(':
                 sym_kind = LParen;
                 advance();
@@ -487,7 +491,7 @@ namespace alvo::lex {
                     while (!m_eof && m_ch != L'\n') {
                         advance();
                     }
-                    return create_tok(TokKind::Continue);
+                    return create_tok(Continue);
                 }
                 break;
             case L'&':
@@ -547,17 +551,17 @@ namespace alvo::lex {
             }
             return create_tok(sym_kind);
         }
-        return create_tok(TokKind::None);
+        return create_tok(None);
     }
 
-    Tok Lexer::peek() const { return m_curr; }
+    tok::Tok Lexer::peek() const { return m_curr; }
 
-    Tok Lexer::get_token() {
+    tok::Tok Lexer::get_token() {
         while (true) {
             m_pos_begin = m_pos;
 
             if (m_eof) {
-                return create_tok(TokKind::Eof);
+                return create_tok(Eof);
             }
 
             if (utf8::is_space(m_ch)) {
@@ -565,7 +569,7 @@ namespace alvo::lex {
                 continue;
             }
 
-            Tok string_tok = lex_string();
+            tok::Tok string_tok = lex_string();
             if (string_tok.is_continue()) {
                 continue;
             }
@@ -573,7 +577,7 @@ namespace alvo::lex {
                 return string_tok;
             }
 
-            Tok num_tok = lex_num(false);
+            tok::Tok num_tok = lex_num(false);
             if (num_tok.is_continue()) {
                 continue;
             }
@@ -581,7 +585,7 @@ namespace alvo::lex {
                 return num_tok;
             }
 
-            Tok word_tok = lex_word();
+            tok::Tok word_tok = lex_word();
             if (word_tok.is_continue()) {
                 continue;
             }
@@ -589,7 +593,7 @@ namespace alvo::lex {
                 return word_tok;
             }
 
-            Tok sym_tok = lex_sym();
+            tok::Tok sym_tok = lex_sym();
             if (sym_tok.is_continue()) {
                 continue;
             }
@@ -597,7 +601,7 @@ namespace alvo::lex {
                 return sym_tok;
             }
 
-            return create_err_and_emit(diag::ErrKind::UnexpectedCharacter);
+            return create_err_and_emit({ diag::Err::UnexpectedCharacter {} });
         }
     }
 
@@ -623,20 +627,20 @@ namespace alvo::lex {
         }
     }
 
-    Tok Lexer::create_err_and_emit(diag::Err err) {
+    tok::Tok Lexer::create_err_and_emit(diag::Err err) {
         if (m_diag_emitter != nullptr) {
             m_diag_emitter->emit({ err, m_pos });
         }
         recover();
-        return create_tok(TokKind::Err);
+        return create_tok(tok::TokKind::Err);
     }
 
-    Tok Lexer::create_tok(TokKind kind) const {
-        return Tok({ m_pos_begin, m_pos }, kind, get_curr_value());
+    tok::Tok Lexer::create_tok(tok::TokKind kind) const {
+        return tok::Tok({ m_pos_begin, m_pos }, kind, get_curr_value());
     }
 
-    Tok Lexer::create_tok(TokKind kind, std::string_view view) const {
-        return Tok({ m_pos_begin, m_pos }, kind, view);
+    tok::Tok Lexer::create_tok(tok::TokKind kind, std::string_view view) const {
+        return tok::Tok({ m_pos_begin, m_pos }, kind, view);
     }
 
     std::string_view Lexer::get_curr_value() const {

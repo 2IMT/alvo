@@ -4,7 +4,9 @@
 #include <functional>
 #include <initializer_list>
 
+#include "diag.h"
 #include "lex.h"
+#include "tok.h"
 #include "ast.h"
 #include "mem.h"
 
@@ -37,6 +39,8 @@ namespace alvo::parse {
         Parser(lex::Lexer& lexer, mem::Arena& arena);
 
         void set_section_emitter(SectionEmitter& section_emitter);
+
+        void set_diag_emitter(diag::DiagEmitter& diag_emitter);
 
         ast::PathSegment parse_path_segment();
 
@@ -142,11 +146,11 @@ namespace alvo::parse {
             std::string_view m_section;
         };
 
-        static std::optional<int> prefix_bp(lex::TokKind kind);
+        static std::optional<int> prefix_bp(tok::TokKind kind);
 
-        static std::optional<int> postfix_bp(lex::TokKind kind);
+        static std::optional<int> postfix_bp(tok::TokKind kind);
 
-        static std::optional<std::pair<int, int>> infix_bp(lex::TokKind kind);
+        static std::optional<std::pair<int, int>> infix_bp(tok::TokKind kind);
 
         ast::Expr parse_expr_bp(int min_bp);
 
@@ -154,26 +158,27 @@ namespace alvo::parse {
 
         ast::Expr::Binop::Op parse_binop_op();
 
-        bool curr_is(lex::TokKind kind) const;
+        bool curr_is(tok::TokKind kind) const;
 
-        std::optional<lex::Tok> accept_and_get(lex::TokKind kind);
+        std::optional<tok::Tok> accept_and_get(tok::TokKind kind);
 
-        std::optional<lex::Tok> expect_and_get(lex::TokKind kind);
+        std::optional<tok::Tok> expect_and_get(tok::TokKind kind);
 
-        bool accept(lex::TokKind kind);
+        bool accept(tok::TokKind kind);
 
-        bool expect(lex::TokKind kind);
+        bool expect(tok::TokKind kind);
 
         void section_enter(std::string_view name);
 
         void section_exit(std::string_view name);
 
-        void synchronize(std::initializer_list<lex::TokKind> kinds);
+        void synchronize(std::initializer_list<tok::TokKind> kinds);
 
         lex::Lexer* m_lexer;
         mem::Arena* m_arena;
         ast::util::NodeCtx m_node_ctx;
         SectionEmitter* m_section_emitter;
+        diag::DiagEmitter* m_diag_emitter;
     };
 
 }

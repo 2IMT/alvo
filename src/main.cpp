@@ -25,11 +25,11 @@ public:
     Handler(State& state) :
         m_state(&state) { };
 
-    void operator()([[maybe_unused]] alvo::diag::Diag diag) {
+    void operator()([[maybe_unused]] const alvo::diag::Diag& diag) {
         fmt::println(std::cerr, "error");
     }
 
-    void operator()(const alvo::lex::Tok& tok) {
+    void operator()(const alvo::tok::Tok& tok) {
         indent();
         fmt::println("Tok: {}", tok);
     }

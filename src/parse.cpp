@@ -4,7 +4,7 @@
 
 namespace alvo::parse {
 
-    using enum lex::TokKind;
+    using enum tok::TokKind;
     using namespace ast;
 
     SectionEmitter::SectionEmitter(SectionHandler handler) :
@@ -22,11 +22,15 @@ namespace alvo::parse {
         m_section_emitter = &section_emitter;
     }
 
+    void Parser::set_diag_emitter(diag::DiagEmitter& diag_emitter) {
+        m_diag_emitter = &diag_emitter;
+    }
+
     PathSegment Parser::parse_path_segment() {
         SectionGuard section_guard(this, __func__);
 
         PathSegment::Val val;
-        std::optional<lex::Tok> name;
+        std::optional<tok::Tok> name;
         if (accept(KwRoot)) {
             val = PathSegment::Root {};
         } else if (accept(KwSuper)) {
@@ -75,7 +79,7 @@ namespace alvo::parse {
             if (std::holds_alternative<Import::Glob>(kind)) {
                 // Err
             }
-            std::optional<lex::Tok> name = expect_and_get(Ident);
+            std::optional<tok::Tok> name = expect_and_get(Ident);
             if (!name) {
                 // Err
             }
@@ -212,7 +216,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         Expr::Literal::Val val;
-        std::optional<lex::Tok> tok;
+        std::optional<tok::Tok> tok;
         if (accept(KwUnit)) {
             val = Expr::Literal::Unit {};
         } else if (accept(KwNull)) {
@@ -341,7 +345,7 @@ namespace alvo::parse {
     Expr::Literal::Struct::Field Parser::parse_expr_literal_struct_field() {
         SectionGuard section_guard(this, __func__);
 
-        std::optional<lex::Tok> tok_name = accept_and_get(Ident);
+        std::optional<tok::Tok> tok_name = accept_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -418,7 +422,7 @@ namespace alvo::parse {
         if (!expect(KwLet)) {
             // Err
         }
-        std::optional<lex::Tok> name_tok = expect_and_get(Ident);
+        std::optional<tok::Tok> name_tok = expect_and_get(Ident);
         if (!name_tok) {
             // Err
         }
@@ -511,7 +515,7 @@ namespace alvo::parse {
         if (!expect(KwFor)) {
             // Err
         }
-        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -605,7 +609,7 @@ namespace alvo::parse {
     Func::Signature::Param Parser::parse_func_signature_param() {
         SectionGuard section_guard(this, __func__);
 
-        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -626,7 +630,7 @@ namespace alvo::parse {
             is_export = true;
         }
 
-        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -674,7 +678,7 @@ namespace alvo::parse {
     Decl::GenericParam Parser::parse_decl_generic_param() {
         SectionGuard section_guard(this, __func__);
 
-        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -721,7 +725,7 @@ namespace alvo::parse {
         if (accept(KwExport)) {
             is_export = true;
         }
-        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -759,7 +763,7 @@ namespace alvo::parse {
     Decl::Enum::Element Parser::parse_decl_enum_element() {
         SectionGuard section_guard(this, __func__);
 
-        std::optional<lex::Tok> name = expect_and_get(Ident);
+        std::optional<tok::Tok> name = expect_and_get(Ident);
         if (!name) {
             // Err
         }
@@ -847,7 +851,7 @@ namespace alvo::parse {
     Decl::Interface::Member Parser::parse_decl_interface_member() {
         SectionGuard section_guard(this, __func__);
 
-        std::optional<lex::Tok> tok_name = expect_and_get(Ident);
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             // Err
         }
@@ -905,7 +909,7 @@ namespace alvo::parse {
         return Module(top_levels);
     }
 
-    std::optional<int> Parser::prefix_bp(lex::TokKind kind) {
+    std::optional<int> Parser::prefix_bp(tok::TokKind kind) {
         switch (kind) {
         case Plus:
         case Dash:
@@ -917,7 +921,7 @@ namespace alvo::parse {
         }
     }
 
-    std::optional<int> Parser::postfix_bp(lex::TokKind kind) {
+    std::optional<int> Parser::postfix_bp(tok::TokKind kind) {
         switch (kind) {
         case LParen:
         case LBracket:
@@ -929,7 +933,7 @@ namespace alvo::parse {
         }
     }
 
-    std::optional<std::pair<int, int>> Parser::infix_bp(lex::TokKind kind) {
+    std::optional<std::pair<int, int>> Parser::infix_bp(tok::TokKind kind) {
         switch (kind) {
         // Assignment
         case Eq:
@@ -1090,7 +1094,7 @@ namespace alvo::parse {
     Expr::Unop::Op Parser::parse_unop_op() {
         SectionGuard section_guard(this, __func__);
 
-        lex::Tok tok = m_lexer->next();
+        tok::Tok tok = m_lexer->next();
         switch (tok.kind) {
             using Unop = Expr::Unop::Op;
         case Plus:
@@ -1109,7 +1113,7 @@ namespace alvo::parse {
     Expr::Binop::Op Parser::parse_binop_op() {
         SectionGuard section_guard(this, __func__);
 
-        lex::Tok tok = m_lexer->next();
+        tok::Tok tok = m_lexer->next();
         switch (tok.kind) {
             using Binop = Expr::Binop::Op;
         case Eq:
@@ -1179,22 +1183,22 @@ namespace alvo::parse {
         }
     }
 
-    bool Parser::curr_is(lex::TokKind kind) const {
+    bool Parser::curr_is(tok::TokKind kind) const {
         return m_lexer->peek().kind == kind;
     }
 
-    std::optional<lex::Tok> Parser::accept_and_get(lex::TokKind kind) {
+    std::optional<tok::Tok> Parser::accept_and_get(tok::TokKind kind) {
         if (m_lexer->peek().kind == kind) {
             return m_lexer->next();
         }
         return std::nullopt;
     }
 
-    std::optional<lex::Tok> Parser::expect_and_get(lex::TokKind kind) {
+    std::optional<tok::Tok> Parser::expect_and_get(tok::TokKind kind) {
         return accept_and_get(kind);
     }
 
-    bool Parser::accept(lex::TokKind kind) {
+    bool Parser::accept(tok::TokKind kind) {
         if (m_lexer->peek().kind == kind) {
             m_lexer->next();
             return true;
@@ -1202,7 +1206,7 @@ namespace alvo::parse {
         return false;
     }
 
-    bool Parser::expect(lex::TokKind kind) { return accept(kind); }
+    bool Parser::expect(tok::TokKind kind) { return accept(kind); }
 
     void Parser::section_enter(std::string_view name) {
         if (m_section_emitter) {
@@ -1216,7 +1220,7 @@ namespace alvo::parse {
         }
     }
 
-    void Parser::synchronize(std::initializer_list<lex::TokKind> kinds) {
+    void Parser::synchronize(std::initializer_list<tok::TokKind> kinds) {
         while (!curr_is(Eof)) {
             for (const auto& kind : kinds) {
                 if (curr_is(kind)) {

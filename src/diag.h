@@ -1,75 +1,74 @@
 #pragma once
 
 #include <functional>
+#include <variant>
 
-#include "loc.h"
+#include "tok.h"
 
 namespace alvo::diag {
 
-    enum class WarnKind {
-        None,
-    };
-
     struct Warn {
-        WarnKind kind;
+        struct None { };
 
-        Warn() :
-            kind(WarnKind::None) { }
+        using Val = std::variant<None>;
 
-        Warn(WarnKind kind) :
-            kind(kind) { }
-    };
+        Val val;
 
-    enum class ErrKind {
-        None,
+        Warn();
 
-        // From Lexer
-        UnexpectedCharacter,
-        NonPrintableCharacterInCharacterLiteral,
-        NonPrintableCharacterInStringLiteral,
-        UnterminatedString,
-        InvalidIntegerPrefix,
-        NoDigitsAfterIntegerPrefix,
-        BytePostfixInFloatingPointLiteral,
-        NegativeByteLiteral,
-        UnexpectedCharacterInNumberLiteral,
+        Warn(const Val& val);
     };
 
     struct Err {
-        ErrKind kind;
 
-        Err() :
-            kind(ErrKind::None) { }
+        struct None { };
 
-        Err(ErrKind kind) :
-            kind(kind) { }
-    };
+        // From lexer
+        struct UnexpectedCharacter { };
 
-    enum class DiagKind {
-        Warn,
-        Err,
+        struct NonPrintableCharacterInCharacterLiteral { };
+
+        struct NonPrintableCharacterInStringLiteral { };
+
+        struct UnterminatedString { };
+
+        struct InvalidIntegerPrefix { };
+
+        struct NoDigitsAfterIntegerPrefix { };
+
+        struct BytePostfixInFloatingPointLiteral { };
+
+        struct NegativeByteLiteral { };
+
+        struct UnexpectedCharacterInNumberLiteral { };
+
+        // From parser
+        struct UnexpectedToken {
+            tok::Tok tok;
+        };
+
+        using Val = std::variant<None, UnexpectedCharacter,
+            NonPrintableCharacterInCharacterLiteral,
+            NonPrintableCharacterInStringLiteral, UnterminatedString,
+            InvalidIntegerPrefix, NoDigitsAfterIntegerPrefix,
+            BytePostfixInFloatingPointLiteral, NegativeByteLiteral,
+            UnexpectedCharacterInNumberLiteral, UnexpectedToken>;
+
+        Val val;
+
+        Err();
+
+        Err(const Val& val);
     };
 
     struct Diag {
-        DiagKind kind;
-        loc::Pos pos;
-        Warn warn;
-        Err err;
+        using Val = std::variant<Warn, Err>;
 
-        Diag(Warn warn, loc::Pos pos) :
-            kind(DiagKind::Warn),
-            pos(pos),
-            warn(warn),
-            err() { }
-
-        Diag(Err err, loc::Pos pos) :
-            kind(DiagKind::Err),
-            pos(pos),
-            warn(),
-            err(err) { }
+        Val val;
+        tok::Pos pos;
     };
 
-    using DiagHandler = std::function<void(Diag)>;
+    using DiagHandler = std::function<void(const Diag&)>;
 
     class DiagEmitter {
     public:
