@@ -1,5 +1,37 @@
 # alvo
 
+## Roadmap
+
+- [ ] Lexer
+  - [x] Working Lexer
+  - [x] Error Recovery
+  - [x] Error Reporting
+  - [x] Token Source Locations
+  - [ ] Tests
+- [ ] Parser
+  - [x] Working Parser
+  - [ ] Error Recovery
+  - [ ] Error Reporting
+  - [ ] Node Source Locations
+  - [ ] Tests
+- [ ] Type-Checker
+  - [ ] Working Basic Structures
+    - [ ] Expressions
+    - [ ] Statements
+    - [ ] User-Defined Types
+    - [ ] Functions
+    - [ ] Methods
+  - [ ] Working Generics
+    - [ ] Monomorphisation
+    - [ ] Infinite Cycle Detection
+  - [ ] Error Recovery
+  - [ ] Error Reporting
+  - [ ] Tests
+- [ ] Interpreter
+  - [ ] Working Interpreter
+  - [ ] Garbage Collection
+  - [ ] Tests
+
 ## Building
 
 ### Dependencies
