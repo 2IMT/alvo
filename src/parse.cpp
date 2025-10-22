@@ -1195,7 +1195,15 @@ namespace alvo::parse {
     }
 
     std::optional<tok::Tok> Parser::expect_and_get(tok::TokKind kind) {
-        return accept_and_get(kind);
+        std::optional<tok::Tok> res = accept_and_get(kind);
+        if (!res) {
+            if (m_diag_emitter) {
+                m_diag_emitter->emit({ diag::Err { diag::Err::UnexpectedToken {
+                                           m_lexer->peek() } },
+                    m_lexer->peek().loc.s });
+            }
+        }
+        return res;
     }
 
     bool Parser::accept(tok::TokKind kind) {
@@ -1206,7 +1214,17 @@ namespace alvo::parse {
         return false;
     }
 
-    bool Parser::expect(tok::TokKind kind) { return accept(kind); }
+    bool Parser::expect(tok::TokKind kind) {
+        bool res = accept(kind);
+        if (!res) {
+            if (m_diag_emitter) {
+                m_diag_emitter->emit({ diag::Err { diag::Err::UnexpectedToken {
+                                           m_lexer->peek() } },
+                    m_lexer->peek().loc.s });
+            }
+        }
+        return res;
+    }
 
     void Parser::section_enter(std::string_view name) {
         if (m_section_emitter) {

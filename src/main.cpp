@@ -107,16 +107,18 @@ int main(int argc, char** argv) {
 
     Handler::State handler_state;
     Handler handler(handler_state);
-    alvo::lex::Lexer lexer(*source);
     alvo::diag::DiagEmitter diag_emitter(handler);
     alvo::lex::TokEmitter tok_emitter(handler);
+    alvo::parse::SectionEmitter enter_emitter(handler);
+
+    alvo::lex::Lexer lexer(*source);
     lexer.set_diag_emitter(diag_emitter);
     lexer.set_tok_emitter(tok_emitter);
 
     alvo::mem::Arena node_arena(8192);
     alvo::parse::Parser parser(lexer, node_arena);
-    alvo::parse::SectionEmitter enter_emitter(handler);
     parser.set_section_emitter(enter_emitter);
+    parser.set_diag_emitter(diag_emitter);
 
     alvo::ast::Module module = parser.parse_module();
     alvo::ast::print::OstreamSink sink(std::cout);
