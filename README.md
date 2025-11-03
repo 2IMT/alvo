@@ -2,16 +2,16 @@
 
 ## Roadmap
 
-- [ ] Lexer
+- [*] Lexer
   - [x] Working Lexer
   - [x] Error Recovery
   - [x] Error Reporting
   - [x] Token Source Locations
   - [ ] Tests
-- [ ] Parser
+- [*] Parser
   - [x] Working Parser
-  - [ ] Error Recovery
-  - [ ] Error Reporting
+  - [x] Error Recovery
+  - [x] Error Reporting
   - [ ] Node Source Locations
   - [ ] Tests
 - [ ] Type-Checker
