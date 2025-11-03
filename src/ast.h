@@ -89,33 +89,42 @@ namespace alvo::ast {
         struct Bool { };
 
         struct Array {
+            bool is_invalid;
             util::Ptr<Type> type;
 
-            Array(const util::Ptr<Type>& type) :
+            Array(const bool& is_invalid, const util::Ptr<Type>& type) :
+                is_invalid(is_invalid),
                 type(type) { }
         };
 
         struct Tup {
+            bool is_invalid;
             util::List<Type> types;
 
-            Tup(const util::List<Type>& types) :
+            Tup(const bool& is_invalid, const util::List<Type>& types) :
+                is_invalid(is_invalid),
                 types(types) { }
         };
 
         struct Func {
+            bool is_invalid;
             util::List<Type> params;
             util::Ptr<Type> return_type;
 
-            Func(const util::List<Type>& params,
+            Func(const bool& is_invalid, const util::List<Type>& params,
                 const util::Ptr<Type>& return_type) :
+                is_invalid(is_invalid),
                 params(params),
                 return_type(return_type) { }
         };
 
         struct Path {
+            bool is_invalid;
             util::List<PathSegment> segments;
 
-            Path(const util::List<PathSegment>& segments) :
+            Path(const bool& is_invalid,
+                const util::List<PathSegment>& segments) :
+                is_invalid(is_invalid),
                 segments(segments) { }
         };
 
@@ -211,27 +220,34 @@ namespace alvo::ast {
             };
 
             struct Tup {
+                bool is_invalid;
                 util::List<Expr> exprs;
 
-                Tup(const util::List<Expr>& exprs) :
+                Tup(const bool& is_invalid, const util::List<Expr>& exprs) :
+                    is_invalid(is_invalid),
                     exprs(exprs) { }
             };
 
             struct Struct {
                 struct Field {
+                    bool is_invalid;
                     std::string_view name;
                     util::Ptr<Expr> expr;
 
-                    Field(const std::string_view& name,
+                    Field(const bool& is_invalid, const std::string_view& name,
                         const util::Ptr<Expr>& expr) :
+                        is_invalid(is_invalid),
                         name(name),
                         expr(expr) { }
                 };
 
+                bool is_invalid;
                 Type type;
                 util::List<Field> fields;
 
-                Struct(const Type& type, const util::List<Field>& fields) :
+                Struct(const bool& is_invalid, const Type& type,
+                    const util::List<Field>& fields) :
+                    is_invalid(is_invalid),
                     type(type),
                     fields(fields) { }
             };
@@ -352,20 +368,25 @@ namespace alvo::ast {
     };
 
     struct Block {
+        bool is_invalid;
         util::List<Stmt> stmts;
 
-        Block(const util::List<Stmt>& stmts) :
+        Block(const bool& is_invalid, const util::List<Stmt>& stmts) :
+            is_invalid(is_invalid),
             stmts(stmts) { }
     };
 
     struct Stmt {
         struct Let {
+            bool is_invalid;
             std::string_view name;
             std::optional<Type> type;
             std::optional<Expr> expr;
 
-            Let(const std::string_view& name, const std::optional<Type>& type,
+            Let(const bool& is_invalid, const std::string_view& name,
+                const std::optional<Type>& type,
                 const std::optional<Expr>& expr) :
+                is_invalid(is_invalid),
                 name(name),
                 type(type),
                 expr(expr) { }
@@ -381,14 +402,16 @@ namespace alvo::ast {
                     block(block) { }
             };
 
+            bool is_invalid;
             Expr expr;
             Block main;
             util::List<Elif> elifs;
             std::optional<Block> else_;
 
-            If(const Expr& expr, const Block& main,
+            If(const bool& is_invalid, const Expr& expr, const Block& main,
                 const util::List<Elif>& elifs,
                 const std::optional<Block>& else_) :
+                is_invalid(is_invalid),
                 expr(expr),
                 main(main),
                 elifs(elifs),
@@ -397,61 +420,78 @@ namespace alvo::ast {
 
         struct Switch {
             struct Case {
+                bool is_invalid;
                 std::optional<Expr> expr;
                 Block block;
 
-                Case(const std::optional<Expr>& expr, const Block& block) :
+                Case(const bool& is_invalid, const std::optional<Expr>& expr,
+                    const Block& block) :
+                    is_invalid(is_invalid),
                     expr(expr),
                     block(block) { }
             };
 
+            bool is_invalid;
             Expr expr;
             util::List<Case> cases;
 
-            Switch(const Expr& expr, const util::List<Case>& cases) :
+            Switch(const bool& is_invalid, const Expr& expr,
+                const util::List<Case>& cases) :
+                is_invalid(is_invalid),
                 expr(expr),
                 cases(cases) { }
         };
 
         struct Loop {
+            bool is_invalid;
             Block block;
 
-            Loop(const Block& block) :
+            Loop(const bool& is_invalid, const Block& block) :
+                is_invalid(is_invalid),
                 block(block) { }
         };
 
         struct For {
+            bool is_invalid;
             std::string_view name;
             Expr expr;
             Block block;
 
-            For(const std::string_view& name, const Expr& expr,
-                const Block& block) :
+            For(const bool& is_invalid, const std::string_view& name,
+                const Expr& expr, const Block& block) :
+                is_invalid(is_invalid),
                 name(name),
                 expr(expr),
                 block(block) { }
         };
 
         struct While {
+            bool is_invalid;
             Expr expr;
             Block block;
 
-            While(const Expr& expr, const Block& block) :
+            While(
+                const bool& is_invalid, const Expr& expr, const Block& block) :
+                is_invalid(is_invalid),
                 expr(expr),
                 block(block) { }
         };
 
         struct Return {
+            bool is_invalid;
             std::optional<Expr> expr;
 
-            Return(const std::optional<Expr>& expr) :
+            Return(const bool& is_invalid, const std::optional<Expr>& expr) :
+                is_invalid(is_invalid),
                 expr(expr) { }
         };
 
         struct Defer {
+            bool is_invalid;
             Expr expr;
 
-            Defer(const Expr& expr) :
+            Defer(const bool& is_invalid, const Expr& expr) :
+                is_invalid(is_invalid),
                 expr(expr) { }
         };
 
@@ -470,117 +510,148 @@ namespace alvo::ast {
     struct Func {
         struct Signature {
             struct Param {
+                bool is_invalid;
                 std::string_view name;
                 Type type;
 
-                Param(const std::string_view& name, const Type& type) :
+                Param(const bool& is_invalid, const std::string_view& name,
+                    const Type& type) :
+                    is_invalid(is_invalid),
                     name(name),
                     type(type) { }
             };
 
+            bool is_invalid;
             util::List<Param> params;
             Type ret;
 
-            Signature(const util::List<Param>& params, const Type& ret) :
+            Signature(const bool& is_invalid, const util::List<Param>& params,
+                const Type& ret) :
+                is_invalid(is_invalid),
                 params(params),
                 ret(ret) { }
         };
 
+        bool is_invalid;
         Signature signature;
         Block block;
 
-        Func(const Signature& signature, const Block& block) :
+        Func(const bool& is_invalid, const Signature& signature,
+            const Block& block) :
+            is_invalid(is_invalid),
             signature(signature),
             block(block) { }
     };
 
     struct Decl {
         struct GenericParam {
+            bool is_invalid;
             std::string_view name;
             util::List<Type> interfaces;
 
-            GenericParam(const std::string_view& name,
+            GenericParam(const bool& is_invalid, const std::string_view& name,
                 const util::List<Type>& interfaces) :
+                is_invalid(is_invalid),
                 name(name),
                 interfaces(interfaces) { }
         };
 
         struct Struct {
             struct Field {
+                bool is_invalid;
                 std::string_view name;
                 Type type;
                 bool is_export;
 
-                Field(const std::string_view& name, const Type& type,
-                    const bool& is_export) :
+                Field(const bool& is_invalid, const std::string_view& name,
+                    const Type& type, const bool& is_export) :
+                    is_invalid(is_invalid),
                     name(name),
                     type(type),
                     is_export(is_export) { }
             };
 
+            bool is_invalid;
             util::List<Field> fields;
 
-            Struct(const util::List<Field>& fields) :
+            Struct(const bool& is_invalid, const util::List<Field>& fields) :
+                is_invalid(is_invalid),
                 fields(fields) { }
         };
 
         struct Enum {
             struct Element {
+                bool is_invalid;
                 std::string_view name;
 
-                Element(const std::string_view& name) :
+                Element(const bool& is_invalid, const std::string_view& name) :
+                    is_invalid(is_invalid),
                     name(name) { }
             };
 
+            bool is_invalid;
             util::List<Element> elements;
 
-            Enum(const util::List<Element>& elements) :
+            Enum(const bool& is_invalid, const util::List<Element>& elements) :
+                is_invalid(is_invalid),
                 elements(elements) { }
         };
 
         struct TypeAlias {
+            bool is_invalid;
             Type type;
 
-            TypeAlias(const Type& type) :
+            TypeAlias(const bool& is_invalid, const Type& type) :
+                is_invalid(is_invalid),
                 type(type) { }
         };
 
         struct Const {
+            bool is_invalid;
             Type type;
             Expr expr;
 
-            Const(const Type& type, const Expr& expr) :
+            Const(const bool& is_invalid, const Type& type, const Expr& expr) :
+                is_invalid(is_invalid),
                 type(type),
                 expr(expr) { }
         };
 
         struct Defines {
+            bool is_invalid;
             std::optional<Type> interface;
             util::List<Decl> decls;
 
-            Defines(const std::optional<Type>& interface,
+            Defines(const bool& is_invalid,
+                const std::optional<Type>& interface,
                 const util::List<Decl>& decls) :
+                is_invalid(is_invalid),
                 interface(interface),
                 decls(decls) { }
         };
 
         struct Interface {
             struct Member {
+                bool is_invalid;
                 std::string_view name;
                 util::List<GenericParam> generic_params;
                 Func::Signature signature;
 
-                Member(const std::string_view& name,
+                Member(const bool& is_invalid, const std::string_view& name,
                     const util::List<GenericParam>& generic_params,
                     const Func::Signature& signature) :
+                    is_invalid(is_invalid),
                     name(name),
                     generic_params(generic_params),
                     signature(signature) { }
             };
 
+            bool is_invalid;
             util::List<Member> members;
 
-            Interface(const util::List<Member>& members) :
+            Interface(
+                const bool& is_invalid, const util::List<Member>& members) :
+                is_invalid(is_invalid),
                 members(members) { }
         };
 
@@ -1015,6 +1086,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Type::Array& n) {
         node_begin("Array");
+        field("is_invalid", n.is_invalid);
         field("type", n.type);
         node_end();
     }
@@ -1022,6 +1094,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Type::Tup& n) {
         node_begin("Tup");
+        field("is_invalid", n.is_invalid);
         field("types", n.types);
         node_end();
     }
@@ -1029,6 +1102,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Type::Func& n) {
         node_begin("Func");
+        field("is_invalid", n.is_invalid);
         field("params", n.params);
         field("return_type", n.return_type);
         node_end();
@@ -1037,6 +1111,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Type::Path& n) {
         node_begin("Path");
+        field("is_invalid", n.is_invalid);
         field("segments", n.segments);
         node_end();
     }
@@ -1142,6 +1217,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Expr::Literal::Tup& n) {
         node_begin("Tup");
+        field("is_invalid", n.is_invalid);
         field("exprs", n.exprs);
         node_end();
     }
@@ -1149,6 +1225,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Expr::Literal::Struct& n) {
         node_begin("Struct");
+        field("is_invalid", n.is_invalid);
         field("type", n.type);
         field("fields", n.fields);
         node_end();
@@ -1157,6 +1234,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Expr::Literal::Struct::Field& n) {
         node_begin("Field");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("expr", n.expr);
         node_end();
@@ -1337,6 +1415,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Block& n) {
         node_begin("Block");
+        field("is_invalid", n.is_invalid);
         field("stmts", n.stmts);
         node_end();
     }
@@ -1351,6 +1430,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::Let& n) {
         node_begin("Let");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("type", n.type);
         field("expr", n.expr);
@@ -1360,6 +1440,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::If& n) {
         node_begin("If");
+        field("is_invalid", n.is_invalid);
         field("expr", n.expr);
         field("main", n.main);
         field("elifs", n.elifs);
@@ -1378,6 +1459,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::Switch& n) {
         node_begin("Switch");
+        field("is_invalid", n.is_invalid);
         field("expr", n.expr);
         field("cases", n.cases);
         node_end();
@@ -1386,6 +1468,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::Switch::Case& n) {
         node_begin("Case");
+        field("is_invalid", n.is_invalid);
         field("expr", n.expr);
         field("block", n.block);
         node_end();
@@ -1394,6 +1477,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::Loop& n) {
         node_begin("Loop");
+        field("is_invalid", n.is_invalid);
         field("block", n.block);
         node_end();
     }
@@ -1401,6 +1485,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::For& n) {
         node_begin("For");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("expr", n.expr);
         field("block", n.block);
@@ -1410,6 +1495,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::While& n) {
         node_begin("While");
+        field("is_invalid", n.is_invalid);
         field("expr", n.expr);
         field("block", n.block);
         node_end();
@@ -1418,6 +1504,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::Return& n) {
         node_begin("Return");
+        field("is_invalid", n.is_invalid);
         field("expr", n.expr);
         node_end();
     }
@@ -1425,6 +1512,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Stmt::Defer& n) {
         node_begin("Defer");
+        field("is_invalid", n.is_invalid);
         field("expr", n.expr);
         node_end();
     }
@@ -1442,6 +1530,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Func& n) {
         node_begin("Func");
+        field("is_invalid", n.is_invalid);
         field("signature", n.signature);
         field("block", n.block);
         node_end();
@@ -1450,6 +1539,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Func::Signature& n) {
         node_begin("Signature");
+        field("is_invalid", n.is_invalid);
         field("params", n.params);
         field("ret", n.ret);
         node_end();
@@ -1458,6 +1548,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Func::Signature::Param& n) {
         node_begin("Param");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("type", n.type);
         node_end();
@@ -1476,6 +1567,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::GenericParam& n) {
         node_begin("GenericParam");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("interfaces", n.interfaces);
         node_end();
@@ -1484,6 +1576,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Struct& n) {
         node_begin("Struct");
+        field("is_invalid", n.is_invalid);
         field("fields", n.fields);
         node_end();
     }
@@ -1491,6 +1584,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Struct::Field& n) {
         node_begin("Field");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("type", n.type);
         field("is_export", n.is_export);
@@ -1500,6 +1594,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Enum& n) {
         node_begin("Enum");
+        field("is_invalid", n.is_invalid);
         field("elements", n.elements);
         node_end();
     }
@@ -1507,6 +1602,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Enum::Element& n) {
         node_begin("Element");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         node_end();
     }
@@ -1514,6 +1610,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::TypeAlias& n) {
         node_begin("TypeAlias");
+        field("is_invalid", n.is_invalid);
         field("type", n.type);
         node_end();
     }
@@ -1521,6 +1618,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Const& n) {
         node_begin("Const");
+        field("is_invalid", n.is_invalid);
         field("type", n.type);
         field("expr", n.expr);
         node_end();
@@ -1529,6 +1627,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Defines& n) {
         node_begin("Defines");
+        field("is_invalid", n.is_invalid);
         field("interface", n.interface);
         field("decls", n.decls);
         node_end();
@@ -1537,6 +1636,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Interface& n) {
         node_begin("Interface");
+        field("is_invalid", n.is_invalid);
         field("members", n.members);
         node_end();
     }
@@ -1544,6 +1644,7 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Interface::Member& n) {
         node_begin("Member");
+        field("is_invalid", n.is_invalid);
         field("name", n.name);
         field("generic_params", n.generic_params);
         field("signature", n.signature);

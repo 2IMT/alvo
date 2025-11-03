@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -12,6 +13,7 @@
 #include "parse.h"
 #include "ast.h"
 #include "mem.h"
+#include "util.h"
 
 class Handler {
 public:
@@ -22,11 +24,70 @@ public:
             indent(0) { }
     };
 
-    Handler(State& state) :
-        m_state(&state) { };
+    Handler(State& state, std::string_view file_path) :
+        m_state(&state),
+        m_file_path(file_path) { };
 
     void operator()([[maybe_unused]] const alvo::diag::Diag& diag) {
-        fmt::println(std::cerr, "error");
+        fmt::print(std::cerr, "{}:{}: ", m_file_path, diag.pos);
+        std::visit(
+            alvo::util::overload { [](const alvo::diag::Warn& warn) {
+                                      using alvo::diag::Warn;
+                                      fmt::print(std::cerr, "warning: ");
+                                      std::visit(
+                                          alvo::util::overload {
+                                              [](const Warn::None&) { } },
+                                          warn.val);
+                                  },
+                [](const alvo::diag::Err& err) {
+                    using alvo::diag::Err;
+                    fmt::print(std::cerr, "error: ");
+                    std::visit(
+                        alvo::util::overload {
+                            [](const Err::None&) { fmt::print("none"); },
+                            [](const Err::UnexpectedCharacter&) {
+                                fmt::print("unexpected character");
+                            },
+                            [](const Err::
+                                    NonPrintableCharacterInCharacterLiteral&) {
+                                fmt::print("unexpected character in character "
+                                           "literal");
+                            },
+                            [](const Err::
+                                    NonPrintableCharacterInStringLiteral&) {
+                                fmt::print("non-printable character in string "
+                                           "literal");
+                            },
+                            [](const Err::UnterminatedString&) {
+                                fmt::print("unterminated string literal");
+                            },
+                            [](const Err::InvalidIntegerPrefix&) {
+                                fmt::print("invalid integer prefix");
+                            },
+                            [](const Err::NoDigitsAfterIntegerPrefix&) {
+                                fmt::print("no digits after integer prefix");
+                            },
+                            [](const Err::BytePostfixInFloatingPointLiteral&) {
+                                fmt::print(
+                                    "byte postfix in floating point literal");
+                            },
+                            [](const Err::NegativeByteLiteral&) {
+                                fmt::print("negative byte literal");
+                            },
+                            [](const Err::UnexpectedCharacterInNumberLiteral&) {
+                                fmt::print(
+                                    "unexpected character in number literal");
+                            },
+                            [](const Err::UnexpectedToken& v) {
+                                fmt::print(
+                                    "unexpected token `{}`", v.tok.value);
+                            }
+
+                        },
+                        err.val);
+                } },
+            diag.val);
+        fmt::print(std::cerr, "\n");
     }
 
     void operator()(const alvo::tok::Tok& tok) {
@@ -57,6 +118,7 @@ private:
     }
 
     State* m_state;
+    std::string_view m_file_path;
 };
 
 std::optional<std::string> read_file(std::string_view path) {
@@ -106,7 +168,7 @@ int main(int argc, char** argv) {
     }
 
     Handler::State handler_state;
-    Handler handler(handler_state);
+    Handler handler(handler_state, argv[1]);
     alvo::diag::DiagEmitter diag_emitter(handler);
     alvo::lex::TokEmitter tok_emitter(handler);
     alvo::parse::SectionEmitter enter_emitter(handler);

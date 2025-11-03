@@ -33,16 +33,20 @@
       "Float": {},
       "Bool": {},
       "Array": {
+        "is_invalid": "bool",
         "type": "util::Ptr<Type>"
       },
       "Tup": {
+        "is_invalid": "bool",
         "types": "util::List<Type>"
       },
       "Func": {
+        "is_invalid": "bool",
         "params": "util::List<Type>",
         "return_type": "util::Ptr<Type>"
       },
       "Path": {
+        "is_invalid": "bool",
         "segments": "util::List<PathSegment>"
       },
       "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>",
@@ -86,13 +90,16 @@
           "val": "Val"
         },
         "Tup": {
+          "is_invalid": "bool",
           "exprs": "util::List<Expr>"
         },
         "Struct": {
           "Field": {
+            "is_invalid": "bool",
             "name": "std::string_view",
             "expr": "util::Ptr<Expr>"
           },
+          "is_invalid": "bool",
           "type": "Type",
           "fields": "util::List<Field>"
         },
@@ -163,10 +170,12 @@
       "val": "Val"
     },
     "Block": {
+      "is_invalid": "bool",
       "stmts": "util::List<Stmt>"
     },
     "Stmt": {
       "Let": {
+        "is_invalid": "bool",
         "name": "std::string_view",
         "type": "std::optional<Type>",
         "expr": "std::optional<Expr>"
@@ -176,6 +185,7 @@
           "expr": "Expr",
           "block": "Block"
         },
+        "is_invalid": "bool",
         "expr": "Expr",
         "main": "Block",
         "elifs": "util::List<Elif>",
@@ -183,28 +193,35 @@
       },
       "Switch": {
         "Case": {
+          "is_invalid": "bool",
           "expr": "std::optional<Expr>",
           "block": "Block"
         },
+        "is_invalid": "bool",
         "expr": "Expr",
         "cases": "util::List<Case>"
       },
       "Loop": {
+        "is_invalid": "bool",
         "block": "Block"
       },
       "For": {
+        "is_invalid": "bool",
         "name": "std::string_view",
         "expr": "Expr",
         "block": "Block"
       },
       "While": {
+        "is_invalid": "bool",
         "expr": "Expr",
         "block": "Block"
       },
       "Return": {
+        "is_invalid": "bool",
         "expr": "std::optional<Expr>"
       },
       "Defer": {
+        "is_invalid": "bool",
         "expr": "Expr"
       },
       "Continue": {},
@@ -215,51 +232,64 @@
     "Func": {
       "Signature": {
         "Param": {
+          "is_invalid": "bool",
           "name": "std::string_view",
           "type": "Type"
         },
+        "is_invalid": "bool",
         "params": "util::List<Param>",
         "ret": "Type"
       },
+      "is_invalid": "bool",
       "signature": "Signature",
       "block": "Block"
     },
     "Decl": {
       "GenericParam": {
+        "is_invalid": "bool",
         "name": "std::string_view",
         "interfaces": "util::List<Type>"
       },
       "Struct": {
         "Field": {
+          "is_invalid": "bool",
           "name": "std::string_view",
           "type": "Type",
           "is_export": "bool"
         },
+        "is_invalid": "bool",
         "fields": "util::List<Field>"
       },
       "Enum": {
         "Element": {
+          "is_invalid": "bool",
           "name": "std::string_view"
         },
+        "is_invalid": "bool",
         "elements": "util::List<Element>"
       },
       "TypeAlias": {
+        "is_invalid": "bool",
         "type": "Type"
       },
       "Const": {
+        "is_invalid": "bool",
         "type": "Type",
         "expr": "Expr"
       },
       "Defines": {
+        "is_invalid": "bool",
         "interface": "std::optional<Type>",
         "decls": "util::List<Decl>"
       },
       "Interface": {
         "Member": {
+          "is_invalid": "bool",
           "name": "std::string_view",
           "generic_params": "util::List<GenericParam>",
           "signature": "Func::Signature"
         },
+        "is_invalid": "bool",
         "members": "util::List<Member>"
       },
       "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines, Interface>",

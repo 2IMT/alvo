@@ -309,7 +309,11 @@ namespace alvo::ast::print {
 
         template<typename T>
         void field(std::string_view name, const util::Ptr<T>& value) {
-            field(name, *value);
+            if (value.get_ptr()) {
+                field(name, *value);
+            } else {
+                field(name, std::string_view("null"));
+            }
         }
 
         void field(std::string_view name, bool value) {

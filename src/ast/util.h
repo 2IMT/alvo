@@ -10,6 +10,8 @@ namespace alvo::ast::util {
     template<typename T>
     class Ptr {
     public:
+        static Ptr<T> null() { return Ptr<T>(); }
+
         Ptr() :
             m_ptr(nullptr) { }
 
@@ -34,6 +36,10 @@ namespace alvo::ast::util {
             requires std::equality_comparable<T>
         {
             return !(lhs == rhs);
+        }
+
+        T* get_ptr() const {
+            return m_ptr;
         }
 
     private:
