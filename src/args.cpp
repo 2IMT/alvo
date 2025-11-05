@@ -62,10 +62,10 @@ namespace alvo::args {
             } else if (arg == "-m" || arg == "--show-allocs") {
                 show_allocs = true;
             } else if (arg == "-f" || arg == "--file") {
-                fmt::println(
-                    std::cerr, "error: `{}` requires an argument", arg);
-                _err_usage(program_name);
                 if (i == (std::size_t)argc - 1) {
+                    fmt::println(
+                        std::cerr, "error: `{}` requires an argument", arg);
+                    _err_usage(program_name);
                     return tl::make_unexpected(true);
                 }
                 i++;
