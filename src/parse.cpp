@@ -1123,7 +1123,13 @@ namespace alvo::parse {
 
         util::List<TopLevel> top_levels;
         while (!curr_is(Eof)) {
-            top_levels.push_back(*m_arena, parse_top_level());
+            if (curr_is(KwImport) || curr_is(Ident) || curr_is(KwDecls) ||
+                curr_is(KwExport)) {
+                top_levels.push_back(*m_arena, parse_top_level());
+            } else {
+                synchronize({ KwImport, Ident, KwDecls, KwExport });
+                // TODO: Err
+            }
         }
         return Module(top_levels);
     }
