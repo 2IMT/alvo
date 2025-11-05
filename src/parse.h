@@ -56,6 +56,8 @@ namespace alvo::parse {
 
         ast::Type::Path parse_type_path();
 
+        ast::Type::Ref parse_type_ref();
+
         ast::Expr parse_expr();
 
         ast::Expr::Literal parse_expr_literal();
@@ -67,6 +69,8 @@ namespace alvo::parse {
         ast::Expr::Literal::Struct parse_expr_literal_struct();
 
         ast::Expr::Literal::Struct::Field parse_expr_literal_struct_field();
+
+        ast::Expr::Ref parse_expr_ref();
 
         ast::Block parse_block();
 

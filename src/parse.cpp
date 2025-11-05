@@ -210,6 +210,8 @@ namespace alvo::parse {
             val = parse_type_func();
         } else if (curr_is(Ident) || curr_is(KwRoot) || curr_is(KwSuper)) {
             val = parse_type_path();
+        } else if (curr_is(KwRef)) {
+            val = parse_type_ref();
         } else {
             // Err
             synchronize({ Ident, KwRoot, KwSuper, LBracket, KwTup, KwFunc,
@@ -306,6 +308,28 @@ namespace alvo::parse {
             }
         }
         return Type::Path(false, segments);
+    }
+
+    Type::Ref Parser::parse_type_ref() {
+        SectionGuard section_guard(this, __func__);
+
+        if (!expect(KwRef)) {
+            synchronize(TYPE_CTX_SYNC);
+            return Type::Ref(true, util::Ptr<Type>::null());
+        }
+
+        if (!expect(LParen)) {
+            synchronize(TYPE_CTX_SYNC);
+            return Type::Ref(true, util::Ptr<Type>::null());
+        }
+
+        util::Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
+
+        if (!expect(RParen)) {
+            synchronize(TYPE_CTX_SYNC);
+        }
+
+        return Type::Ref(false, type);
     }
 
     Expr Parser::parse_expr() {
@@ -469,6 +493,28 @@ namespace alvo::parse {
         }
         util::Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
         return Expr::Literal::Struct::Field(false, name, expr);
+    }
+
+    Expr::Ref Parser::parse_expr_ref() {
+        SectionGuard section_guard(this, __func__);
+
+        if (!expect(KwRef)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Ref(true, util::Ptr<Expr>::null());
+        }
+
+        if (!expect(LParen)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Ref(true, util::Ptr<Expr>::null());
+        }
+
+        util::Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
+
+        if (!expect(RParen)) {
+            synchronize(EXPR_CTX_SYNC);
+        }
+
+        return Expr::Ref(false, expr);
     }
 
     Block Parser::parse_block() {
@@ -1193,6 +1239,8 @@ namespace alvo::parse {
                    curr_is(LBracket) || curr_is(KwTup) || curr_is(KwStruct) ||
                    curr_is(KwFunc)) {
             lhs.val = parse_expr_literal();
+        } else if (curr_is(KwRef)) {
+            lhs.val = parse_expr_ref();
         } else {
             synchronize(EXPR_CTX_SYNC);
             return Expr(Invalid {});
