@@ -14,6 +14,7 @@
 #include "ast.h"
 #include "mem.h"
 #include "util.h"
+#include "args.h"
 
 class Handler {
 public:
@@ -154,56 +155,69 @@ void eat_all_tokens(alvo::lex::Lexer& lexer) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        fmt::println(std::cerr, "error: source file not provided");
-        return 1;
+    using alvo::args::Args;
+    using alvo::args::ArgsResult;
+    ArgsResult args = alvo::args::parse(argc, argv);
+    if (!args) {
+        bool err = args.error();
+        if (err) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
-    if (argc > 2) {
-        fmt::println(std::cerr, "error: too many arguments");
-        return 1;
-    }
-    std::optional<std::string> source = read_file(argv[1]);
+
+    std::optional<std::string> source = read_file(args->file);
     if (!source) {
         return 1;
     }
 
     Handler::State handler_state;
-    Handler handler(handler_state, argv[1]);
+    Handler handler(handler_state, args->file);
     alvo::diag::DiagEmitter diag_emitter(handler);
     alvo::lex::TokEmitter tok_emitter(handler);
     alvo::parse::SectionEmitter enter_emitter(handler);
 
     alvo::lex::Lexer lexer(*source);
     lexer.set_diag_emitter(diag_emitter);
-    lexer.set_tok_emitter(tok_emitter);
+    if (args->emit_tokens) {
+        lexer.set_tok_emitter(tok_emitter);
+    }
 
     alvo::mem::Arena node_arena(8192);
     alvo::parse::Parser parser(lexer, node_arena);
-    parser.set_section_emitter(enter_emitter);
     parser.set_diag_emitter(diag_emitter);
+    if (args->emit_sections) {
+        parser.set_section_emitter(enter_emitter);
+    }
 
     alvo::ast::Module module = parser.parse_module();
-    alvo::ast::print::OstreamSink sink(std::cout);
-    alvo::ast::Printer printer(sink, 1);
-    using alvo::ast::print::StyleConfig;
-    using alvo::ast::print::Style;
-    using alvo::ast::print::Color;
-    printer.set_style_config(StyleConfig {
-        .node_name = Style::fg_color(Color { 255, 0, 0 }) | Style::bold() |
-                     Style::underline(),
-        .field_name = Style::fg_color(Color { 0, 0, 255 }) | Style::italic(),
-        .string = Style::fg_color(Color { 255, 127, 0 }),
-        .boolean = Style::fg_color(Color { 255, 255, 0 }) | Style::bold(),
-    });
-    printer.print_node(module);
-    fmt::print("\n");
+    if (args->print_ast) {
+        alvo::ast::print::OstreamSink sink(std::cout);
+        alvo::ast::Printer printer(sink, 1);
+        using alvo::ast::print::StyleConfig;
+        using alvo::ast::print::Style;
+        using alvo::ast::print::Color;
+        printer.set_style_config(StyleConfig {
+            .node_name = Style::fg_color(Color { 255, 0, 0 }) | Style::bold() |
+                         Style::underline(),
+            .field_name =
+                Style::fg_color(Color { 0, 0, 255 }) | Style::italic(),
+            .string = Style::fg_color(Color { 255, 127, 0 }),
+            .boolean = Style::fg_color(Color { 255, 255, 0 }) | Style::bold(),
+        });
+        printer.print_node(module);
+        fmt::print("\n");
+    }
 
-    std::size_t alloced = node_arena.get_total_allocated();
-    std::size_t block_count = node_arena.get_block_count();
-    std::size_t used = node_arena.get_total_used();
-    fmt::println("Arena allocated: {} B", fmt::group_digits(alloced));
-    fmt::println("Arena block count: {}", fmt::group_digits(block_count));
-    fmt::println("Used for AST: {} B", fmt::group_digits(used));
+    if (args->show_allocs) {
+        std::size_t alloced = node_arena.get_total_allocated();
+        std::size_t block_count = node_arena.get_block_count();
+        std::size_t used = node_arena.get_total_used();
+        fmt::println("Arena allocated: {} B", fmt::group_digits(alloced));
+        fmt::println("Arena block count: {}", fmt::group_digits(block_count));
+        fmt::println("Used for AST: {} B", fmt::group_digits(used));
+    }
 
     return 0;
 }

@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.27)
 
 include(FetchContent)
 
-project(alvo VERSION 0.1.0 LANGUAGES C CXX)
+set(ALVO_VERSION "0.1.0")
+
+project(alvo VERSION ${ALVO_VERSION} LANGUAGES C CXX)
 
 # Project options
 
@@ -47,6 +49,7 @@ function(alvo_setup_target target)
     )
     target_compile_options(${target} PRIVATE ${ALVO_WARNING_FLAGS})
     target_compile_definitions(${target} PRIVATE "ALVO_DEBUG=$<IF:$<CONFIG:Debug>,1,0>")
+    target_compile_definitions(${target} PRIVATE "ALVO_VERSION=\"${ALVO_VERSION}\"")
 endfunction()
 
 # Create main target
@@ -59,6 +62,7 @@ set(ALVO_SOURCES
     "src/parse.cpp"
     "src/ast.cpp"
     "src/ast/print.cpp"
+    "src/args.cpp"
 )
 
 add_executable(alvo "src/main.cpp" ${ALVO_SOURCES})
@@ -74,7 +78,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
-target_link_libraries(alvo fmt::fmt)
+FetchContent_Declare(
+     expected
+     GIT_REPOSITORY https://github.com/TartanLlama/expected
+     GIT_TAG v1.3.1
+ )
+set(EXPECTED_BUILD_TESTS OFF)
+FetchContent_MakeAvailable(expected)
+
+target_link_libraries(alvo fmt::fmt tl::expected)
 
 # Create test target
 
@@ -97,7 +109,7 @@ if (ALVO_TEST)
     )
     FetchContent_MakeAvailable(Catch2)
 
-    target_link_libraries(alvo_test Catch2::Catch2WithMain)
+    target_link_libraries(alvo_test Catch2::Catch2WithMain tl::expected fmt::fmt)
 
     list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
     include(CTest)
