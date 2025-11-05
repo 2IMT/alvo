@@ -1,356 +1,356 @@
 {
-  "sys_includes": ["variant", "string_view", "optional"],
-  "project_includes": ["ast/util.h", "ast/print.h"],
-  "namespace": "alvo::ast",
-  "ast": {
-    "Invalid": {},
-    "PathSegment": {
-      "Root": {},
-      "Super": {},
-      "Name": {
-        "value": "std::string_view",
-        "generic_params": "util::List<Type>"
-      },
-      "@Val": "std::variant<Invalid, Root, Super, Name>",
-      "val": "Val"
-    },
-    "Import": {
-      "Normal": {},
-      "Glob": {},
-      "Renamed": {
-        "renamed_to": "std::string_view"
-      },
-      "@Kind": "std::variant<Invalid, Normal, Glob, Renamed>",
-      "kind": "Kind",
-      "segments": "util::List<PathSegment>"
-    },
-    "Type": {
-      "Unit": {},
-      "String": {},
-      "Char": {},
-      "Int": {},
-      "Byte": {},
-      "Float": {},
-      "Bool": {},
-      "Array": {
-        "is_invalid": "bool",
-        "type": "util::Ptr<Type>"
-      },
-      "Tup": {
-        "is_invalid": "bool",
-        "types": "util::List<Type>"
-      },
-      "Func": {
-        "is_invalid": "bool",
-        "params": "util::List<Type>",
-        "return_type": "util::Ptr<Type>"
-      },
-      "Path": {
-        "is_invalid": "bool",
-        "segments": "util::List<PathSegment>"
-      },
-      "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>",
-      "val": "Val",
-      "nullable": "bool"
-    },
-    "Expr": {
-      "Literal": {
-        "Unit": {},
-        "Null": {},
-        "String": {
-          "value": "std::string_view"
+    "sys_includes": ["variant", "string_view", "optional"],
+    "project_includes": ["ast/util.h", "ast/print.h"],
+    "namespace": "alvo::ast",
+    "ast": {
+        "Invalid": {},
+        "PathSegment": {
+            "Root": {},
+            "Super": {},
+            "Name": {
+                "value": "std::string_view",
+                "generic_params": "util::List<Type>"
+            },
+            "@Val": "std::variant<Invalid, Root, Super, Name>",
+            "val": "Val"
         },
-        "Character": {
-          "value": "std::string_view"
+        "Import": {
+            "Normal": {},
+            "Glob": {},
+            "Renamed": {
+                "renamed_to": "std::string_view"
+            },
+            "@Kind": "std::variant<Invalid, Normal, Glob, Renamed>",
+            "kind": "Kind",
+            "segments": "util::List<PathSegment>"
         },
-        "Integer": {
-          "value": "std::string_view"
+        "Type": {
+            "Unit": {},
+            "String": {},
+            "Char": {},
+            "Int": {},
+            "Byte": {},
+            "Float": {},
+            "Bool": {},
+            "Array": {
+                "is_invalid": "bool",
+                "type": "util::Ptr<Type>"
+            },
+            "Tup": {
+                "is_invalid": "bool",
+                "types": "util::List<Type>"
+            },
+            "Func": {
+                "is_invalid": "bool",
+                "params": "util::List<Type>",
+                "return_type": "util::Ptr<Type>"
+            },
+            "Path": {
+                "is_invalid": "bool",
+                "segments": "util::List<PathSegment>"
+            },
+            "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>",
+            "val": "Val",
+            "nullable": "bool"
         },
-        "Byte": {
-          "value": "std::string_view"
+        "Expr": {
+            "Literal": {
+                "Unit": {},
+                "Null": {},
+                "String": {
+                    "value": "std::string_view"
+                },
+                "Character": {
+                    "value": "std::string_view"
+                },
+                "Integer": {
+                    "value": "std::string_view"
+                },
+                "Byte": {
+                    "value": "std::string_view"
+                },
+                "Floating": {
+                    "value": "std::string_view"
+                },
+                "Boolean": {
+                    "value": "std::string_view"
+                },
+                "Array": {
+                    "Regular": {
+                        "elements": "util::List<Expr>"
+                    },
+                    "DefaultNTimes": {
+                        "times": "util::Ptr<Expr>"
+                    },
+                    "ExprNTimes": {
+                        "expr": "util::Ptr<Expr>",
+                        "times": "util::Ptr<Expr>"
+                    },
+                    "@Val": "std::variant<Invalid, Regular, DefaultNTimes, ExprNTimes>",
+                    "val": "Val"
+                },
+                "Tup": {
+                    "is_invalid": "bool",
+                    "exprs": "util::List<Expr>"
+                },
+                "Struct": {
+                    "Field": {
+                        "is_invalid": "bool",
+                        "name": "std::string_view",
+                        "expr": "util::Ptr<Expr>"
+                    },
+                    "is_invalid": "bool",
+                    "type": "Type",
+                    "fields": "util::List<Field>"
+                },
+                "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, Struct, util::Ptr<Func>>",
+                "val": "Val"
+            },
+            "Unop": {
+                "Op": ["Invalid", "Plus", "Minus", "Not", "BinaryNot"],
+                "expr": "util::Ptr<Expr>",
+                "op": "Op"
+            },
+            "Binop": {
+                "Op": [
+                    "Invalid",
+                    "Assign",
+                    "PlusAssign",
+                    "MinusAssign",
+                    "MultiplyAssign",
+                    "DivideAssign",
+                    "BinaryAndAssign",
+                    "BinaryOrAssign",
+                    "BinaryXorAssign",
+                    "ModAssign",
+                    "ShiftLeftAssign",
+                    "ShiftRightAssign",
+                    "Or",
+                    "And",
+                    "BinaryOr",
+                    "BinaryXor",
+                    "BinaryAnd",
+                    "Equal",
+                    "NotEqual",
+                    "Less",
+                    "LessEqual",
+                    "Greater",
+                    "GreaterEqual",
+                    "ShiftLeft",
+                    "ShiftRight",
+                    "Plus",
+                    "Minus",
+                    "Multiply",
+                    "Divide",
+                    "Mod",
+                    "Access",
+                    "StaticAccess"
+                ],
+                "lhs": "util::Ptr<Expr>",
+                "rhs": "util::Ptr<Expr>",
+                "op": "Op"
+            },
+            "Index": {
+                "expr": "util::Ptr<Expr>",
+                "index": "util::Ptr<Expr>"
+            },
+            "Call": {
+                "expr": "util::Ptr<Expr>",
+                "args": "util::List<Expr>"
+            },
+            "Cast": {
+                "expr": "util::Ptr<Expr>",
+                "type": "Type"
+            },
+            "TryCast": {
+                "expr": "util::Ptr<Expr>",
+                "type": "Type"
+            },
+            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, PathSegment>",
+            "val": "Val"
         },
-        "Floating": {
-          "value": "std::string_view"
-        },
-        "Boolean": {
-          "value": "std::string_view"
-        },
-        "Array": {
-          "Regular": {
-            "elements": "util::List<Expr>"
-          },
-          "DefaultNTimes": {
-            "times": "util::Ptr<Expr>"
-          },
-          "ExprNTimes": {
-            "expr": "util::Ptr<Expr>",
-            "times": "util::Ptr<Expr>"
-          },
-          "@Val": "std::variant<Invalid, Regular, DefaultNTimes, ExprNTimes>",
-          "val": "Val"
-        },
-        "Tup": {
-          "is_invalid": "bool",
-          "exprs": "util::List<Expr>"
-        },
-        "Struct": {
-          "Field": {
+        "Block": {
             "is_invalid": "bool",
+            "stmts": "util::List<Stmt>"
+        },
+        "Stmt": {
+            "Let": {
+                "is_invalid": "bool",
+                "name": "std::string_view",
+                "type": "std::optional<Type>",
+                "expr": "std::optional<Expr>"
+            },
+            "If": {
+                "Elif": {
+                    "expr": "Expr",
+                    "block": "Block"
+                },
+                "is_invalid": "bool",
+                "expr": "Expr",
+                "main": "Block",
+                "elifs": "util::List<Elif>",
+                "else_": "std::optional<Block>"
+            },
+            "Switch": {
+                "Case": {
+                    "is_invalid": "bool",
+                    "expr": "std::optional<Expr>",
+                    "block": "Block"
+                },
+                "is_invalid": "bool",
+                "expr": "Expr",
+                "cases": "util::List<Case>"
+            },
+            "Loop": {
+                "is_invalid": "bool",
+                "block": "Block"
+            },
+            "For": {
+                "is_invalid": "bool",
+                "name": "std::string_view",
+                "expr": "Expr",
+                "block": "Block"
+            },
+            "While": {
+                "is_invalid": "bool",
+                "expr": "Expr",
+                "block": "Block"
+            },
+            "Return": {
+                "is_invalid": "bool",
+                "expr": "std::optional<Expr>"
+            },
+            "Defer": {
+                "is_invalid": "bool",
+                "expr": "Expr"
+            },
+            "Continue": {},
+            "Break": {},
+            "@Val": "std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return, Defer, Block, Continue, Break>",
+            "val": "Val"
+        },
+        "Func": {
+            "Signature": {
+                "Param": {
+                    "is_invalid": "bool",
+                    "name": "std::string_view",
+                    "type": "Type"
+                },
+                "is_invalid": "bool",
+                "params": "util::List<Param>",
+                "ret": "Type"
+            },
+            "is_invalid": "bool",
+            "signature": "Signature",
+            "block": "Block"
+        },
+        "Decl": {
+            "GenericParam": {
+                "is_invalid": "bool",
+                "name": "std::string_view",
+                "interfaces": "util::List<Type>"
+            },
+            "Struct": {
+                "Field": {
+                    "is_invalid": "bool",
+                    "name": "std::string_view",
+                    "type": "Type",
+                    "is_export": "bool"
+                },
+                "is_invalid": "bool",
+                "fields": "util::List<Field>"
+            },
+            "Enum": {
+                "Element": {
+                    "is_invalid": "bool",
+                    "name": "std::string_view"
+                },
+                "is_invalid": "bool",
+                "elements": "util::List<Element>"
+            },
+            "TypeAlias": {
+                "is_invalid": "bool",
+                "type": "Type"
+            },
+            "Const": {
+                "is_invalid": "bool",
+                "type": "Type",
+                "expr": "Expr"
+            },
+            "Defines": {
+                "is_invalid": "bool",
+                "interface": "std::optional<Type>",
+                "decls": "util::List<Decl>"
+            },
+            "Interface": {
+                "Member": {
+                    "is_invalid": "bool",
+                    "name": "std::string_view",
+                    "generic_params": "util::List<GenericParam>",
+                    "signature": "Func::Signature"
+                },
+                "is_invalid": "bool",
+                "members": "util::List<Member>"
+            },
+            "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines, Interface>",
+            "is_export": "bool",
             "name": "std::string_view",
-            "expr": "util::Ptr<Expr>"
-          },
-          "is_invalid": "bool",
-          "type": "Type",
-          "fields": "util::List<Field>"
+            "generic_params": "util::List<GenericParam>",
+            "val": "Val"
         },
-        "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, Struct, util::Ptr<Func>>",
-        "val": "Val"
-      },
-      "Unop": {
-        "Op": ["Invalid", "Plus", "Minus", "Not", "BinaryNot"],
-        "expr": "util::Ptr<Expr>",
-        "op": "Op"
-      },
-      "Binop": {
-        "Op": [
-          "Invalid",
-          "Assign",
-          "PlusAssign",
-          "MinusAssign",
-          "MultiplyAssign",
-          "DivideAssign",
-          "BinaryAndAssign",
-          "BinaryOrAssign",
-          "BinaryXorAssign",
-          "ModAssign",
-          "ShiftLeftAssign",
-          "ShiftRightAssign",
-          "Or",
-          "And",
-          "BinaryOr",
-          "BinaryXor",
-          "BinaryAnd",
-          "Equal",
-          "NotEqual",
-          "Less",
-          "LessEqual",
-          "Greater",
-          "GreaterEqual",
-          "ShiftLeft",
-          "ShiftRight",
-          "Plus",
-          "Minus",
-          "Multiply",
-          "Divide",
-          "Mod",
-          "Access",
-          "StaticAccess"
+        "TopLevel": {
+            "@Val": "std::variant<Invalid, Import, Decl>",
+            "val": "Val"
+        },
+        "Module": {
+            "top_levels": "util::List<TopLevel>"
+        }
+    },
+    "printer": {
+        "template": [
+            "template<print::PrinterSink Sink>",
+            "class Printer : public print::PrinterBase<Sink, Printer<Sink>> {",
+            "private:",
+            "    using Base = print::PrinterBase<Sink, Printer<Sink>>;",
+            "    using Base::field;",
+            "    using Base::node;",
+            "    using Base::node_begin;",
+            "    using Base::node_end;",
+            "public:",
+            "    Printer(Sink& sink, std::size_t indent_width) :",
+            "        Base(sink, indent_width) {}",
+            "#declarations",
+            "};",
+            "#definitions"
         ],
-        "lhs": "util::Ptr<Expr>",
-        "rhs": "util::Ptr<Expr>",
-        "op": "Op"
-      },
-      "Index": {
-        "expr": "util::Ptr<Expr>",
-        "index": "util::Ptr<Expr>"
-      },
-      "Call": {
-        "expr": "util::Ptr<Expr>",
-        "args": "util::List<Expr>"
-      },
-      "Cast": {
-        "expr": "util::Ptr<Expr>",
-        "type": "Type"
-      },
-      "TryCast": {
-        "expr": "util::Ptr<Expr>",
-        "type": "Type"
-      },
-      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, PathSegment>",
-      "val": "Val"
-    },
-    "Block": {
-      "is_invalid": "bool",
-      "stmts": "util::List<Stmt>"
-    },
-    "Stmt": {
-      "Let": {
-        "is_invalid": "bool",
-        "name": "std::string_view",
-        "type": "std::optional<Type>",
-        "expr": "std::optional<Expr>"
-      },
-      "If": {
-        "Elif": {
-          "expr": "Expr",
-          "block": "Block"
-        },
-        "is_invalid": "bool",
-        "expr": "Expr",
-        "main": "Block",
-        "elifs": "util::List<Elif>",
-        "else_": "std::optional<Block>"
-      },
-      "Switch": {
-        "Case": {
-          "is_invalid": "bool",
-          "expr": "std::optional<Expr>",
-          "block": "Block"
-        },
-        "is_invalid": "bool",
-        "expr": "Expr",
-        "cases": "util::List<Case>"
-      },
-      "Loop": {
-        "is_invalid": "bool",
-        "block": "Block"
-      },
-      "For": {
-        "is_invalid": "bool",
-        "name": "std::string_view",
-        "expr": "Expr",
-        "block": "Block"
-      },
-      "While": {
-        "is_invalid": "bool",
-        "expr": "Expr",
-        "block": "Block"
-      },
-      "Return": {
-        "is_invalid": "bool",
-        "expr": "std::optional<Expr>"
-      },
-      "Defer": {
-        "is_invalid": "bool",
-        "expr": "Expr"
-      },
-      "Continue": {},
-      "Break": {},
-      "@Val": "std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return, Defer, Block, Continue, Break>",
-      "val": "Val"
-    },
-    "Func": {
-      "Signature": {
-        "Param": {
-          "is_invalid": "bool",
-          "name": "std::string_view",
-          "type": "Type"
-        },
-        "is_invalid": "bool",
-        "params": "util::List<Param>",
-        "ret": "Type"
-      },
-      "is_invalid": "bool",
-      "signature": "Signature",
-      "block": "Block"
-    },
-    "Decl": {
-      "GenericParam": {
-        "is_invalid": "bool",
-        "name": "std::string_view",
-        "interfaces": "util::List<Type>"
-      },
-      "Struct": {
-        "Field": {
-          "is_invalid": "bool",
-          "name": "std::string_view",
-          "type": "Type",
-          "is_export": "bool"
-        },
-        "is_invalid": "bool",
-        "fields": "util::List<Field>"
-      },
-      "Enum": {
-        "Element": {
-          "is_invalid": "bool",
-          "name": "std::string_view"
-        },
-        "is_invalid": "bool",
-        "elements": "util::List<Element>"
-      },
-      "TypeAlias": {
-        "is_invalid": "bool",
-        "type": "Type"
-      },
-      "Const": {
-        "is_invalid": "bool",
-        "type": "Type",
-        "expr": "Expr"
-      },
-      "Defines": {
-        "is_invalid": "bool",
-        "interface": "std::optional<Type>",
-        "decls": "util::List<Decl>"
-      },
-      "Interface": {
-        "Member": {
-          "is_invalid": "bool",
-          "name": "std::string_view",
-          "generic_params": "util::List<GenericParam>",
-          "signature": "Func::Signature"
-        },
-        "is_invalid": "bool",
-        "members": "util::List<Member>"
-      },
-      "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines, Interface>",
-      "is_export": "bool",
-      "name": "std::string_view",
-      "generic_params": "util::List<GenericParam>",
-      "val": "Val"
-    },
-    "TopLevel": {
-      "@Val": "std::variant<Invalid, Import, Decl>",
-      "val": "Val"
-    },
-    "Module": {
-      "top_levels": "util::List<TopLevel>"
+        "declaration": ["    void print_node(const $type& n);"],
+        "definition": [
+            "template<print::PrinterSink Sink>",
+            "void Printer<Sink>::print_node(const $type& n) {",
+            "    node_begin(\"$name\");",
+            "#fields",
+            "    node_end();",
+            "}"
+        ],
+        "definition_enum": [
+            "template<print::PrinterSink Sink>",
+            "void Printer<Sink>::print_node(const $type& n) {",
+            "    switch (n) {",
+            "#definition_enum_cases",
+            "    }",
+            "}"
+        ],
+        "definition_enum_case": [
+            "    case $type::$variant:",
+            "        node(\"$variant\");",
+            "        break;"
+        ],
+        "definition_empty": [
+            "template<print::PrinterSink Sink>",
+            "void Printer<Sink>::print_node([[maybe_unused]] const $type& n) {",
+            "    node(\"$name\");",
+            "}"
+        ],
+        "field": ["    field(\"$field_name\", n.$field_name);"]
     }
-  },
-  "printer": {
-    "template": [
-      "template<print::PrinterSink Sink>",
-      "class Printer : public print::PrinterBase<Sink, Printer<Sink>> {",
-      "private:",
-      "    using Base = print::PrinterBase<Sink, Printer<Sink>>;",
-      "    using Base::field;",
-      "    using Base::node;",
-      "    using Base::node_begin;",
-      "    using Base::node_end;",
-      "public:",
-      "    Printer(Sink& sink, std::size_t indent_width) :",
-      "        Base(sink, indent_width) {}",
-      "#declarations",
-      "};",
-      "#definitions"
-    ],
-    "declaration": ["    void print_node(const $type& n);"],
-    "definition": [
-      "template<print::PrinterSink Sink>",
-      "void Printer<Sink>::print_node(const $type& n) {",
-      "    node_begin(\"$name\");",
-      "#fields",
-      "    node_end();",
-      "}"
-    ],
-    "definition_enum": [
-      "template<print::PrinterSink Sink>",
-      "void Printer<Sink>::print_node(const $type& n) {",
-      "    switch (n) {",
-      "#definition_enum_cases",
-      "    }",
-      "}"
-    ],
-    "definition_enum_case": [
-      "    case $type::$variant:",
-      "        node(\"$variant\");",
-      "        break;"
-    ],
-    "definition_empty": [
-      "template<print::PrinterSink Sink>",
-      "void Printer<Sink>::print_node([[maybe_unused]] const $type& n) {",
-      "    node(\"$name\");",
-      "}"
-    ],
-    "field": ["    field(\"$field_name\", n.$field_name);"]
-  }
 }
