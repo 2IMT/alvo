@@ -299,7 +299,8 @@ namespace alvo::ast {
     }
 
     bool operator==(const Decl& l, const Decl& r) {
-        return l.is_export == r.is_export && l.name == r.name &&
+        return l.is_export == r.is_export &&
+               l.is_decls_block == r.is_decls_block && l.name == r.name &&
                l.generic_params == r.generic_params && l.val == r.val;
     }
 
@@ -336,9 +337,9 @@ namespace alvo::ast {
                l.expr == r.expr;
     }
 
-    bool operator==(const Decl::Defines& l, const Decl::Defines& r) {
-        return l.is_invalid == r.is_invalid && l.interface == r.interface &&
-               l.decls == r.decls;
+    bool operator==(const Decl::Decls& l, const Decl::Decls& r) {
+        return l.is_invalid == r.is_invalid && l.type == r.type &&
+               l.interface == r.interface && l.decls == r.decls;
     }
 
     bool operator==(const Decl::Interface& l, const Decl::Interface& r) {
@@ -650,7 +651,8 @@ namespace alvo::ast {
     }
 
     bool operator!=(const Decl& l, const Decl& r) {
-        return l.is_export != r.is_export && l.name != r.name &&
+        return l.is_export != r.is_export &&
+               l.is_decls_block != r.is_decls_block && l.name != r.name &&
                l.generic_params != r.generic_params && l.val != r.val;
     }
 
@@ -687,9 +689,9 @@ namespace alvo::ast {
                l.expr != r.expr;
     }
 
-    bool operator!=(const Decl::Defines& l, const Decl::Defines& r) {
-        return l.is_invalid != r.is_invalid && l.interface != r.interface &&
-               l.decls != r.decls;
+    bool operator!=(const Decl::Decls& l, const Decl::Decls& r) {
+        return l.is_invalid != r.is_invalid && l.type != r.type &&
+               l.interface != r.interface && l.decls != r.decls;
     }
 
     bool operator!=(const Decl::Interface& l, const Decl::Interface& r) {

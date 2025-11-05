@@ -635,15 +635,17 @@ namespace alvo::ast {
                 expr(expr) { }
         };
 
-        struct Defines {
+        struct Decls {
             bool is_invalid;
+            Type type;
             std::optional<Type> interface;
             util::List<Decl> decls;
 
-            Defines(const bool& is_invalid,
+            Decls(const bool& is_invalid, const Type& type,
                 const std::optional<Type>& interface,
                 const util::List<Decl>& decls) :
                 is_invalid(is_invalid),
+                type(type),
                 interface(interface),
                 decls(decls) { }
         };
@@ -674,15 +676,18 @@ namespace alvo::ast {
         };
 
         using Val = std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const,
-            Defines, Interface>;
+            Decls, Interface>;
         bool is_export;
+        bool is_decls_block;
         std::string_view name;
         util::List<GenericParam> generic_params;
         Val val;
 
-        Decl(const bool& is_export, const std::string_view& name,
+        Decl(const bool& is_export, const bool& is_decls_block,
+            const std::string_view& name,
             const util::List<GenericParam>& generic_params, const Val& val) :
             is_export(is_export),
+            is_decls_block(is_decls_block),
             name(name),
             generic_params(generic_params),
             val(val) { }
@@ -802,7 +807,7 @@ namespace alvo::ast {
     bool operator==(const Decl::Enum::Element& l, const Decl::Enum::Element& r);
     bool operator==(const Decl::TypeAlias& l, const Decl::TypeAlias& r);
     bool operator==(const Decl::Const& l, const Decl::Const& r);
-    bool operator==(const Decl::Defines& l, const Decl::Defines& r);
+    bool operator==(const Decl::Decls& l, const Decl::Decls& r);
     bool operator==(const Decl::Interface& l, const Decl::Interface& r);
     bool operator==(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r);
@@ -907,7 +912,7 @@ namespace alvo::ast {
     bool operator!=(const Decl::Enum::Element& l, const Decl::Enum::Element& r);
     bool operator!=(const Decl::TypeAlias& l, const Decl::TypeAlias& r);
     bool operator!=(const Decl::Const& l, const Decl::Const& r);
-    bool operator!=(const Decl::Defines& l, const Decl::Defines& r);
+    bool operator!=(const Decl::Decls& l, const Decl::Decls& r);
     bool operator!=(const Decl::Interface& l, const Decl::Interface& r);
     bool operator!=(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r);
@@ -1000,7 +1005,7 @@ namespace alvo::ast {
         void print_node(const Decl::Enum::Element& n);
         void print_node(const Decl::TypeAlias& n);
         void print_node(const Decl::Const& n);
-        void print_node(const Decl::Defines& n);
+        void print_node(const Decl::Decls& n);
         void print_node(const Decl::Interface& n);
         void print_node(const Decl::Interface::Member& n);
         void print_node(const TopLevel& n);
@@ -1598,6 +1603,7 @@ namespace alvo::ast {
     void Printer<Sink>::print_node(const Decl& n) {
         node_begin("Decl");
         field("is_export", n.is_export);
+        field("is_decls_block", n.is_decls_block);
         field("name", n.name);
         field("generic_params", n.generic_params);
         field("val", n.val);
@@ -1665,9 +1671,10 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Decl::Defines& n) {
-        node_begin("Defines");
+    void Printer<Sink>::print_node(const Decl::Decls& n) {
+        node_begin("Decls");
         field("is_invalid", n.is_invalid);
+        field("type", n.type);
         field("interface", n.interface);
         field("decls", n.decls);
         node_end();

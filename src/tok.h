@@ -77,7 +77,7 @@ namespace alvo::tok {
         KwFunc,
         KwType,
         KwConst,
-        KwDefines,
+        KwDecls,
         KwInterface,
         // Statements
         KwDefer,
@@ -296,8 +296,8 @@ struct fmt::formatter<alvo::tok::TokKind> {
         case KwConst:
             res = "KwConst";
             break;
-        case KwDefines:
-            res = "KwDefines";
+        case KwDecls:
+            res = "KwDecls";
             break;
         case KwInterface:
             res = "KwInterface";

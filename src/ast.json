@@ -285,8 +285,9 @@
                 "type": "Type",
                 "expr": "Expr"
             },
-            "Defines": {
+            "Decls": {
                 "is_invalid": "bool",
+                "type": "Type",
                 "interface": "std::optional<Type>",
                 "decls": "util::List<Decl>"
             },
@@ -300,8 +301,9 @@
                 "is_invalid": "bool",
                 "members": "util::List<Member>"
             },
-            "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Defines, Interface>",
+            "@Val": "std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const, Decls, Interface>",
             "is_export": "bool",
+            "is_decls_block": "bool",
             "name": "std::string_view",
             "generic_params": "util::List<GenericParam>",
             "val": "Val"

@@ -116,7 +116,7 @@ namespace alvo::parse {
 
         ast::Decl::Const parse_decl_const();
 
-        ast::Decl::Defines parse_decl_defines();
+        ast::Decl::Decls parse_decl_decls();
 
         ast::Decl::Interface parse_decl_interface();
 
