@@ -45,42 +45,42 @@ public:
                     fmt::print(std::cerr, "error: ");
                     std::visit(
                         alvo::util::overload {
-                            [](const Err::None&) { fmt::print("none"); },
+                            [](const Err::None&) { fmt::print(std::cerr,"none"); },
                             [](const Err::UnexpectedCharacter&) {
-                                fmt::print("unexpected character");
+                                fmt::print(std::cerr,"unexpected character");
                             },
                             [](const Err::
                                     NonPrintableCharacterInCharacterLiteral&) {
-                                fmt::print("unexpected character in character "
+                                fmt::print(std::cerr,"unexpected character in character "
                                            "literal");
                             },
                             [](const Err::
                                     NonPrintableCharacterInStringLiteral&) {
-                                fmt::print("non-printable character in string "
+                                fmt::print(std::cerr,"non-printable character in string "
                                            "literal");
                             },
                             [](const Err::UnterminatedString&) {
-                                fmt::print("unterminated string literal");
+                                fmt::print(std::cerr,"unterminated string literal");
                             },
                             [](const Err::InvalidIntegerPrefix&) {
-                                fmt::print("invalid integer prefix");
+                                fmt::print(std::cerr,"invalid integer prefix");
                             },
                             [](const Err::NoDigitsAfterIntegerPrefix&) {
-                                fmt::print("no digits after integer prefix");
+                                fmt::print(std::cerr,"no digits after integer prefix");
                             },
                             [](const Err::BytePostfixInFloatingPointLiteral&) {
-                                fmt::print(
+                                fmt::print(std::cerr,
                                     "byte postfix in floating point literal");
                             },
                             [](const Err::NegativeByteLiteral&) {
-                                fmt::print("negative byte literal");
+                                fmt::print(std::cerr,"negative byte literal");
                             },
                             [](const Err::UnexpectedCharacterInNumberLiteral&) {
-                                fmt::print(
+                                fmt::print(std::cerr,
                                     "unexpected character in number literal");
                             },
                             [](const Err::UnexpectedToken& v) {
-                                fmt::print(
+                                fmt::print(std::cerr,
                                     "unexpected token `{}`", v.tok.value);
                             }
 
