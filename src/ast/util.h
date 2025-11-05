@@ -38,12 +38,137 @@ namespace alvo::ast::util {
             return !(lhs == rhs);
         }
 
-        T* get_ptr() const {
-            return m_ptr;
-        }
+        T* get_ptr() const { return m_ptr; }
 
     private:
         T* m_ptr;
+    };
+
+    template<typename T>
+    class Array {
+    public:
+        class Iterator {
+        public:
+            using iterator_category = std::random_access_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = T;
+            using pointer = T*;
+            using reference = T&;
+
+            Iterator() :
+                m_ptr(nullptr) { }
+
+            Iterator(T* ptr) :
+                m_ptr(ptr) { }
+
+            reference operator*() const { return *m_ptr; }
+
+            pointer operator->() const { return m_ptr; }
+
+            Iterator& operator++() {
+                ++m_ptr;
+                return *this;
+            }
+
+            Iterator operator++(int) {
+                Iterator tmp = *this;
+                ++m_ptr;
+                return tmp;
+            }
+
+            Iterator& operator--() {
+                --m_ptr;
+                return *this;
+            }
+
+            Iterator operator--(int) {
+                Iterator tmp = *this;
+                --m_ptr;
+                return tmp;
+            }
+
+            Iterator operator+(difference_type n) const {
+                return Iterator(m_ptr + n);
+            }
+
+            friend Iterator operator+(
+                typename Iterator::difference_type n, const Iterator& it) {
+                return it + n;
+            }
+
+            Iterator operator-(difference_type n) const {
+                return Iterator(m_ptr - n);
+            }
+
+            difference_type operator-(const Iterator& rhs) const {
+                return m_ptr - rhs.m_ptr;
+            }
+
+            Iterator& operator+=(difference_type n) {
+                m_ptr += n;
+                return *this;
+            }
+
+            Iterator& operator-=(difference_type n) {
+                m_ptr -= n;
+                return *this;
+            }
+
+            reference operator[](difference_type n) const { return m_ptr[n]; }
+
+            auto operator<=>(const Iterator& rhs) const = default;
+
+            bool operator==(const Iterator& rhs) const = default;
+
+        private:
+            T* m_ptr;
+        };
+
+        static_assert(std::random_access_iterator<Iterator>);
+
+        Array() :
+            m_data(nullptr),
+            m_size(0) { }
+
+        Array(T* data, std::size_t size) :
+            m_data(data),
+            m_size(size) { }
+
+        std::size_t size() const { return m_size; }
+
+        bool empty() const { return m_size == 0; }
+
+        Iterator begin() { return Iterator(m_data); }
+
+        Iterator end() { return Iterator(m_data + m_size); }
+
+        T& operator[](std::size_t i) { return m_data[i]; }
+
+        const T& operator[](std::size_t i) const { return m_data[i]; }
+
+        friend bool operator==(const Array<T>& lhs, const Array<T>& rhs)
+            requires std::equality_comparable<T>
+        {
+            auto it1 = lhs.begin();
+            auto it2 = rhs.begin();
+
+            for (; it1 != lhs.end() && it2 != rhs.end(); ++it1, ++it2) {
+                if (!(*it1 == *it2)) {
+                    return false;
+                }
+            }
+            return it1 == lhs.end() && it2 == rhs.end();
+        }
+
+        friend bool operator!=(const Array<T>& lhs, const Array<T>& rhs)
+            requires std::equality_comparable<T>
+        {
+            return !(lhs == rhs);
+        }
+
+    private:
+        T* m_data;
+        std::size_t m_size;
     };
 
     template<typename T>
@@ -132,6 +257,17 @@ namespace alvo::ast::util {
         std::size_t size() const { return m_size; }
 
         bool empty() const { return m_size == 0; }
+
+        Array<T> flatten(mem::Arena& arena) {
+            T* mem =
+                static_cast<T*>(arena.alloc(sizeof(T) * m_size, alignof(T)));
+            std::size_t offset = 0;
+            for (T& v : *this) {
+                new (mem + offset) T(std::move(v));
+                offset++;
+            }
+            return Array<T>(mem, m_size);
+        }
 
         Iterator begin() { return Iterator(m_head); }
 
