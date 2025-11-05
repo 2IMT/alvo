@@ -92,7 +92,17 @@ target_link_libraries(alvo fmt::fmt tl::expected)
 
 if (ALVO_TEST)
     set(ALVO_TESTS
+        "test/ast/print.cpp"
+        "test/ast/util.cpp"
+        "test/args.cpp"
+        "test/ast.cpp"
+        "test/diag.cpp"
+        "test/lex.cpp"
         "test/mem.cpp"
+        "test/parse.cpp"
+        "test/tok.cpp"
+        "test/utf8.cpp"
+        "test/util.cpp"
     )
 
     add_executable(alvo_test ${ALVO_TESTS} ${ALVO_SOURCES})
