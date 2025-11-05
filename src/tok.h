@@ -62,6 +62,7 @@ namespace alvo::tok {
         KwBool,
         KwTup,
         KwUnit,
+        KwRef,
         // Visibility and importing
         KwImport,
         KwExport,
@@ -258,6 +259,9 @@ struct fmt::formatter<alvo::tok::TokKind> {
             break;
         case KwUnit:
             res = "KwUnit";
+            break;
+        case KwRef:
+            res = "KwRef";
             break;
         case KwImport:
             res = "KwImport";
