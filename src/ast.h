@@ -128,8 +128,17 @@ namespace alvo::ast {
                 segments(segments) { }
         };
 
+        struct Ref {
+            bool is_invalid;
+            util::Ptr<Type> type;
+
+            Ref(const bool& is_invalid, const util::Ptr<Type>& type) :
+                is_invalid(is_invalid),
+                type(type) { }
+        };
+
         using Val = std::variant<Invalid, Unit, String, Char, Int, Byte, Float,
-            Bool, Array, Tup, Func, Path>;
+            Bool, Array, Tup, Func, Path, Ref>;
         Val val;
         bool nullable;
 
@@ -359,8 +368,17 @@ namespace alvo::ast {
                 type(type) { }
         };
 
+        struct Ref {
+            bool is_invalid;
+            util::Ptr<Expr> expr;
+
+            Ref(const bool& is_invalid, const util::Ptr<Expr>& expr) :
+                is_invalid(is_invalid),
+                expr(expr) { }
+        };
+
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
-            Cast, TryCast, PathSegment>;
+            Cast, TryCast, Ref, PathSegment>;
         Val val;
 
         Expr(const Val& val) :
@@ -718,6 +736,7 @@ namespace alvo::ast {
     bool operator==(const Type::Tup& l, const Type::Tup& r);
     bool operator==(const Type::Func& l, const Type::Func& r);
     bool operator==(const Type::Path& l, const Type::Path& r);
+    bool operator==(const Type::Ref& l, const Type::Ref& r);
     bool operator==(const Expr& l, const Expr& r);
     bool operator==(const Expr::Literal& l, const Expr::Literal& r);
     bool operator==([[maybe_unused]] const Expr::Literal::Unit& l,
@@ -754,6 +773,7 @@ namespace alvo::ast {
     bool operator==(const Expr::Call& l, const Expr::Call& r);
     bool operator==(const Expr::Cast& l, const Expr::Cast& r);
     bool operator==(const Expr::TryCast& l, const Expr::TryCast& r);
+    bool operator==(const Expr::Ref& l, const Expr::Ref& r);
     bool operator==(const Block& l, const Block& r);
     bool operator==(const Stmt& l, const Stmt& r);
     bool operator==(const Stmt::Let& l, const Stmt::Let& r);
@@ -821,6 +841,7 @@ namespace alvo::ast {
     bool operator!=(const Type::Tup& l, const Type::Tup& r);
     bool operator!=(const Type::Func& l, const Type::Func& r);
     bool operator!=(const Type::Path& l, const Type::Path& r);
+    bool operator!=(const Type::Ref& l, const Type::Ref& r);
     bool operator!=(const Expr& l, const Expr& r);
     bool operator!=(const Expr::Literal& l, const Expr::Literal& r);
     bool operator!=([[maybe_unused]] const Expr::Literal::Unit& l,
@@ -857,6 +878,7 @@ namespace alvo::ast {
     bool operator!=(const Expr::Call& l, const Expr::Call& r);
     bool operator!=(const Expr::Cast& l, const Expr::Cast& r);
     bool operator!=(const Expr::TryCast& l, const Expr::TryCast& r);
+    bool operator!=(const Expr::Ref& l, const Expr::Ref& r);
     bool operator!=(const Block& l, const Block& r);
     bool operator!=(const Stmt& l, const Stmt& r);
     bool operator!=(const Stmt::Let& l, const Stmt::Let& r);
@@ -926,6 +948,7 @@ namespace alvo::ast {
         void print_node(const Type::Tup& n);
         void print_node(const Type::Func& n);
         void print_node(const Type::Path& n);
+        void print_node(const Type::Ref& n);
         void print_node(const Expr& n);
         void print_node(const Expr::Literal& n);
         void print_node(const Expr::Literal::Unit& n);
@@ -951,6 +974,7 @@ namespace alvo::ast {
         void print_node(const Expr::Call& n);
         void print_node(const Expr::Cast& n);
         void print_node(const Expr::TryCast& n);
+        void print_node(const Expr::Ref& n);
         void print_node(const Block& n);
         void print_node(const Stmt& n);
         void print_node(const Stmt::Let& n);
@@ -1113,6 +1137,14 @@ namespace alvo::ast {
         node_begin("Path");
         field("is_invalid", n.is_invalid);
         field("segments", n.segments);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Type::Ref& n) {
+        node_begin("Ref");
+        field("is_invalid", n.is_invalid);
+        field("type", n.type);
         node_end();
     }
 
@@ -1409,6 +1441,14 @@ namespace alvo::ast {
         node_begin("TryCast");
         field("expr", n.expr);
         field("type", n.type);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::Ref& n) {
+        node_begin("Ref");
+        field("is_invalid", n.is_invalid);
+        field("expr", n.expr);
         node_end();
     }
 

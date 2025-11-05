@@ -106,6 +106,10 @@ namespace alvo::ast {
         return l.is_invalid == r.is_invalid && l.segments == r.segments;
     }
 
+    bool operator==(const Type::Ref& l, const Type::Ref& r) {
+        return l.is_invalid == r.is_invalid && l.type == r.type;
+    }
+
     bool operator==(const Expr& l, const Expr& r) { return l.val == r.val; }
 
     bool operator==(const Expr::Literal& l, const Expr::Literal& r) {
@@ -210,6 +214,10 @@ namespace alvo::ast {
 
     bool operator==(const Expr::TryCast& l, const Expr::TryCast& r) {
         return l.expr == r.expr && l.type == r.type;
+    }
+
+    bool operator==(const Expr::Ref& l, const Expr::Ref& r) {
+        return l.is_invalid == r.is_invalid && l.expr == r.expr;
     }
 
     bool operator==(const Block& l, const Block& r) {
@@ -449,6 +457,10 @@ namespace alvo::ast {
         return l.is_invalid != r.is_invalid && l.segments != r.segments;
     }
 
+    bool operator!=(const Type::Ref& l, const Type::Ref& r) {
+        return l.is_invalid != r.is_invalid && l.type != r.type;
+    }
+
     bool operator!=(const Expr& l, const Expr& r) { return l.val != r.val; }
 
     bool operator!=(const Expr::Literal& l, const Expr::Literal& r) {
@@ -553,6 +565,10 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::TryCast& l, const Expr::TryCast& r) {
         return l.expr != r.expr && l.type != r.type;
+    }
+
+    bool operator!=(const Expr::Ref& l, const Expr::Ref& r) {
+        return l.is_invalid != r.is_invalid && l.expr != r.expr;
     }
 
     bool operator!=(const Block& l, const Block& r) {

@@ -49,7 +49,11 @@
                 "is_invalid": "bool",
                 "segments": "util::List<PathSegment>"
             },
-            "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path>",
+            "Ref": {
+                "is_invalid": "bool",
+                "type": "util::Ptr<Type>"
+            },
+            "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Path, Ref>",
             "val": "Val",
             "nullable": "bool"
         },
@@ -166,7 +170,11 @@
                 "expr": "util::Ptr<Expr>",
                 "type": "Type"
             },
-            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, PathSegment>",
+            "Ref": {
+                "is_invalid": "bool",
+                "expr": "util::Ptr<Expr>"
+            },
+            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Ref, PathSegment>",
             "val": "Val"
         },
         "Block": {
