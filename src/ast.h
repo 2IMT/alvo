@@ -540,12 +540,14 @@ namespace alvo::ast {
             };
 
             bool is_invalid;
+            bool is_self_func;
             util::List<Param> params;
             Type ret;
 
-            Signature(const bool& is_invalid, const util::List<Param>& params,
-                const Type& ret) :
+            Signature(const bool& is_invalid, const bool& is_self_func,
+                const util::List<Param>& params, const Type& ret) :
                 is_invalid(is_invalid),
+                is_self_func(is_self_func),
                 params(params),
                 ret(ret) { }
         };
@@ -1585,6 +1587,7 @@ namespace alvo::ast {
     void Printer<Sink>::print_node(const Func::Signature& n) {
         node_begin("Signature");
         field("is_invalid", n.is_invalid);
+        field("is_self_func", n.is_self_func);
         field("params", n.params);
         field("ret", n.ret);
         node_end();

@@ -245,6 +245,7 @@
                     "type": "Type"
                 },
                 "is_invalid": "bool",
+                "is_self_func": "bool",
                 "params": "util::List<Param>",
                 "ret": "Type"
             },

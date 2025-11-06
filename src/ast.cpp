@@ -288,7 +288,8 @@ namespace alvo::ast {
     }
 
     bool operator==(const Func::Signature& l, const Func::Signature& r) {
-        return l.is_invalid == r.is_invalid && l.params == r.params &&
+        return l.is_invalid == r.is_invalid &&
+               l.is_self_func == r.is_self_func && l.params == r.params &&
                l.ret == r.ret;
     }
 
@@ -640,7 +641,8 @@ namespace alvo::ast {
     }
 
     bool operator!=(const Func::Signature& l, const Func::Signature& r) {
-        return l.is_invalid != r.is_invalid && l.params != r.params &&
+        return l.is_invalid != r.is_invalid &&
+               l.is_self_func != r.is_self_func && l.params != r.params &&
                l.ret != r.ret;
     }
 

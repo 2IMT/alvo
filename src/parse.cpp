@@ -764,31 +764,43 @@ namespace alvo::parse {
 
         util::List<Func::Signature::Param> params;
         Type ret(Type::Unit {}, false);
+        bool is_self_func = false;
         if (!expect(KwFunc)) {
             synchronize(EXPR_CTX_SYNC);
-            return Func::Signature(true, params, ret);
+            return Func::Signature(true, is_self_func, params, ret);
         }
         if (!expect(LParen)) {
             synchronize(EXPR_CTX_SYNC);
-            return Func::Signature(true, params, ret);
+            return Func::Signature(true, is_self_func, params, ret);
         }
-        if (curr_is(Ident)) {
-            params.push_back(*m_arena, parse_func_signature_param());
-            while (accept(Comma)) {
-                if (curr_is(RParen)) {
-                    break;
-                }
+        if (accept(KwSelf)) {
+            is_self_func = true;
+        }
+        // if `is_self_func accept comma and continue parsing the remaining
+        // arguments. If not `is_self_func`, parse arguments normally
+        // this allows us to do:
+        // `func(self)`
+        // `func(self,)`
+        // `func(self, foo: int)`
+        if (!is_self_func || (is_self_func && (accept(Comma)))) {
+            if (curr_is(Ident)) {
                 params.push_back(*m_arena, parse_func_signature_param());
+                while (accept(Comma)) {
+                    if (curr_is(RParen)) {
+                        break;
+                    }
+                    params.push_back(*m_arena, parse_func_signature_param());
+                }
             }
         }
         if (!expect(RParen)) {
             synchronize(EXPR_CTX_SYNC);
-            return Func::Signature(true, params, ret);
+            return Func::Signature(true, is_self_func, params, ret);
         }
         if (accept(DashRAngle)) {
             ret = parse_type();
         }
-        return Func::Signature(false, params, ret);
+        return Func::Signature(false, is_self_func, params, ret);
     }
 
     Func::Signature::Param Parser::parse_func_signature_param() {
@@ -1071,7 +1083,7 @@ namespace alvo::parse {
     Decl::Interface::Member Parser::parse_decl_interface_member() {
         SectionGuard section_guard(this, __func__);
 
-        Func::Signature signature_invalid(true,
+        Func::Signature signature_invalid(true, false,
             util::List<Func::Signature::Param>(), Type(Invalid {}, false));
         util::List<Decl::GenericParam> generic_params;
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
