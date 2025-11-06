@@ -39,6 +39,7 @@ namespace alvo::lex {
             { "ref", KwRef },
             { "return", KwReturn },
             { "root", KwRoot },
+            { "self", KwSelf },
             { "string", KwString },
             { "struct", KwStruct },
             { "super", KwSuper },
