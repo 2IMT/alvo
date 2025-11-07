@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -171,6 +173,161 @@ namespace alvo::tok {
         bool is_eof() const { return kind == TokKind::Eof; }
 
         bool is_none() const { return kind == TokKind::None; }
+
+        std::optional<std::pair<Tok, Tok>> split_sep() const {
+            std::pair<TokKind, TokKind> kinds;
+            switch (kind) {
+                using enum TokKind;
+            case LAngleEq:
+                kinds = { LAngle, Eq };
+                break;
+            case LAngleLAngle:
+                kinds = { LAngle, LAngle };
+                break;
+            case LAngleLAngleEq:
+                kinds = { LAngle, LAngleEq };
+                break;
+            case RAngleEq:
+                kinds = { RAngle, Eq };
+                break;
+            case RAngleRAngle:
+                kinds = { RAngle, RAngle };
+                break;
+            case RAngleRAngleEq:
+                kinds = { RAngle, RAngleEq };
+                break;
+            case ExclamEq:
+                kinds = { Exclam, Eq };
+                break;
+            case ColonColon:
+                kinds = { Colon, Colon };
+                break;
+            case EqEq:
+                kinds = { Eq, Eq };
+                break;
+            case EqRAngle:
+                kinds = { Eq, RAngle };
+                break;
+            case PlusEq:
+                kinds = { Plus, Eq };
+                break;
+            case DashEq:
+                kinds = { Dash, Eq };
+                break;
+            case DashRAngle:
+                kinds = { Dash, RAngle };
+                break;
+            case StarEq:
+                kinds = { Star, Eq };
+                break;
+            case SlashEq:
+                kinds = { Slash, Eq };
+                break;
+            case AmpEq:
+                kinds = { Amp, Eq };
+                break;
+            case AmpAmp:
+                kinds = { Amp, Amp };
+                break;
+            case PipeEq:
+                kinds = { Pipe, Eq };
+                break;
+            case PipePipe:
+                kinds = { Pipe, Pipe };
+                break;
+            case CaretEq:
+                kinds = { Caret, Eq };
+                break;
+            case PercentEq:
+                kinds = { Percent, Eq };
+                break;
+            case TokKind::Continue:
+            case TokKind::Err:
+            case TokKind::Eof:
+            case TokKind::None:
+            case TokKind::Ident:
+            case TokKind::LitString:
+            case TokKind::LitCharacter:
+            case TokKind::LitInteger:
+            case TokKind::LitByte:
+            case TokKind::LitFloating:
+            case TokKind::LitBoolean:
+            case TokKind::KwNull:
+            case TokKind::KwString:
+            case TokKind::KwChar:
+            case TokKind::KwInt:
+            case TokKind::KwByte:
+            case TokKind::KwFloat:
+            case TokKind::KwBool:
+            case TokKind::KwTup:
+            case TokKind::KwUnit:
+            case TokKind::KwRef:
+            case TokKind::KwSelf:
+            case TokKind::KwImport:
+            case TokKind::KwExport:
+            case TokKind::KwRoot:
+            case TokKind::KwSuper:
+            case TokKind::KwAs:
+            case TokKind::KwTryAs:
+            case TokKind::KwStruct:
+            case TokKind::KwEnum:
+            case TokKind::KwFunc:
+            case TokKind::KwType:
+            case TokKind::KwConst:
+            case TokKind::KwDecls:
+            case TokKind::KwInterface:
+            case TokKind::KwDefer:
+            case TokKind::KwLet:
+            case TokKind::KwIf:
+            case TokKind::KwElif:
+            case TokKind::KwElse:
+            case TokKind::KwLoop:
+            case TokKind::KwFor:
+            case TokKind::KwWhile:
+            case TokKind::KwSwitch:
+            case TokKind::KwDefault:
+            case TokKind::KwBreak:
+            case TokKind::KwContinue:
+            case TokKind::KwReturn:
+            case TokKind::LParen:
+            case TokKind::RParen:
+            case TokKind::LBrace:
+            case TokKind::RBrace:
+            case TokKind::LBracket:
+            case TokKind::RBracket:
+            case TokKind::LAngle:
+            case TokKind::RAngle:
+            case TokKind::Exclam:
+            case TokKind::Colon:
+            case TokKind::Dot:
+            case TokKind::Comma:
+            case TokKind::Semicolon:
+            case TokKind::Eq:
+            case TokKind::Plus:
+            case TokKind::Dash:
+            case TokKind::Star:
+            case TokKind::Slash:
+            case TokKind::Amp:
+            case TokKind::Pipe:
+            case TokKind::Caret:
+            case TokKind::Tilde:
+            case TokKind::Percent:
+            case TokKind::Question:
+            case TokKind::Count:
+                return std::nullopt;
+            }
+            Tok first = *this;
+            first.kind = kinds.first;
+            first.loc.e.c--;
+            first.value =
+                std::string_view(first.value.begin(), first.value.begin() + 1);
+            Tok second = *this;
+            second.kind = kinds.second;
+            second.loc.s.c++;
+            second.value =
+                std::string_view(second.value.begin() + 1, second.value.end());
+            return std::make_pair(first, second);
+        }
     };
 
 }
