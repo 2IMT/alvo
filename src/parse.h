@@ -178,11 +178,18 @@ namespace alvo::parse {
 
         void synchronize(std::initializer_list<tok::TokKind> kinds);
 
+        tok::Tok lexer_peek() const;
+
+        tok::Tok lexer_next();
+
+        void lexer_push_next(tok::Tok tok);
+
         lex::Lexer* m_lexer;
         mem::Arena* m_arena;
         ast::util::NodeCtx m_node_ctx;
         SectionEmitter* m_section_emitter;
         diag::DiagEmitter* m_diag_emitter;
+        std::vector<tok::Tok> m_lexer_next_pushed;
     };
 
 }

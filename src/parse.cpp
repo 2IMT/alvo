@@ -101,7 +101,11 @@ namespace alvo::parse {
         m_lexer(&lexer),
         m_arena(&arena),
         m_node_ctx(arena),
-        m_section_emitter(nullptr) { }
+        m_section_emitter(nullptr),
+        m_diag_emitter(nullptr),
+        m_lexer_next_pushed() {
+        m_lexer_next_pushed.reserve(10);
+    }
 
     void Parser::set_section_emitter(SectionEmitter& section_emitter) {
         m_section_emitter = &section_emitter;
@@ -1255,7 +1259,7 @@ namespace alvo::parse {
             }
         } else if (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
             lhs.val = parse_path_segment();
-        } else if ((bp_prefix = prefix_bp(m_lexer->peek().kind)).has_value()) {
+        } else if ((bp_prefix = prefix_bp(lexer_peek().kind)).has_value()) {
             Expr::Unop::Op op = parse_unop_op();
             util::Ptr<Expr> expr =
                 m_node_ctx.make_node<Expr>(parse_expr_bp(*bp_prefix));
@@ -1282,7 +1286,7 @@ namespace alvo::parse {
             Expr res(Invalid {});
             util::Ptr<Expr> res_lhs = m_node_ctx.make_node<Expr>(lhs);
 
-            if ((bp_postfix = postfix_bp(m_lexer->peek().kind)).has_value()) {
+            if ((bp_postfix = postfix_bp(lexer_peek().kind)).has_value()) {
                 if (*bp_postfix < min_bp) {
                     break;
                 }
@@ -1326,7 +1330,7 @@ namespace alvo::parse {
                 continue;
             }
 
-            if ((bp_infix = infix_bp(m_lexer->peek().kind)).has_value()) {
+            if ((bp_infix = infix_bp(lexer_peek().kind)).has_value()) {
                 if ((*bp_infix).first < min_bp) {
                     break;
                 }
@@ -1346,7 +1350,7 @@ namespace alvo::parse {
     Expr::Unop::Op Parser::parse_unop_op() {
         SectionGuard section_guard(this, __func__);
 
-        tok::Tok tok = m_lexer->next();
+        tok::Tok tok = lexer_next();
         switch (tok.kind) {
             using Unop = Expr::Unop::Op;
         case Plus:
@@ -1365,7 +1369,7 @@ namespace alvo::parse {
     Expr::Binop::Op Parser::parse_binop_op() {
         SectionGuard section_guard(this, __func__);
 
-        tok::Tok tok = m_lexer->next();
+        tok::Tok tok = lexer_next();
         switch (tok.kind) {
             using Binop = Expr::Binop::Op;
         case Eq:
@@ -1436,12 +1440,24 @@ namespace alvo::parse {
     }
 
     bool Parser::curr_is(tok::TokKind kind) const {
-        return m_lexer->peek().kind == kind;
+        return lexer_peek().kind == kind;
     }
 
     std::optional<tok::Tok> Parser::accept_and_get(tok::TokKind kind) {
-        if (m_lexer->peek().kind == kind) {
-            return m_lexer->next();
+        // We need this to resolve cases like this:
+        // The current token on the lexer is `>>=`
+        // The expected (accepted) token is `>`
+        // Split `>>=` into `>` and `>=`, then push `>=` as the next token
+        std::optional<std::pair<tok::Tok, tok::Tok>> split =
+            lexer_peek().split_sep();
+        if (split && (kind == split->first.kind)) {
+            lexer_next();
+            lexer_push_next(split->first);
+            lexer_push_next(split->second);
+        }
+
+        if (lexer_peek().kind == kind) {
+            return lexer_next();
         }
         return std::nullopt;
     }
@@ -1450,32 +1466,20 @@ namespace alvo::parse {
         std::optional<tok::Tok> res = accept_and_get(kind);
         if (!res) {
             if (m_diag_emitter) {
-                m_diag_emitter->emit({ diag::Err { diag::Err::UnexpectedToken {
-                                           m_lexer->peek() } },
-                    m_lexer->peek().loc.s });
+                m_diag_emitter->emit(
+                    { diag::Err { diag::Err::UnexpectedToken { lexer_peek() } },
+                        lexer_peek().loc.s });
             }
         }
         return res;
     }
 
     bool Parser::accept(tok::TokKind kind) {
-        if (m_lexer->peek().kind == kind) {
-            m_lexer->next();
-            return true;
-        }
-        return false;
+        return accept_and_get(kind).has_value();
     }
 
     bool Parser::expect(tok::TokKind kind) {
-        bool res = accept(kind);
-        if (!res) {
-            if (m_diag_emitter) {
-                m_diag_emitter->emit({ diag::Err { diag::Err::UnexpectedToken {
-                                           m_lexer->peek() } },
-                    m_lexer->peek().loc.s });
-            }
-        }
-        return res;
+        return expect_and_get(kind).has_value();
     }
 
     void Parser::section_enter(std::string_view name) {
@@ -1502,8 +1506,28 @@ namespace alvo::parse {
             if (found) {
                 break;
             }
-            m_lexer->next();
+            lexer_next();
         }
+    }
+
+    tok::Tok Parser::lexer_peek() const {
+        if (!m_lexer_next_pushed.empty()) {
+            return m_lexer_next_pushed[0];
+        }
+        return m_lexer->peek();
+    }
+
+    tok::Tok Parser::lexer_next() {
+        if (!m_lexer_next_pushed.empty()) {
+            tok::Tok res = m_lexer_next_pushed[0];
+            m_lexer_next_pushed.erase(m_lexer_next_pushed.begin());
+            return res;
+        }
+        return m_lexer->next();
+    }
+
+    void Parser::lexer_push_next(tok::Tok tok) {
+        m_lexer_next_pushed.push_back(tok);
     }
 
 }
