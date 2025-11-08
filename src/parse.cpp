@@ -1383,7 +1383,7 @@ namespace alvo::parse {
                         return Expr(Invalid {});
                     }
                     res.val = Expr::Call(expr, args);
-
+                    lhs = res;
                 } else if (accept(KwAs)) {
                     res.val = Expr::Cast { res_lhs, parse_type() };
                     lhs = res;
