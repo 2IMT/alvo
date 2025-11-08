@@ -1,4 +1,5 @@
 #include "parse.h"
+#include "ast.h"
 #include "tok.h"
 
 #include <utility>
@@ -51,6 +52,8 @@ namespace alvo::parse {
         DashRAngle,
         KwElse,
         KwElif,
+        KwRef,
+        KwBuiltin,
     };
 
     static constexpr std::initializer_list<tok::TokKind> STMT_CTX_SYNC = {
@@ -519,6 +522,65 @@ namespace alvo::parse {
         }
 
         return Expr::Ref(false, expr);
+    }
+
+    Expr::Builtin Parser::parse_expr_builtin() {
+        SectionGuard section_guard(this, __func__);
+
+        std::string_view name = "";
+        util::List<Type> generic_params;
+        util::List<Expr> args;
+
+        if (!expect(KwBuiltin)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Builtin(true, name, generic_params, args);
+        }
+
+        if (!expect(LBracket)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Builtin(true, name, generic_params, args);
+        }
+        std::optional<tok::Tok> name_tok = expect_and_get(Ident);
+        if (!name_tok) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Builtin(true, name, generic_params, args);
+        }
+        name = name_tok->value;
+        if (!expect(RBracket)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Builtin(true, name, generic_params, args);
+        }
+
+        if (accept(LAngle)) {
+            generic_params.push_back(*m_arena, parse_type());
+            while (accept(Comma)) {
+                generic_params.push_back(*m_arena, parse_type());
+            }
+            if (!expect(RAngle)) {
+                synchronize(EXPR_CTX_SYNC);
+                return Expr::Builtin(true, name, generic_params, args);
+            }
+        }
+
+        if (!expect(LParen)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Builtin(true, name, generic_params, args);
+        }
+        if (!curr_is(RParen)) {
+            args.push_back(*m_arena, parse_expr());
+            while (accept(Comma)) {
+                if (curr_is(RParen)) {
+                    break;
+                }
+                args.push_back(*m_arena, parse_expr());
+            }
+        }
+        if (!expect(RParen)) {
+            synchronize(EXPR_CTX_SYNC);
+            return Expr::Builtin(true, name, generic_params, args);
+        }
+
+        return Expr::Builtin(false, name, generic_params, args);
     }
 
     Block Parser::parse_block() {
@@ -1273,6 +1335,8 @@ namespace alvo::parse {
             lhs.val = parse_expr_literal();
         } else if (curr_is(KwRef)) {
             lhs.val = parse_expr_ref();
+        } else if (curr_is(KwBuiltin)) {
+            lhs.val = parse_expr_builtin();
         } else {
             synchronize(EXPR_CTX_SYNC);
             return Expr(Invalid {});
@@ -1319,7 +1383,7 @@ namespace alvo::parse {
                         return Expr(Invalid {});
                     }
                     res.val = Expr::Call(expr, args);
-                    lhs = res;
+
                 } else if (accept(KwAs)) {
                     res.val = Expr::Cast { res_lhs, parse_type() };
                     lhs = res;

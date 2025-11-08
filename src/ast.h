@@ -377,8 +377,23 @@ namespace alvo::ast {
                 expr(expr) { }
         };
 
+        struct Builtin {
+            bool is_invalid;
+            std::string_view name;
+            util::List<Type> generic_params;
+            util::List<Expr> args;
+
+            Builtin(const bool& is_invalid, const std::string_view& name,
+                const util::List<Type>& generic_params,
+                const util::List<Expr>& args) :
+                is_invalid(is_invalid),
+                name(name),
+                generic_params(generic_params),
+                args(args) { }
+        };
+
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
-            Cast, TryCast, Ref, PathSegment>;
+            Cast, TryCast, Ref, Builtin, PathSegment>;
         Val val;
 
         Expr(const Val& val) :
@@ -781,6 +796,7 @@ namespace alvo::ast {
     bool operator==(const Expr::Cast& l, const Expr::Cast& r);
     bool operator==(const Expr::TryCast& l, const Expr::TryCast& r);
     bool operator==(const Expr::Ref& l, const Expr::Ref& r);
+    bool operator==(const Expr::Builtin& l, const Expr::Builtin& r);
     bool operator==(const Block& l, const Block& r);
     bool operator==(const Stmt& l, const Stmt& r);
     bool operator==(const Stmt::Let& l, const Stmt::Let& r);
@@ -886,6 +902,7 @@ namespace alvo::ast {
     bool operator!=(const Expr::Cast& l, const Expr::Cast& r);
     bool operator!=(const Expr::TryCast& l, const Expr::TryCast& r);
     bool operator!=(const Expr::Ref& l, const Expr::Ref& r);
+    bool operator!=(const Expr::Builtin& l, const Expr::Builtin& r);
     bool operator!=(const Block& l, const Block& r);
     bool operator!=(const Stmt& l, const Stmt& r);
     bool operator!=(const Stmt::Let& l, const Stmt::Let& r);
@@ -982,6 +999,7 @@ namespace alvo::ast {
         void print_node(const Expr::Cast& n);
         void print_node(const Expr::TryCast& n);
         void print_node(const Expr::Ref& n);
+        void print_node(const Expr::Builtin& n);
         void print_node(const Block& n);
         void print_node(const Stmt& n);
         void print_node(const Stmt::Let& n);
@@ -1456,6 +1474,16 @@ namespace alvo::ast {
         node_begin("Ref");
         field("is_invalid", n.is_invalid);
         field("expr", n.expr);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::Builtin& n) {
+        node_begin("Builtin");
+        field("is_invalid", n.is_invalid);
+        field("name", n.name);
+        field("generic_params", n.generic_params);
+        field("args", n.args);
         node_end();
     }
 

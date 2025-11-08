@@ -72,6 +72,8 @@ namespace alvo::parse {
 
         ast::Expr::Ref parse_expr_ref();
 
+        ast::Expr::Builtin parse_expr_builtin();
+
         ast::Block parse_block();
 
         ast::Stmt parse_stmt();

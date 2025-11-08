@@ -174,7 +174,13 @@
                 "is_invalid": "bool",
                 "expr": "util::Ptr<Expr>"
             },
-            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Ref, PathSegment>",
+            "Builtin": {
+                "is_invalid": "bool",
+                "name": "std::string_view",
+                "generic_params": "util::List<Type>",
+                "args": "util::List<Expr>"
+            },
+            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Ref, Builtin, PathSegment>",
             "val": "Val"
         },
         "Block": {

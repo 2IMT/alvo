@@ -220,6 +220,11 @@ namespace alvo::ast {
         return l.is_invalid == r.is_invalid && l.expr == r.expr;
     }
 
+    bool operator==(const Expr::Builtin& l, const Expr::Builtin& r) {
+        return l.is_invalid == r.is_invalid && l.name == r.name &&
+               l.generic_params == r.generic_params && l.args == r.args;
+    }
+
     bool operator==(const Block& l, const Block& r) {
         return l.is_invalid == r.is_invalid && l.stmts == r.stmts;
     }
@@ -571,6 +576,11 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::Ref& l, const Expr::Ref& r) {
         return l.is_invalid != r.is_invalid && l.expr != r.expr;
+    }
+
+    bool operator!=(const Expr::Builtin& l, const Expr::Builtin& r) {
+        return l.is_invalid != r.is_invalid && l.name != r.name &&
+               l.generic_params != r.generic_params && l.args != r.args;
     }
 
     bool operator!=(const Block& l, const Block& r) {
