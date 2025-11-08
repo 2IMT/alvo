@@ -1,5 +1,6 @@
 #include "lex.h"
 #include "diag.h"
+#include "tok.h"
 
 #include <utility>
 #include <algorithm>
@@ -12,6 +13,7 @@ namespace alvo::lex {
     static constexpr std::pair<std::string_view, tok::TokKind>
         _keyword_table[] = {
 
+            { "__builtin", KwBuiltin },
             { "as", KwAs },
             { "bool", KwBool },
             { "break", KwBreak },
