@@ -1,5 +1,5 @@
 {
-    "sys_includes": ["variant", "string_view", "optional"],
+    "sys_includes": ["variant", "string_view", "optional", "cstddef"],
     "project_includes": ["ast/util.h", "ast/print.h"],
     "namespace": "alvo::ast",
     "ast": {

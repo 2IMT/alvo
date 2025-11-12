@@ -10,6 +10,7 @@
 #include <variant>
 #include <string_view>
 #include <optional>
+#include <cstddef>
 
 #include "ast/util.h"
 #include "ast/print.h"
@@ -1742,5 +1743,442 @@ namespace alvo::ast {
         field("top_levels", n.top_levels);
         node_end();
     }
+
+}
+
+namespace std {
+
+    template<>
+    struct hash<alvo::ast::Invalid> {
+        std::size_t operator()(const alvo::ast::Invalid& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::PathSegment> {
+        std::size_t operator()(const alvo::ast::PathSegment& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::PathSegment::Root> {
+        std::size_t operator()(
+            const alvo::ast::PathSegment::Root& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::PathSegment::Super> {
+        std::size_t operator()(
+            const alvo::ast::PathSegment::Super& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::PathSegment::Name> {
+        std::size_t operator()(
+            const alvo::ast::PathSegment::Name& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Import> {
+        std::size_t operator()(const alvo::ast::Import& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Import::Normal> {
+        std::size_t operator()(
+            const alvo::ast::Import::Normal& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Import::Glob> {
+        std::size_t operator()(const alvo::ast::Import::Glob& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Import::Renamed> {
+        std::size_t operator()(
+            const alvo::ast::Import::Renamed& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type> {
+        std::size_t operator()(const alvo::ast::Type& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Unit> {
+        std::size_t operator()(const alvo::ast::Type::Unit& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::String> {
+        std::size_t operator()(const alvo::ast::Type::String& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Char> {
+        std::size_t operator()(const alvo::ast::Type::Char& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Int> {
+        std::size_t operator()(const alvo::ast::Type::Int& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Byte> {
+        std::size_t operator()(const alvo::ast::Type::Byte& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Float> {
+        std::size_t operator()(const alvo::ast::Type::Float& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Bool> {
+        std::size_t operator()(const alvo::ast::Type::Bool& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Array> {
+        std::size_t operator()(const alvo::ast::Type::Array& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Tup> {
+        std::size_t operator()(const alvo::ast::Type::Tup& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Func> {
+        std::size_t operator()(const alvo::ast::Type::Func& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Path> {
+        std::size_t operator()(const alvo::ast::Type::Path& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::Ref> {
+        std::size_t operator()(const alvo::ast::Type::Ref& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr> {
+        std::size_t operator()(const alvo::ast::Expr& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Unit> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Unit& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Null> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Null& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::String> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::String& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Character> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Character& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Integer> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Integer& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Byte> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Byte& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Floating> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Floating& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Boolean> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Boolean& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Array> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Array& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Array::Regular> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Array::Regular& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Array::DefaultNTimes> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Array::DefaultNTimes& n)
+            const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Array::ExprNTimes> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Array::ExprNTimes& n)
+            const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Tup> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Tup& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Struct> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Struct& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Literal::Struct::Field> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Literal::Struct::Field& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Unop> {
+        std::size_t operator()(const alvo::ast::Expr::Unop& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Unop::Op> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Unop::Op& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Binop> {
+        std::size_t operator()(const alvo::ast::Expr::Binop& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Binop::Op> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Binop::Op& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Index> {
+        std::size_t operator()(const alvo::ast::Expr::Index& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Call> {
+        std::size_t operator()(const alvo::ast::Expr::Call& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Cast> {
+        std::size_t operator()(const alvo::ast::Expr::Cast& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::TryCast> {
+        std::size_t operator()(
+            const alvo::ast::Expr::TryCast& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Ref> {
+        std::size_t operator()(const alvo::ast::Expr::Ref& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::Builtin> {
+        std::size_t operator()(
+            const alvo::ast::Expr::Builtin& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Block> {
+        std::size_t operator()(const alvo::ast::Block& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt> {
+        std::size_t operator()(const alvo::ast::Stmt& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Let> {
+        std::size_t operator()(const alvo::ast::Stmt::Let& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::If> {
+        std::size_t operator()(const alvo::ast::Stmt::If& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::If::Elif> {
+        std::size_t operator()(
+            const alvo::ast::Stmt::If::Elif& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Switch> {
+        std::size_t operator()(const alvo::ast::Stmt::Switch& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Switch::Case> {
+        std::size_t operator()(
+            const alvo::ast::Stmt::Switch::Case& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Loop> {
+        std::size_t operator()(const alvo::ast::Stmt::Loop& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::For> {
+        std::size_t operator()(const alvo::ast::Stmt::For& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::While> {
+        std::size_t operator()(const alvo::ast::Stmt::While& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Return> {
+        std::size_t operator()(const alvo::ast::Stmt::Return& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Defer> {
+        std::size_t operator()(const alvo::ast::Stmt::Defer& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Continue> {
+        std::size_t operator()(
+            const alvo::ast::Stmt::Continue& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Break> {
+        std::size_t operator()(const alvo::ast::Stmt::Break& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Func> {
+        std::size_t operator()(const alvo::ast::Func& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Func::Signature> {
+        std::size_t operator()(
+            const alvo::ast::Func::Signature& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Func::Signature::Param> {
+        std::size_t operator()(
+            const alvo::ast::Func::Signature::Param& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl> {
+        std::size_t operator()(const alvo::ast::Decl& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::GenericParam> {
+        std::size_t operator()(
+            const alvo::ast::Decl::GenericParam& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Struct> {
+        std::size_t operator()(const alvo::ast::Decl::Struct& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Struct::Field> {
+        std::size_t operator()(
+            const alvo::ast::Decl::Struct::Field& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Enum> {
+        std::size_t operator()(const alvo::ast::Decl::Enum& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Enum::Element> {
+        std::size_t operator()(
+            const alvo::ast::Decl::Enum::Element& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::TypeAlias> {
+        std::size_t operator()(
+            const alvo::ast::Decl::TypeAlias& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Const> {
+        std::size_t operator()(const alvo::ast::Decl::Const& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Decls> {
+        std::size_t operator()(const alvo::ast::Decl::Decls& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Interface> {
+        std::size_t operator()(
+            const alvo::ast::Decl::Interface& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Decl::Interface::Member> {
+        std::size_t operator()(
+            const alvo::ast::Decl::Interface::Member& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::TopLevel> {
+        std::size_t operator()(const alvo::ast::TopLevel& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Module> {
+        std::size_t operator()(const alvo::ast::Module& n) const noexcept;
+    };
 
 }

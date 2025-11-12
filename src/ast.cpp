@@ -726,3 +726,707 @@ namespace alvo::ast {
     }
 
 }
+
+namespace std {
+
+    std::size_t hash<alvo::ast::Invalid>::operator()(
+        [[maybe_unused]] const alvo::ast::Invalid& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::PathSegment>::operator()(
+        const alvo::ast::PathSegment& n) const noexcept {
+        return std::hash<decltype(n.val)>()(n.val);
+    }
+
+    std::size_t hash<alvo::ast::PathSegment::Root>::operator()(
+        [[maybe_unused]] const alvo::ast::PathSegment::Root& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::PathSegment::Super>::operator()(
+        [[maybe_unused]] const alvo::ast::PathSegment::Super& n)
+        const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::PathSegment::Name>::operator()(
+        const alvo::ast::PathSegment::Name& n) const noexcept {
+        std::size_t value_hash = std::hash<decltype(n.value)>()(n.value);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = value_hash;
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Import>::operator()(
+        const alvo::ast::Import& n) const noexcept {
+        std::size_t kind_hash = std::hash<decltype(n.kind)>()(n.kind);
+        std::size_t segments_hash =
+            std::hash<decltype(n.segments)>()(n.segments);
+        std::size_t res = kind_hash;
+        res ^= segments_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Import::Normal>::operator()(
+        [[maybe_unused]] const alvo::ast::Import::Normal& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Import::Glob>::operator()(
+        [[maybe_unused]] const alvo::ast::Import::Glob& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Import::Renamed>::operator()(
+        const alvo::ast::Import::Renamed& n) const noexcept {
+        return std::hash<decltype(n.renamed_to)>()(n.renamed_to);
+    }
+
+    std::size_t hash<alvo::ast::Type>::operator()(
+        const alvo::ast::Type& n) const noexcept {
+        std::size_t val_hash = std::hash<decltype(n.val)>()(n.val);
+        std::size_t nullable_hash =
+            std::hash<decltype(n.nullable)>()(n.nullable);
+        std::size_t res = val_hash;
+        res ^= nullable_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Type::Unit>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Unit& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::String>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::String& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::Char>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Char& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::Int>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Int& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::Byte>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Byte& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::Float>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Float& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::Bool>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Bool& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Type::Array>::operator()(
+        const alvo::ast::Type::Array& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Type::Tup>::operator()(
+        const alvo::ast::Type::Tup& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t types_hash = std::hash<decltype(n.types)>()(n.types);
+        std::size_t res = is_invalid_hash;
+        res ^= types_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Type::Func>::operator()(
+        const alvo::ast::Type::Func& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t params_hash = std::hash<decltype(n.params)>()(n.params);
+        std::size_t return_type_hash =
+            std::hash<decltype(n.return_type)>()(n.return_type);
+        std::size_t res = is_invalid_hash;
+        res ^= params_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^=
+            return_type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Type::Path>::operator()(
+        const alvo::ast::Type::Path& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t segments_hash =
+            std::hash<decltype(n.segments)>()(n.segments);
+        std::size_t res = is_invalid_hash;
+        res ^= segments_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Type::Ref>::operator()(
+        const alvo::ast::Type::Ref& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr>::operator()(
+        const alvo::ast::Expr& n) const noexcept {
+        return std::hash<decltype(n.val)>()(n.val);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal>::operator()(
+        const alvo::ast::Expr::Literal& n) const noexcept {
+        return std::hash<decltype(n.val)>()(n.val);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Unit>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Literal::Unit& n)
+        const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Null>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Literal::Null& n)
+        const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::String>::operator()(
+        const alvo::ast::Expr::Literal::String& n) const noexcept {
+        return std::hash<decltype(n.value)>()(n.value);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Character>::operator()(
+        const alvo::ast::Expr::Literal::Character& n) const noexcept {
+        return std::hash<decltype(n.value)>()(n.value);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Integer>::operator()(
+        const alvo::ast::Expr::Literal::Integer& n) const noexcept {
+        return std::hash<decltype(n.value)>()(n.value);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Byte>::operator()(
+        const alvo::ast::Expr::Literal::Byte& n) const noexcept {
+        return std::hash<decltype(n.value)>()(n.value);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Floating>::operator()(
+        const alvo::ast::Expr::Literal::Floating& n) const noexcept {
+        return std::hash<decltype(n.value)>()(n.value);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Boolean>::operator()(
+        const alvo::ast::Expr::Literal::Boolean& n) const noexcept {
+        return std::hash<decltype(n.value)>()(n.value);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Array>::operator()(
+        const alvo::ast::Expr::Literal::Array& n) const noexcept {
+        return std::hash<decltype(n.val)>()(n.val);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Array::Regular>::operator()(
+        const alvo::ast::Expr::Literal::Array::Regular& n) const noexcept {
+        return std::hash<decltype(n.elements)>()(n.elements);
+    }
+
+    std::size_t
+    hash<alvo::ast::Expr::Literal::Array::DefaultNTimes>::operator()(
+        const alvo::ast::Expr::Literal::Array::DefaultNTimes& n)
+        const noexcept {
+        return std::hash<decltype(n.times)>()(n.times);
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Array::ExprNTimes>::operator()(
+        const alvo::ast::Expr::Literal::Array::ExprNTimes& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t times_hash = std::hash<decltype(n.times)>()(n.times);
+        std::size_t res = expr_hash;
+        res ^= times_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Tup>::operator()(
+        const alvo::ast::Expr::Literal::Tup& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t exprs_hash = std::hash<decltype(n.exprs)>()(n.exprs);
+        std::size_t res = is_invalid_hash;
+        res ^= exprs_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Struct>::operator()(
+        const alvo::ast::Expr::Literal::Struct& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t fields_hash = std::hash<decltype(n.fields)>()(n.fields);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= fields_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Literal::Struct::Field>::operator()(
+        const alvo::ast::Expr::Literal::Struct::Field& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Unop>::operator()(
+        const alvo::ast::Expr::Unop& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t op_hash = std::hash<decltype(n.op)>()(n.op);
+        std::size_t res = expr_hash;
+        res ^= op_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Unop::Op>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Unop::Op& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Binop>::operator()(
+        const alvo::ast::Expr::Binop& n) const noexcept {
+        std::size_t lhs_hash = std::hash<decltype(n.lhs)>()(n.lhs);
+        std::size_t rhs_hash = std::hash<decltype(n.rhs)>()(n.rhs);
+        std::size_t op_hash = std::hash<decltype(n.op)>()(n.op);
+        std::size_t res = lhs_hash;
+        res ^= rhs_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= op_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Binop::Op>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Binop::Op& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Index>::operator()(
+        const alvo::ast::Expr::Index& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t index_hash = std::hash<decltype(n.index)>()(n.index);
+        std::size_t res = expr_hash;
+        res ^= index_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Call>::operator()(
+        const alvo::ast::Expr::Call& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t args_hash = std::hash<decltype(n.args)>()(n.args);
+        std::size_t res = expr_hash;
+        res ^= args_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Cast>::operator()(
+        const alvo::ast::Expr::Cast& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = expr_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::TryCast>::operator()(
+        const alvo::ast::Expr::TryCast& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = expr_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Ref>::operator()(
+        const alvo::ast::Expr::Ref& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Builtin>::operator()(
+        const alvo::ast::Expr::Builtin& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t args_hash = std::hash<decltype(n.args)>()(n.args);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        res ^= args_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Block>::operator()(
+        const alvo::ast::Block& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t stmts_hash = std::hash<decltype(n.stmts)>()(n.stmts);
+        std::size_t res = is_invalid_hash;
+        res ^= stmts_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt>::operator()(
+        const alvo::ast::Stmt& n) const noexcept {
+        return std::hash<decltype(n.val)>()(n.val);
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Let>::operator()(
+        const alvo::ast::Stmt::Let& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::If>::operator()(
+        const alvo::ast::Stmt::If& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t main_hash = std::hash<decltype(n.main)>()(n.main);
+        std::size_t elifs_hash = std::hash<decltype(n.elifs)>()(n.elifs);
+        std::size_t else__hash = std::hash<decltype(n.else_)>()(n.else_);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= main_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= elifs_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= else__hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::If::Elif>::operator()(
+        const alvo::ast::Stmt::If::Elif& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t block_hash = std::hash<decltype(n.block)>()(n.block);
+        std::size_t res = expr_hash;
+        res ^= block_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Switch>::operator()(
+        const alvo::ast::Stmt::Switch& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t cases_hash = std::hash<decltype(n.cases)>()(n.cases);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= cases_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Switch::Case>::operator()(
+        const alvo::ast::Stmt::Switch::Case& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t block_hash = std::hash<decltype(n.block)>()(n.block);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= block_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Loop>::operator()(
+        const alvo::ast::Stmt::Loop& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t block_hash = std::hash<decltype(n.block)>()(n.block);
+        std::size_t res = is_invalid_hash;
+        res ^= block_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::For>::operator()(
+        const alvo::ast::Stmt::For& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t block_hash = std::hash<decltype(n.block)>()(n.block);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= block_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::While>::operator()(
+        const alvo::ast::Stmt::While& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t block_hash = std::hash<decltype(n.block)>()(n.block);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= block_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Return>::operator()(
+        const alvo::ast::Stmt::Return& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Defer>::operator()(
+        const alvo::ast::Stmt::Defer& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t res = is_invalid_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Continue>::operator()(
+        [[maybe_unused]] const alvo::ast::Stmt::Continue& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Break>::operator()(
+        [[maybe_unused]] const alvo::ast::Stmt::Break& n) const noexcept {
+        return 0;
+    }
+
+    std::size_t hash<alvo::ast::Func>::operator()(
+        const alvo::ast::Func& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t signature_hash =
+            std::hash<decltype(n.signature)>()(n.signature);
+        std::size_t block_hash = std::hash<decltype(n.block)>()(n.block);
+        std::size_t res = is_invalid_hash;
+        res ^= signature_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= block_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Func::Signature>::operator()(
+        const alvo::ast::Func::Signature& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t is_self_func_hash =
+            std::hash<decltype(n.is_self_func)>()(n.is_self_func);
+        std::size_t params_hash = std::hash<decltype(n.params)>()(n.params);
+        std::size_t ret_hash = std::hash<decltype(n.ret)>()(n.ret);
+        std::size_t res = is_invalid_hash;
+        res ^=
+            is_self_func_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= params_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= ret_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Func::Signature::Param>::operator()(
+        const alvo::ast::Func::Signature::Param& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl>::operator()(
+        const alvo::ast::Decl& n) const noexcept {
+        std::size_t is_export_hash =
+            std::hash<decltype(n.is_export)>()(n.is_export);
+        std::size_t is_decls_block_hash =
+            std::hash<decltype(n.is_decls_block)>()(n.is_decls_block);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t val_hash = std::hash<decltype(n.val)>()(n.val);
+        std::size_t res = is_export_hash;
+        res ^= is_decls_block_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        res ^= val_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::GenericParam>::operator()(
+        const alvo::ast::Decl::GenericParam& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t interfaces_hash =
+            std::hash<decltype(n.interfaces)>()(n.interfaces);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^=
+            interfaces_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Struct>::operator()(
+        const alvo::ast::Decl::Struct& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t fields_hash = std::hash<decltype(n.fields)>()(n.fields);
+        std::size_t res = is_invalid_hash;
+        res ^= fields_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Struct::Field>::operator()(
+        const alvo::ast::Decl::Struct::Field& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t is_export_hash =
+            std::hash<decltype(n.is_export)>()(n.is_export);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= is_export_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Enum>::operator()(
+        const alvo::ast::Decl::Enum& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t elements_hash =
+            std::hash<decltype(n.elements)>()(n.elements);
+        std::size_t res = is_invalid_hash;
+        res ^= elements_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Enum::Element>::operator()(
+        const alvo::ast::Decl::Enum::Element& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::TypeAlias>::operator()(
+        const alvo::ast::Decl::TypeAlias& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Const>::operator()(
+        const alvo::ast::Decl::Const& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Decls>::operator()(
+        const alvo::ast::Decl::Decls& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t interface_hash =
+            std::hash<decltype(n.interface)>()(n.interface);
+        std::size_t decls_hash = std::hash<decltype(n.decls)>()(n.decls);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= interface_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= decls_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Interface>::operator()(
+        const alvo::ast::Decl::Interface& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t members_hash = std::hash<decltype(n.members)>()(n.members);
+        std::size_t res = is_invalid_hash;
+        res ^= members_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Decl::Interface::Member>::operator()(
+        const alvo::ast::Decl::Interface::Member& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t signature_hash =
+            std::hash<decltype(n.signature)>()(n.signature);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        res ^= signature_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::TopLevel>::operator()(
+        const alvo::ast::TopLevel& n) const noexcept {
+        return std::hash<decltype(n.val)>()(n.val);
+    }
+
+    std::size_t hash<alvo::ast::Module>::operator()(
+        const alvo::ast::Module& n) const noexcept {
+        return std::hash<decltype(n.top_levels)>()(n.top_levels);
+    }
+
+}

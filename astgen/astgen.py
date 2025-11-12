@@ -71,15 +71,17 @@ class Schema:
             elif isinstance(body, list):
                 subnodes.append(Schema._parse_enum(subname, body))
             elif isinstance(body, str):
-                if subname[0] == '@':
-                    subnodes.append(Node(
-                        name=subname[1:],
-                        kind="typedef",
-                        subnodes=[],
-                        fields=[],
-                        elements=[],
-                        typedef=body,
-                    ))
+                if subname[0] == "@":
+                    subnodes.append(
+                        Node(
+                            name=subname[1:],
+                            kind="typedef",
+                            subnodes=[],
+                            fields=[],
+                            elements=[],
+                            typedef=body,
+                        )
+                    )
                 else:
                     fields.append(Field(name=subname, type=body))
             else:
@@ -174,8 +176,7 @@ class Generator:
                 params_str = ", ".join(params)
                 initializers_str = ", ".join(initializers)
                 self._indent()
-                self.out.write(
-                    f"{node.name}({params_str}) : {initializers_str} {{}}")
+                self.out.write(f"{node.name}({params_str}) : {initializers_str} {{}}")
 
             self.indent -= 1
             self._indent()
@@ -199,9 +200,11 @@ class Generator:
             op = "=="
 
         self._indent()
-        self.out.write(f"bool operator{op}(\
+        self.out.write(
+            f"bool operator{op}(\
 {attr}const {typename}& l, \
-{attr}const {typename}& r)")
+{attr}const {typename}& r)"
+        )
 
     def _gen_equality_forward_decl(self, node: Node, not_equal: bool):
         if node.kind == "struct":
@@ -262,20 +265,14 @@ class Generator:
             res.append(line.replace("$field_name", field_name))
         return res
 
-    def _compile_printer_declaration(
-        self,
-        info: _PrinterNodeInfo
-    ) -> List[str]:
+    def _compile_printer_declaration(self, info: _PrinterNodeInfo) -> List[str]:
         res = []
         for line in self.schema.printer.declaration:
             res.append(line.replace("$type", info.type))
         return res
 
     def _compile_printer_definition_enum_case(
-        self,
-        type: str,
-        name: str,
-        variant: str
+        self, type: str, name: str, variant: str
     ) -> List[str]:
         res = []
         for line in self.schema.printer.definition_enum_case:
@@ -294,11 +291,11 @@ class Generator:
 
             cases = []
             for variant in info.elements:
-                cases.extend(self._compile_printer_definition_enum_case(
-                    info.type,
-                    info.name,
-                    variant
-                ))
+                cases.extend(
+                    self._compile_printer_definition_enum_case(
+                        info.type, info.name, variant
+                    )
+                )
 
             res = []
             for line in subst:
@@ -337,10 +334,7 @@ class Generator:
 
                 return res
 
-    def _compile_printer_template(
-        self,
-        infos: List[_PrinterNodeInfo]
-    ) -> List[str]:
+    def _compile_printer_template(self, infos: List[_PrinterNodeInfo]) -> List[str]:
         declarations = []
         definitions = []
         for info in infos:
@@ -360,9 +354,7 @@ class Generator:
 
     @staticmethod
     def _get_node_infos(
-        node: Node,
-        node_infos: List[_PrinterNodeInfo],
-        typename_stack: List[str]
+        node: Node, node_infos: List[_PrinterNodeInfo], typename_stack: List[str]
     ):
         if node.kind == "typedef":
             return
@@ -378,13 +370,11 @@ class Generator:
             for field in node.fields:
                 fields.append(field.name)
 
-        node_infos.append(Generator._PrinterNodeInfo(
-            name=name,
-            type=type,
-            is_enum=is_enum,
-            fields=fields,
-            elements=elements
-        ))
+        node_infos.append(
+            Generator._PrinterNodeInfo(
+                name=name, type=type, is_enum=is_enum, fields=fields, elements=elements
+            )
+        )
 
         for subnode in node.subnodes:
             Generator._get_node_infos(subnode, node_infos, typename_stack)
@@ -412,6 +402,59 @@ class Generator:
         self.out.write("// `ast.json` and regenerating the sources.     /\n")
         self.out.write("\n")
 
+    def _gen_hash_function_fwd(self, info: _PrinterNodeInfo):
+        self.out.write("template<>\n")
+        self.out.write(f"struct hash<{info.type}> {{\n")
+        self.out.write(
+            f"std::size_t operator()(const {info.type}& n) const noexcept;\n"
+        )
+        self.out.write("};\n")
+
+    def _gen_hash_function_def(self, info: _PrinterNodeInfo):
+        attr = ""
+        if len(info.fields) == 0:
+            attr = "[[maybe_unused]] "
+
+        self.out.write(
+            f"std::size_t hash<{info.type}>::operator()({attr}const {info.type}& n) const noexcept {{\n"
+        )
+        if len(info.fields) == 0:
+            self.out.write("return 0;\n")
+        elif len(info.fields) == 1:
+            field = info.fields[0]
+            self.out.write(f"return std::hash<decltype(n.{field})>()(n.{field});\n")
+        else:
+            for field in info.fields:
+                self.out.write(
+                    f"std::size_t {field}_hash = std::hash<decltype(n.{field})>()(n.{field});\n"
+                )
+            self.out.write(f"std::size_t res = {info.fields[0]}_hash;\n")
+            for field in info.fields[1:]:
+                self.out.write(
+                    f"res ^= {field}_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);\n"
+                )
+            self.out.write("return res;\n")
+
+        self.out.write("}\n")
+
+    def _gen_hash_function_fwds(self):
+        node_infos: List[Generator._PrinterNodeInfo] = []
+        typename_stack = [self.schema.namespace]
+        for node in self.schema.ast:
+            Generator._get_node_infos(node, node_infos, typename_stack)
+
+        for info in node_infos:
+            self._gen_hash_function_fwd(info)
+
+    def _gen_hash_function_defs(self):
+        node_infos: List[Generator._PrinterNodeInfo] = []
+        typename_stack = [self.schema.namespace]
+        for node in self.schema.ast:
+            Generator._get_node_infos(node, node_infos, typename_stack)
+
+        for info in node_infos:
+            self._gen_hash_function_def(info)
+
     def _gen_header(self):
         self._gen_heading()
 
@@ -422,7 +465,7 @@ class Generator:
         self.out.write("\n")
 
         for i in self.schema.project_includes:
-            self.out.write(f"#include \"{i}\"\n")
+            self.out.write(f'#include "{i}"\n')
         self.out.write("\n")
 
         self.out.write(f"namespace {self.schema.namespace} {{\n\n")
@@ -447,12 +490,18 @@ class Generator:
         self._gen_printer()
 
         self.indent -= 1
+        self.out.write("\n}\n\n")
+
+        self.out.write(f"namespace std {{\n\n")
+
+        self._gen_hash_function_fwds()
+
         self.out.write("\n}\n")
 
     def _gen_source(self):
         self._gen_heading()
 
-        self.out.write("#include \"ast.h\"\n\n")
+        self.out.write('#include "ast.h"\n\n')
         self.out.write(f"namespace {self.schema.namespace} {{\n\n")
         self.indent += 1
 
@@ -467,35 +516,40 @@ class Generator:
         self.indent -= 1
         self.out.write("\n}\n")
 
+        self.out.write(f"namespace std {{\n\n")
+
+        self._gen_hash_function_defs()
+
+        self.out.write("\n}\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="astgen",
-        description="AST definition generator"
+        prog="astgen", description="AST definition generator"
     )
     parser.add_argument(
-        "-s", "--schema_file",
-        required=True,
-        help="AST definition file path"
+        "-s", "--schema_file", required=True, help="AST definition file path"
     )
     parser.add_argument(
         "--clang-format-path",
         required=False,
         default="clang-format",
-        help="path to clang-format executable"
+        help="path to clang-format executable",
     )
     parser.add_argument(
-        "-c", "--clang-format-config",
+        "-c",
+        "--clang-format-config",
         required=False,
         default=None,
         help="clang-format configuration file path. \
-        Generated files will not be formated if this option is not set."
+        Generated files will not be formated if this option is not set.",
     )
     parser.add_argument(
-        "-o", "--output-dir",
+        "-o",
+        "--output-dir",
         required=True,
         default=None,
-        help="output directory for generated files"
+        help="output directory for generated files",
     )
 
     args = parser.parse_args()
@@ -519,7 +573,7 @@ if __name__ == "__main__":
 
         if args.clang_format_config is not None:
             for path in [ast_h_path, ast_cpp_path]:
-                cmd = f"{args.clang_format_path} \
-                    \"--style=file:{args.clang_format_config}\" \
-                    -i \"{path}\""
+                cmd = f'{args.clang_format_path} \
+                    "--style=file:{args.clang_format_config}" \
+                    -i "{path}"'
                 os.system(cmd)
