@@ -1,6 +1,4 @@
 #include "parse.h"
-#include "ast.h"
-#include "tok.h"
 
 #include <utility>
 
@@ -8,6 +6,7 @@ namespace alvo::parse {
 
     using enum tok::TokKind;
     using namespace ast;
+    using namespace ast::util;
 
     static constexpr std::initializer_list<tok::TokKind> TYPE_CTX_SYNC = {
         Comma,
@@ -100,12 +99,14 @@ namespace alvo::parse {
 
     void SectionEmitter::emit(SectionEvent event) { m_handler(event); }
 
-    Parser::Parser(lex::Lexer& lexer, mem::Arena& arena) :
+    Parser::Parser(
+        std::string_view filename, lex::Lexer& lexer, mem::Arena& arena) :
+        m_filename(filename),
         m_lexer(&lexer),
         m_arena(&arena),
         m_node_ctx(arena),
         m_section_emitter(nullptr),
-        m_diag_emitter(nullptr),
+        m_diag_emitter(),
         m_lexer_next_pushed() {
         m_lexer_next_pushed.reserve(10);
     }
@@ -114,8 +115,8 @@ namespace alvo::parse {
         m_section_emitter = &section_emitter;
     }
 
-    void Parser::set_diag_emitter(diag::DiagEmitter& diag_emitter) {
-        m_diag_emitter = &diag_emitter;
+    void Parser::set_diag_sink(diag::DiagSink& sink) {
+        m_diag_emitter.set_sink(sink);
     }
 
     PathSegment Parser::parse_path_segment() {
@@ -128,7 +129,7 @@ namespace alvo::parse {
         } else if (accept(KwSuper)) {
             val = PathSegment::Super {};
         } else if ((name = accept_and_get(Ident)).has_value()) {
-            util::List<Type> generic_params;
+            List<Type> generic_params;
             std::string_view value = (*name).value;
             if (accept(LAngle)) {
                 generic_params.push_back(*m_arena, parse_type());
@@ -152,7 +153,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         Import::Kind kind = Import::Normal {};
-        util::List<PathSegment> segments;
+        List<PathSegment> segments;
         if (!expect(KwImport)) {
             synchronize({ Semicolon, Eof });
             return Import(Invalid {}, segments);
@@ -237,9 +238,9 @@ namespace alvo::parse {
 
         if (!expect(LBracket)) {
             synchronize(TYPE_CTX_SYNC);
-            return Type::Array(true, util::Ptr<Type>::null());
+            return Type::Array(true, Ptr<Type>::null());
         }
-        util::Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
+        Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
         if (!expect(RBracket)) {
             synchronize(TYPE_CTX_SYNC);
         }
@@ -249,7 +250,7 @@ namespace alvo::parse {
     Type::Tup Parser::parse_type_tup() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Type> types;
+        List<Type> types;
         if (!expect(KwTup)) {
             synchronize(TYPE_CTX_SYNC);
             return Type::Tup(true, types);
@@ -274,15 +275,15 @@ namespace alvo::parse {
     Type::Func Parser::parse_type_func() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Type> params;
+        List<Type> params;
         Type return_type(Type::Unit {}, false);
         if (!expect(KwFunc)) {
             synchronize(TYPE_CTX_SYNC);
-            return Type::Func(true, params, util::Ptr<Type>::null());
+            return Type::Func(true, params, Ptr<Type>::null());
         }
         if (!expect(LParen)) {
             synchronize(TYPE_CTX_SYNC);
-            return Type::Func(true, params, util::Ptr<Type>::null());
+            return Type::Func(true, params, Ptr<Type>::null());
         }
         if (!curr_is(RParen)) {
             params.push_back(*m_arena, parse_type());
@@ -295,7 +296,7 @@ namespace alvo::parse {
         }
         if (!expect(RParen)) {
             synchronize(TYPE_CTX_SYNC);
-            return Type::Func(true, params, util::Ptr<Type>::null());
+            return Type::Func(true, params, Ptr<Type>::null());
         }
         if (accept(DashRAngle)) {
             return_type = parse_type();
@@ -307,7 +308,7 @@ namespace alvo::parse {
     Type::Path Parser::parse_type_path() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<PathSegment> segments;
+        List<PathSegment> segments;
         while (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
             segments.push_back(*m_arena, parse_path_segment());
             if (!accept(ColonColon)) {
@@ -322,15 +323,15 @@ namespace alvo::parse {
 
         if (!expect(KwRef)) {
             synchronize(TYPE_CTX_SYNC);
-            return Type::Ref(true, util::Ptr<Type>::null());
+            return Type::Ref(true, Ptr<Type>::null());
         }
 
         if (!expect(LParen)) {
             synchronize(TYPE_CTX_SYNC);
-            return Type::Ref(true, util::Ptr<Type>::null());
+            return Type::Ref(true, Ptr<Type>::null());
         }
 
-        util::Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
+        Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
 
         if (!expect(RParen)) {
             synchronize(TYPE_CTX_SYNC);
@@ -390,7 +391,7 @@ namespace alvo::parse {
             return Expr::Literal::Array(Invalid {});
         }
         if (accept(RBracket)) {
-            val = Expr::Literal::Array::Regular { util::List<Expr>() };
+            val = Expr::Literal::Array::Regular { List<Expr>() };
         } else {
             if (accept(KwDefault)) {
                 if (!expect(KwFor)) {
@@ -408,7 +409,7 @@ namespace alvo::parse {
                         m_node_ctx.make_node<Expr>(first),
                         m_node_ctx.make_node<Expr>(times));
                 } else {
-                    util::List<Expr> elements;
+                    List<Expr> elements;
                     elements.push_back(*m_arena, first);
                     if (curr_is(Comma)) {
                         while (accept(Comma)) {
@@ -432,7 +433,7 @@ namespace alvo::parse {
     Expr::Literal::Tup Parser::parse_expr_literal_tup() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Expr> exprs;
+        List<Expr> exprs;
         if (!expect(KwTup)) {
             synchronize(EXPR_CTX_SYNC);
             return Expr::Literal::Tup(true, exprs);
@@ -458,7 +459,7 @@ namespace alvo::parse {
     Expr::Literal::Struct Parser::parse_expr_literal_struct() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Expr::Literal::Struct::Field> fields;
+        List<Expr::Literal::Struct::Field> fields;
         if (!expect(KwStruct)) {
             synchronize(EXPR_CTX_SYNC);
             return Expr::Literal::Struct(true, Type(Invalid {}, false), fields);
@@ -489,16 +490,14 @@ namespace alvo::parse {
         std::optional<tok::Tok> tok_name = accept_and_get(Ident);
         if (!tok_name) {
             synchronize(EXPR_CTX_SYNC);
-            return Expr::Literal::Struct::Field(
-                true, "", util::Ptr<Expr>::null());
+            return Expr::Literal::Struct::Field(true, "", Ptr<Expr>::null());
         }
         std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             synchronize(EXPR_CTX_SYNC);
-            return Expr::Literal::Struct::Field(
-                true, "", util::Ptr<Expr>::null());
+            return Expr::Literal::Struct::Field(true, "", Ptr<Expr>::null());
         }
-        util::Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
+        Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
         return Expr::Literal::Struct::Field(false, name, expr);
     }
 
@@ -507,15 +506,15 @@ namespace alvo::parse {
 
         if (!expect(KwRef)) {
             synchronize(EXPR_CTX_SYNC);
-            return Expr::Ref(true, util::Ptr<Expr>::null());
+            return Expr::Ref(true, Ptr<Expr>::null());
         }
 
         if (!expect(LParen)) {
             synchronize(EXPR_CTX_SYNC);
-            return Expr::Ref(true, util::Ptr<Expr>::null());
+            return Expr::Ref(true, Ptr<Expr>::null());
         }
 
-        util::Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
+        Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
 
         if (!expect(RParen)) {
             synchronize(EXPR_CTX_SYNC);
@@ -528,8 +527,8 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         std::string_view name = "";
-        util::List<Type> generic_params;
-        util::List<Expr> args;
+        List<Type> generic_params;
+        List<Expr> args;
 
         if (!expect(KwBuiltin)) {
             synchronize(EXPR_CTX_SYNC);
@@ -586,7 +585,7 @@ namespace alvo::parse {
     Block Parser::parse_block() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Stmt> stmts;
+        List<Stmt> stmts;
         if (!expect(LBrace)) {
             synchronize(STMT_CTX_SYNC);
             return Block(true, stmts);
@@ -672,12 +671,12 @@ namespace alvo::parse {
     Stmt::If Parser::parse_stmt_if() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Stmt::If::Elif> elifs;
+        List<Stmt::If::Elif> elifs;
         std::optional<Block> else_ = std::nullopt;
         if (!expect(KwIf)) {
             synchronize(STMT_CTX_SYNC);
-            return Stmt::If(false, Expr(Invalid {}),
-                Block(true, util::List<Stmt>()), elifs, else_);
+            return Stmt::If(false, Expr(Invalid {}), Block(true, List<Stmt>()),
+                elifs, else_);
         }
         Expr expr = parse_expr();
         Block main = parse_block();
@@ -695,7 +694,7 @@ namespace alvo::parse {
     Stmt::Switch Parser::parse_stmt_switch() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Stmt::Switch::Case> cases;
+        List<Stmt::Switch::Case> cases;
         if (!expect(KwSwitch)) {
             synchronize(STMT_CTX_SYNC);
             return Stmt::Switch(true, Expr(Invalid {}), cases);
@@ -728,8 +727,7 @@ namespace alvo::parse {
         }
         if (!expect(EqRAngle)) {
             synchronize(STMT_CTX_SYNC);
-            return Stmt::Switch::Case(
-                true, expr, Block(true, util::List<Stmt>()));
+            return Stmt::Switch::Case(true, expr, Block(true, List<Stmt>()));
             // Err
         }
         Block block = parse_block();
@@ -741,7 +739,7 @@ namespace alvo::parse {
 
         if (!expect(KwLoop)) {
             synchronize(STMT_CTX_SYNC);
-            return Stmt::Loop(true, Block(true, util::List<Stmt>()));
+            return Stmt::Loop(true, Block(true, List<Stmt>()));
         }
         Block block = parse_block();
         return Stmt::Loop(false, block);
@@ -753,19 +751,19 @@ namespace alvo::parse {
         if (!expect(KwFor)) {
             synchronize(STMT_CTX_SYNC);
             return Stmt::For(
-                true, "", Expr(Invalid {}), Block(true, util::List<Stmt>()));
+                true, "", Expr(Invalid {}), Block(true, List<Stmt>()));
         }
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             synchronize(STMT_CTX_SYNC);
             return Stmt::For(
-                true, "", Expr(Invalid {}), Block(true, util::List<Stmt>()));
+                true, "", Expr(Invalid {}), Block(true, List<Stmt>()));
         }
         std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             synchronize(STMT_CTX_SYNC);
             return Stmt::For(
-                true, "", Expr(Invalid {}), Block(true, util::List<Stmt>()));
+                true, "", Expr(Invalid {}), Block(true, List<Stmt>()));
         }
         Expr expr = parse_expr();
         Block block = parse_block();
@@ -778,7 +776,7 @@ namespace alvo::parse {
         if (!expect(KwWhile)) {
             synchronize(STMT_CTX_SYNC);
             return Stmt::While(
-                true, Expr(Invalid {}), Block(true, util::List<Stmt>()));
+                true, Expr(Invalid {}), Block(true, List<Stmt>()));
         }
         Expr expr = parse_expr();
         Block block = parse_block();
@@ -828,7 +826,7 @@ namespace alvo::parse {
     Func::Signature Parser::parse_func_signature() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Func::Signature::Param> params;
+        List<Func::Signature::Param> params;
         Type ret(Type::Unit {}, false);
         bool is_self_func = false;
         if (!expect(KwFunc)) {
@@ -892,7 +890,7 @@ namespace alvo::parse {
         bool is_decls_block = false;
 
         bool is_export = false;
-        util::List<Decl::GenericParam> generic_params;
+        List<Decl::GenericParam> generic_params;
         if (accept(KwExport)) {
             is_export = true;
         }
@@ -958,7 +956,7 @@ namespace alvo::parse {
     Decl::GenericParam Parser::parse_decl_generic_param() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Type> interfaces;
+        List<Type> interfaces;
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             synchronize(ARGLIST_CTX_SYNC);
@@ -977,7 +975,7 @@ namespace alvo::parse {
     Decl::Struct Parser::parse_decl_struct() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Decl::Struct::Field> fields;
+        List<Decl::Struct::Field> fields;
         if (!expect(KwStruct)) {
             synchronize(UDTYPE_CTX_SYNC);
             return Decl::Struct(true, fields);
@@ -1027,7 +1025,7 @@ namespace alvo::parse {
     Decl::Enum Parser::parse_decl_enum() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Decl::Enum::Element> elements;
+        List<Decl::Enum::Element> elements;
         if (!expect(KwEnum)) {
             synchronize(UDTYPE_CTX_SYNC);
             return Decl::Enum(true, elements);
@@ -1106,7 +1104,7 @@ namespace alvo::parse {
 
         Type type = parse_type();
         std::optional<Type> interface = std::nullopt;
-        util::List<Decl> decls;
+        List<Decl> decls;
 
         if (accept(KwFor)) {
             interface = parse_type();
@@ -1127,7 +1125,7 @@ namespace alvo::parse {
     Decl::Interface Parser::parse_decl_interface() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<Decl::Interface::Member> members;
+        List<Decl::Interface::Member> members;
         if (!expect(KwInterface)) {
             synchronize(UDTYPE_CTX_SYNC);
             return Decl::Interface(true, members);
@@ -1150,8 +1148,8 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         Func::Signature signature_invalid(true, false,
-            util::List<Func::Signature::Param>(), Type(Invalid {}, false));
-        util::List<Decl::GenericParam> generic_params;
+            List<Func::Signature::Param>(), Type(Invalid {}, false));
+        List<Decl::GenericParam> generic_params;
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             synchronize(UDTYPE_CTX_SYNC);
@@ -1209,7 +1207,7 @@ namespace alvo::parse {
     Module Parser::parse_module() {
         SectionGuard section_guard(this, __func__);
 
-        util::List<TopLevel> top_levels;
+        List<TopLevel> top_levels;
         while (!curr_is(Eof)) {
             if (curr_is(KwImport) || curr_is(Ident) || curr_is(KwDecls) ||
                 curr_is(KwExport)) {
@@ -1323,7 +1321,7 @@ namespace alvo::parse {
             lhs.val = parse_path_segment();
         } else if ((bp_prefix = prefix_bp(lexer_peek().kind)).has_value()) {
             Expr::Unop::Op op = parse_unop_op();
-            util::Ptr<Expr> expr =
+            Ptr<Expr> expr =
                 m_node_ctx.make_node<Expr>(parse_expr_bp(*bp_prefix));
             lhs.val = Expr::Unop(expr, op);
         } else if (curr_is(KwUnit) || curr_is(KwNull) || curr_is(LitString) ||
@@ -1348,7 +1346,7 @@ namespace alvo::parse {
             }
 
             Expr res(Invalid {});
-            util::Ptr<Expr> res_lhs = m_node_ctx.make_node<Expr>(lhs);
+            Ptr<Expr> res_lhs = m_node_ctx.make_node<Expr>(lhs);
 
             if ((bp_postfix = postfix_bp(lexer_peek().kind)).has_value()) {
                 if (*bp_postfix < min_bp) {
@@ -1364,8 +1362,8 @@ namespace alvo::parse {
                         return Expr(Invalid {});
                     }
                 } else if (accept(LParen)) {
-                    util::Ptr<Expr> expr = res_lhs;
-                    util::List<Expr> args;
+                    Ptr<Expr> expr = res_lhs;
+                    List<Expr> args;
                     if (accept(RParen)) {
                         res.val = Expr::Call(expr, args);
                         lhs = res;
@@ -1399,7 +1397,7 @@ namespace alvo::parse {
                     break;
                 }
                 Expr::Binop::Op op = parse_binop_op();
-                util::Ptr<Expr> res_rhs = m_node_ctx.make_node<Expr>(
+                Ptr<Expr> res_rhs = m_node_ctx.make_node<Expr>(
                     parse_expr_bp((*bp_infix).second));
 
                 res.val = Expr::Binop { res_lhs, res_rhs, op };
@@ -1529,11 +1527,8 @@ namespace alvo::parse {
     std::optional<tok::Tok> Parser::expect_and_get(tok::TokKind kind) {
         std::optional<tok::Tok> res = accept_and_get(kind);
         if (!res) {
-            if (m_diag_emitter) {
-                m_diag_emitter->emit(
-                    { diag::Err { diag::Err::UnexpectedToken { lexer_peek() } },
-                        lexer_peek().loc.s });
-            }
+            m_diag_emitter.err(m_filename, lexer_peek().loc.s,
+                { diag::Err::UnexpectedToken { lexer_peek() } });
         }
         return res;
     }
