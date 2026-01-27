@@ -36,11 +36,11 @@ namespace alvo::parse {
 
     class Parser {
     public:
-        Parser(lex::Lexer& lexer, mem::Arena& arena);
+        Parser(std::string_view filename, lex::Lexer& lexer, mem::Arena& arena);
 
         void set_section_emitter(SectionEmitter& section_emitter);
 
-        void set_diag_emitter(diag::DiagEmitter& diag_emitter);
+        void set_diag_sink(diag::DiagSink& sink);
 
         ast::PathSegment parse_path_segment();
 
@@ -186,11 +186,12 @@ namespace alvo::parse {
 
         void lexer_push_next(tok::Tok tok);
 
+        std::string_view m_filename;
         lex::Lexer* m_lexer;
         mem::Arena* m_arena;
         ast::util::NodeCtx m_node_ctx;
         SectionEmitter* m_section_emitter;
-        diag::DiagEmitter* m_diag_emitter;
+        diag::DiagEmitter m_diag_emitter;
         std::vector<tok::Tok> m_lexer_next_pushed;
     };
 

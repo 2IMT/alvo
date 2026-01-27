@@ -2,6 +2,8 @@
 
 #include <functional>
 #include <variant>
+#include <optional>
+#include <ostream>
 
 #include "tok.h"
 
@@ -47,12 +49,54 @@ namespace alvo::diag {
             tok::Tok tok;
         };
 
+        // From name resolution
+        struct DuplicatePackageNames { };
+
+        struct DuplicateModuleNames { };
+
+        struct DuplicateMemberFunctionNames { };
+
+        struct DuplicateInterfaceFunctionNames { };
+
+        struct DuplicateDeclNames { };
+
+        struct DuplicateImportNames { };
+
+        struct ImportAndDeclNameCollision { };
+
+        struct PathNotFound { };
+
+        struct ParentNotFound { };
+
+        struct LocalRedefinition { };
+
+        struct GenericRedefinition { };
+
+        struct RootImported { };
+
+        struct GlobUsedOnDecl { };
+
+        struct AccessUsedOnNonPath { };
+
+        struct AccessIsNotAPathSegment { };
+
+        struct GenericParamsAreNotAllowed { };
+
+        struct RootIsNotAllowed { };
+
         using Val = std::variant<None, UnexpectedCharacter,
             NonPrintableCharacterInCharacterLiteral,
             NonPrintableCharacterInStringLiteral, UnterminatedString,
             InvalidIntegerPrefix, NoDigitsAfterIntegerPrefix,
             BytePostfixInFloatingPointLiteral, NegativeByteLiteral,
-            UnexpectedCharacterInNumberLiteral, UnexpectedToken>;
+            UnexpectedCharacterInNumberLiteral, UnexpectedToken,
+            DuplicatePackageNames, DuplicateModuleNames,
+            DuplicateMemberFunctionNames, DuplicateInterfaceFunctionNames,
+            DuplicateDeclNames, DuplicateImportNames,
+            ImportAndDeclNameCollision, PathNotFound, ParentNotFound,
+            LocalRedefinition, GenericRedefinition, RootImported,
+            GlobUsedOnDecl, AccessUsedOnNonPath, AccessIsNotAPathSegment,
+            GenericParamsAreNotAllowed, RootIsNotAllowed>;
 
         Val val;
 
@@ -70,14 +114,42 @@ namespace alvo::diag {
 
     using DiagHandler = std::function<void(const Diag&)>;
 
-    class DiagEmitter {
+    class DiagSink {
     public:
-        DiagEmitter(DiagHandler handler);
+        virtual void warn(
+            std::string_view file, tok::Pos pos, const Warn& warn) = 0;
 
-        void emit(Diag diag);
+        virtual void err(
+            std::string_view file, tok::Pos pos, const Err& err) = 0;
+    };
+
+    class OstreamSink : public DiagSink {
+    public:
+        OstreamSink(std::ostream& os);
+
+        void warn(
+            std::string_view filename, tok::Pos pos, const Warn& warn) override;
+
+        void err(
+            std::string_view filename, tok::Pos pos, const Err& err) override;
 
     private:
-        DiagHandler m_handler;
+        std::ostream* m_os;
+        bool m_err;
+    };
+
+    class DiagEmitter {
+    public:
+        DiagEmitter();
+
+        void set_sink(DiagSink& sink);
+
+        void warn(std::string_view filename, tok::Pos pos, const Warn& warn);
+
+        void err(std::string_view filename, tok::Pos pos, const Err& err);
+
+    private:
+        DiagSink* m_sink;
     };
 
 }

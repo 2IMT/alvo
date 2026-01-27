@@ -25,9 +25,9 @@ namespace alvo::lex {
 
     class Lexer {
     public:
-        Lexer(std::string_view src);
+        Lexer(std::string_view filename, std::string_view src);
 
-        void set_diag_emitter(diag::DiagEmitter& diag_emitter);
+        void set_diag_sink(diag::DiagSink& sink);
 
         void set_tok_emitter(TokEmitter& tok_emitter);
 
@@ -50,7 +50,7 @@ namespace alvo::lex {
 
         void recover();
 
-        tok::Tok create_err_and_emit(diag::Err err);
+        tok::Tok create_err_and_emit(const diag::Err& err);
 
         tok::Tok create_tok(tok::TokKind kind) const;
 
@@ -58,6 +58,7 @@ namespace alvo::lex {
 
         std::string_view get_curr_value() const;
 
+        std::string_view m_filename;
         std::string_view m_src;
         utf8::Utf8Iter m_src_iter;
         tok::Pos m_pos;
@@ -66,7 +67,7 @@ namespace alvo::lex {
         tok::Tok m_curr;
         utf8::Codepoint m_ch;
         bool m_eof;
-        diag::DiagEmitter* m_diag_emitter;
+        diag::DiagEmitter m_diag_emitter;
         TokEmitter* m_tok_emitter;
     };
 

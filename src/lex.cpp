@@ -132,7 +132,8 @@ namespace alvo::lex {
 
     void TokEmitter::emit(const tok::Tok& tok) { m_handler(tok); }
 
-    Lexer::Lexer(std::string_view src) :
+    Lexer::Lexer(std::string_view filename, std::string_view src) :
+        m_filename(filename),
         m_src(src),
         m_src_iter(src),
         m_pos(),
@@ -141,13 +142,13 @@ namespace alvo::lex {
         m_curr(),
         m_ch(m_src_iter.eof() ? 0 : m_src_iter.peek().value()),
         m_eof(m_src_iter.eof()),
-        m_diag_emitter(nullptr),
+        m_diag_emitter(),
         m_tok_emitter(nullptr) {
         next();
     }
 
-    void Lexer::set_diag_emitter(diag::DiagEmitter& diag_emitter) {
-        m_diag_emitter = &diag_emitter;
+    void Lexer::set_diag_sink(diag::DiagSink& sink) {
+        m_diag_emitter.set_sink(sink);
     }
 
     void Lexer::set_tok_emitter(TokEmitter& tok_emitter) {
@@ -631,10 +632,8 @@ namespace alvo::lex {
         }
     }
 
-    tok::Tok Lexer::create_err_and_emit(diag::Err err) {
-        if (m_diag_emitter != nullptr) {
-            m_diag_emitter->emit({ err, m_pos });
-        }
+    tok::Tok Lexer::create_err_and_emit(const diag::Err& err) {
+        m_diag_emitter.err(m_filename, m_pos, err);
         recover();
         return create_tok(tok::TokKind::Err);
     }

@@ -3,8 +3,11 @@
 #include <iterator>
 #include <concepts>
 #include <cstddef>
+#include <vector>
+#include <functional>
 
 #include "../mem.h"
+#include "../util.h"
 
 namespace alvo::ast::util {
     template<typename T>
@@ -230,6 +233,10 @@ namespace alvo::ast::util {
             m_tail(nullptr),
             m_size(0) { }
 
+        operator std::vector<T>() const {
+            return to_vector();
+        }
+
         void push_back(mem::Arena& arena, const T& val) {
             void* mem = arena.alloc(sizeof(Node), alignof(Node));
             Node* node = new (mem) Node { val, nullptr };
@@ -267,6 +274,15 @@ namespace alvo::ast::util {
                 offset++;
             }
             return Array<T>(mem, m_size);
+        }
+
+        std::vector<T> to_vector() const {
+            std::vector<T> res;
+            res.reserve(m_size);
+            for (const T& v : *this) {
+                res.push_back(v);
+            }
+            return res;
         }
 
         Iterator begin() { return Iterator(m_head); }
@@ -318,4 +334,38 @@ namespace alvo::ast::util {
         mem::Arena* m_arena;
     };
 
+}
+
+namespace std {
+    template<typename T>
+    struct hash<alvo::ast::util::Ptr<T>> {
+        std::size_t operator()(const alvo::ast::util::Ptr<T>& ptr) const noexcept {
+            if (!ptr.get_ptr()) {
+                return 0;
+            }
+            return std::hash<T>()(*ptr);
+        }
+    };
+
+    template<typename T>
+    struct hash<alvo::ast::util::Array<T>> {
+        std::size_t operator()(const alvo::ast::util::Array<T>& arr) const noexcept {
+            size_t hash = 0;
+            for (const T& v : arr) {
+                alvo::util::hash_combine(hash, std::hash<T>()(v));
+            }
+            return hash;
+        }
+    };
+
+    template<typename T>
+    struct hash<alvo::ast::util::List<T>> {
+        std::size_t operator()(const alvo::ast::util::List<T>& list) const noexcept {
+            size_t hash = 0;
+            for (const T& v : list) {
+                alvo::util::hash_combine(hash, std::hash<T>()(v));
+            }
+            return hash;
+        }
+    };
 }

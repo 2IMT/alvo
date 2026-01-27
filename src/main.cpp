@@ -3,7 +3,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <variant>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -13,7 +12,6 @@
 #include "parse.h"
 #include "ast.h"
 #include "mem.h"
-#include "util.h"
 #include "args.h"
 
 class Handler {
@@ -28,68 +26,6 @@ public:
     Handler(State& state, std::string_view file_path) :
         m_state(&state),
         m_file_path(file_path) { };
-
-    void operator()([[maybe_unused]] const alvo::diag::Diag& diag) {
-        fmt::print(std::cerr, "{}:{}: ", m_file_path, diag.pos);
-        std::visit(
-            alvo::util::overload { [](const alvo::diag::Warn& warn) {
-                                      using alvo::diag::Warn;
-                                      fmt::print(std::cerr, "warning: ");
-                                      std::visit(
-                                          alvo::util::overload {
-                                              [](const Warn::None&) { } },
-                                          warn.val);
-                                  },
-                [](const alvo::diag::Err& err) {
-                    using alvo::diag::Err;
-                    fmt::print(std::cerr, "error: ");
-                    std::visit(
-                        alvo::util::overload {
-                            [](const Err::None&) { fmt::print(std::cerr,"none"); },
-                            [](const Err::UnexpectedCharacter&) {
-                                fmt::print(std::cerr,"unexpected character");
-                            },
-                            [](const Err::
-                                    NonPrintableCharacterInCharacterLiteral&) {
-                                fmt::print(std::cerr,"unexpected character in character "
-                                           "literal");
-                            },
-                            [](const Err::
-                                    NonPrintableCharacterInStringLiteral&) {
-                                fmt::print(std::cerr,"non-printable character in string "
-                                           "literal");
-                            },
-                            [](const Err::UnterminatedString&) {
-                                fmt::print(std::cerr,"unterminated string literal");
-                            },
-                            [](const Err::InvalidIntegerPrefix&) {
-                                fmt::print(std::cerr,"invalid integer prefix");
-                            },
-                            [](const Err::NoDigitsAfterIntegerPrefix&) {
-                                fmt::print(std::cerr,"no digits after integer prefix");
-                            },
-                            [](const Err::BytePostfixInFloatingPointLiteral&) {
-                                fmt::print(std::cerr,
-                                    "byte postfix in floating point literal");
-                            },
-                            [](const Err::NegativeByteLiteral&) {
-                                fmt::print(std::cerr,"negative byte literal");
-                            },
-                            [](const Err::UnexpectedCharacterInNumberLiteral&) {
-                                fmt::print(std::cerr,
-                                    "unexpected character in number literal");
-                            },
-                            [](const Err::UnexpectedToken& v) {
-                                fmt::print(std::cerr,
-                                    "unexpected token `{}`", v.tok.value);
-                            }
-
-                        },
-                        err.val);
-                } },
-            diag.val);
-        fmt::print(std::cerr, "\n");
-    }
 
     void operator()(const alvo::tok::Tok& tok) {
         indent();
@@ -155,9 +91,10 @@ void eat_all_tokens(alvo::lex::Lexer& lexer) {
 }
 
 int main(int argc, char** argv) {
-    using alvo::args::Args;
-    using alvo::args::ArgsResult;
-    ArgsResult args = alvo::args::parse(argc, argv);
+    using namespace alvo;
+    using args::Args;
+    using args::ArgsResult;
+    ArgsResult args = args::parse(argc, argv);
     if (!args) {
         bool err = args.error();
         if (err) {
@@ -173,31 +110,31 @@ int main(int argc, char** argv) {
     }
 
     Handler::State handler_state;
+    diag::OstreamSink diag_sink(std::cerr);
     Handler handler(handler_state, args->file);
-    alvo::diag::DiagEmitter diag_emitter(handler);
-    alvo::lex::TokEmitter tok_emitter(handler);
-    alvo::parse::SectionEmitter enter_emitter(handler);
+    lex::TokEmitter tok_emitter(handler);
+    parse::SectionEmitter enter_emitter(handler);
 
-    alvo::lex::Lexer lexer(*source);
-    lexer.set_diag_emitter(diag_emitter);
+    lex::Lexer lexer(args->file, *source);
+    lexer.set_diag_sink(diag_sink);
     if (args->emit_tokens) {
         lexer.set_tok_emitter(tok_emitter);
     }
 
-    alvo::mem::Arena node_arena(8192);
-    alvo::parse::Parser parser(lexer, node_arena);
-    parser.set_diag_emitter(diag_emitter);
+    mem::Arena node_arena(8192);
+    parse::Parser parser(args->file, lexer, node_arena);
+    parser.set_diag_sink(diag_sink);
     if (args->emit_sections) {
         parser.set_section_emitter(enter_emitter);
     }
 
-    alvo::ast::Module module = parser.parse_module();
+    ast::Module module = parser.parse_module();
     if (args->print_ast) {
-        alvo::ast::print::OstreamSink sink(std::cout);
-        alvo::ast::Printer printer(sink, 1);
-        using alvo::ast::print::StyleConfig;
-        using alvo::ast::print::Style;
-        using alvo::ast::print::Color;
+        ast::print::OstreamSink sink(std::cout);
+        ast::Printer printer(sink, 1);
+        using ast::print::StyleConfig;
+        using ast::print::Style;
+        using ast::print::Color;
         printer.set_style_config(StyleConfig {
             .node_name = Style::fg_color(Color { 255, 0, 0 }) | Style::bold() |
                          Style::underline(),
