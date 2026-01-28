@@ -106,6 +106,8 @@ namespace alvo::parse {
 
         ast::Decl::GenericParam parse_decl_generic_param();
 
+        ast::Decl::DeclsBlock parse_decl_decls_block();
+
         ast::Decl::Struct parse_decl_struct();
 
         ast::Decl::Struct::Field parse_decl_struct_field();
@@ -117,8 +119,6 @@ namespace alvo::parse {
         ast::Decl::TypeAlias parse_decl_type_alias();
 
         ast::Decl::Const parse_decl_const();
-
-        ast::Decl::Decls parse_decl_decls();
 
         ast::Decl::Interface parse_decl_interface();
 

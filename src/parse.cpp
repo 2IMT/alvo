@@ -887,27 +887,18 @@ namespace alvo::parse {
     Decl Parser::parse_decl() {
         SectionGuard section_guard(this, __func__);
 
-        bool is_decls_block = false;
-
         bool is_export = false;
         List<Decl::GenericParam> generic_params;
         if (accept(KwExport)) {
             is_export = true;
         }
 
-        std::string_view name = "";
-
-        if (accept(KwDecls)) {
-            is_decls_block = true;
-        } else {
-            std::optional<tok::Tok> tok_name = expect_and_get(Ident);
-            if (!tok_name) {
-                synchronize(TOP_LEVEL_CTX_SYNC);
-                return Decl(
-                    is_export, is_decls_block, "", generic_params, Invalid {});
-            }
-            name = (*tok_name).value;
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
+            synchronize(TOP_LEVEL_CTX_SYNC);
+            return Decl(is_export, "", generic_params, Invalid {});
         }
+        std::string_view name = (*tok_name).value;
 
         if (accept(LAngle)) {
             generic_params.push_back(*m_arena, parse_decl_generic_param());
@@ -919,38 +910,34 @@ namespace alvo::parse {
             }
             if (!expect(RAngle)) {
                 synchronize(TOP_LEVEL_CTX_SYNC);
-                return Decl(is_export, false, "", generic_params, Invalid {});
+                return Decl(is_export, "", generic_params, Invalid {});
             }
         }
 
         if (!expect(ColonColon)) {
             synchronize(TOP_LEVEL_CTX_SYNC);
-            return Decl(is_export, false, "", generic_params, Invalid {});
+            return Decl(is_export, "", generic_params, Invalid {});
         }
 
         Decl::Val val;
-        if (is_decls_block) {
-            val = parse_decl_decls();
+        if (curr_is(KwFunc)) {
+            val = parse_func();
+        } else if (curr_is(KwStruct)) {
+            val = parse_decl_struct();
+        } else if (curr_is(KwEnum)) {
+            val = parse_decl_enum();
+        } else if (curr_is(KwType)) {
+            val = parse_decl_type_alias();
+        } else if (curr_is(KwConst)) {
+            val = parse_decl_const();
+        } else if (curr_is(KwInterface)) {
+            val = parse_decl_interface();
         } else {
-            if (curr_is(KwFunc)) {
-                val = parse_func();
-            } else if (curr_is(KwStruct)) {
-                val = parse_decl_struct();
-            } else if (curr_is(KwEnum)) {
-                val = parse_decl_enum();
-            } else if (curr_is(KwType)) {
-                val = parse_decl_type_alias();
-            } else if (curr_is(KwConst)) {
-                val = parse_decl_const();
-            } else if (curr_is(KwInterface)) {
-                val = parse_decl_interface();
-            } else {
-                val = Invalid {};
-                synchronize(TOP_LEVEL_CTX_SYNC);
-            }
+            val = Invalid {};
+            synchronize(TOP_LEVEL_CTX_SYNC);
         }
 
-        return Decl(is_export, is_decls_block, name, generic_params, val);
+        return Decl(is_export, name, generic_params, val);
     }
 
     Decl::GenericParam Parser::parse_decl_generic_param() {
@@ -972,17 +959,57 @@ namespace alvo::parse {
         return Decl::GenericParam(false, name, interfaces);
     }
 
+    Decl::DeclsBlock Parser::parse_decl_decls_block() {
+        SectionGuard section_guard(this, __func__);
+
+        List<Decl::GenericParam> generic_params;
+        std::optional<Type> interface = std::nullopt;
+        List<Decl> decls;
+        if (!expect(KwDecls)) {
+            synchronize(UDTYPE_CTX_SYNC);
+            return Decl::DeclsBlock(true, {}, std::nullopt, {});
+        }
+        if (accept(LAngle)) {
+            generic_params.push_back(*m_arena, parse_decl_generic_param());
+            while (accept(Comma)) {
+                if (curr_is(RAngle)) {
+                    break;
+                }
+                generic_params.push_back(*m_arena, parse_decl_generic_param());
+            }
+            if (!expect(RAngle)) {
+                synchronize(TOP_LEVEL_CTX_SYNC);
+                return Decl::DeclsBlock(true, {}, std::nullopt, {});
+            }
+        }
+        if (accept(KwFor)) {
+            interface = parse_type();
+        }
+        if (!expect(LBrace)) {
+            synchronize(UDTYPE_CTX_SYNC);
+            return Decl::DeclsBlock(true, {}, std::nullopt, {});
+        }
+        while (!curr_is(RBrace)) {
+            decls.push_back(*m_arena, parse_decl());
+        }
+        if (!expect(RBrace)) {
+            synchronize(UDTYPE_CTX_SYNC);
+        }
+        return Decl::DeclsBlock(true, generic_params, interface, decls);
+    }
+
     Decl::Struct Parser::parse_decl_struct() {
         SectionGuard section_guard(this, __func__);
 
         List<Decl::Struct::Field> fields;
+        List<Decl::DeclsBlock> decls_blocks;
         if (!expect(KwStruct)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Struct(true, fields);
+            return Decl::Struct(true, fields, decls_blocks);
         }
         if (!expect(LBrace)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Struct(true, fields);
+            return Decl::Struct(true, fields, decls_blocks);
         }
         if (curr_is(KwExport) || curr_is(Ident)) {
             fields.push_back(*m_arena, parse_decl_struct_field());
@@ -995,8 +1022,12 @@ namespace alvo::parse {
         }
         if (!expect(RBrace)) {
             synchronize(UDTYPE_CTX_SYNC);
+            return Decl::Struct(true, fields, decls_blocks);
         }
-        return Decl::Struct(false, fields);
+        while (curr_is(KwDecls)) {
+            decls_blocks.push_back(*m_arena, parse_decl_decls_block());
+        }
+        return Decl::Struct(false, fields, decls_blocks);
     }
 
     Decl::Struct::Field Parser::parse_decl_struct_field() {
@@ -1026,13 +1057,14 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         List<Decl::Enum::Element> elements;
+        List<Decl::DeclsBlock> decls_blocks;
         if (!expect(KwEnum)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Enum(true, elements);
+            return Decl::Enum(true, elements, decls_blocks);
         }
         if (!expect(LBrace)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Enum(true, elements);
+            return Decl::Enum(true, elements, decls_blocks);
         }
         elements.push_back(*m_arena, parse_decl_enum_element());
         while (accept(Comma)) {
@@ -1043,8 +1075,12 @@ namespace alvo::parse {
         }
         if (!expect(RBrace)) {
             synchronize(UDTYPE_CTX_SYNC);
+            return Decl::Enum(true, elements, decls_blocks);
         }
-        return Decl::Enum(false, elements);
+        while (curr_is(KwDecls)) {
+            decls_blocks.push_back(*m_arena, parse_decl_decls_block());
+        }
+        return Decl::Enum(false, elements, decls_blocks);
     }
 
     Decl::Enum::Element Parser::parse_decl_enum_element() {
@@ -1097,29 +1133,6 @@ namespace alvo::parse {
             synchronize(UDTYPE_CTX_SYNC);
         }
         return Decl::Const(false, type, expr);
-    }
-
-    Decl::Decls Parser::parse_decl_decls() {
-        SectionGuard section_guard(this, __func__);
-
-        Type type = parse_type();
-        std::optional<Type> interface = std::nullopt;
-        List<Decl> decls;
-
-        if (accept(KwFor)) {
-            interface = parse_type();
-        }
-        if (!expect(LBrace)) {
-            synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Decls(true, type, interface, decls);
-        }
-        while (!curr_is(RBrace)) {
-            decls.push_back(*m_arena, parse_decl());
-        }
-        if (!expect(RBrace)) {
-            synchronize(UDTYPE_CTX_SYNC);
-        }
-        return Decl::Decls(false, type, interface, decls);
     }
 
     Decl::Interface Parser::parse_decl_interface() {

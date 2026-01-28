@@ -305,8 +305,7 @@ namespace alvo::ast {
     }
 
     bool operator==(const Decl& l, const Decl& r) {
-        return l.is_export == r.is_export &&
-               l.is_decls_block == r.is_decls_block && l.name == r.name &&
+        return l.is_export == r.is_export && l.name == r.name &&
                l.generic_params == r.generic_params && l.val == r.val;
     }
 
@@ -315,8 +314,15 @@ namespace alvo::ast {
                l.interfaces == r.interfaces;
     }
 
+    bool operator==(const Decl::DeclsBlock& l, const Decl::DeclsBlock& r) {
+        return l.is_invalid == r.is_invalid &&
+               l.generic_params == r.generic_params &&
+               l.interface == r.interface && l.decls == r.decls;
+    }
+
     bool operator==(const Decl::Struct& l, const Decl::Struct& r) {
-        return l.is_invalid == r.is_invalid && l.fields == r.fields;
+        return l.is_invalid == r.is_invalid && l.fields == r.fields &&
+               l.decls_blocks == r.decls_blocks;
     }
 
     bool operator==(
@@ -326,7 +332,8 @@ namespace alvo::ast {
     }
 
     bool operator==(const Decl::Enum& l, const Decl::Enum& r) {
-        return l.is_invalid == r.is_invalid && l.elements == r.elements;
+        return l.is_invalid == r.is_invalid && l.elements == r.elements &&
+               l.decls_blocks == r.decls_blocks;
     }
 
     bool operator==(
@@ -341,11 +348,6 @@ namespace alvo::ast {
     bool operator==(const Decl::Const& l, const Decl::Const& r) {
         return l.is_invalid == r.is_invalid && l.type == r.type &&
                l.expr == r.expr;
-    }
-
-    bool operator==(const Decl::Decls& l, const Decl::Decls& r) {
-        return l.is_invalid == r.is_invalid && l.type == r.type &&
-               l.interface == r.interface && l.decls == r.decls;
     }
 
     bool operator==(const Decl::Interface& l, const Decl::Interface& r) {
@@ -663,8 +665,7 @@ namespace alvo::ast {
     }
 
     bool operator!=(const Decl& l, const Decl& r) {
-        return l.is_export != r.is_export &&
-               l.is_decls_block != r.is_decls_block && l.name != r.name &&
+        return l.is_export != r.is_export && l.name != r.name &&
                l.generic_params != r.generic_params && l.val != r.val;
     }
 
@@ -673,8 +674,15 @@ namespace alvo::ast {
                l.interfaces != r.interfaces;
     }
 
+    bool operator!=(const Decl::DeclsBlock& l, const Decl::DeclsBlock& r) {
+        return l.is_invalid != r.is_invalid &&
+               l.generic_params != r.generic_params &&
+               l.interface != r.interface && l.decls != r.decls;
+    }
+
     bool operator!=(const Decl::Struct& l, const Decl::Struct& r) {
-        return l.is_invalid != r.is_invalid && l.fields != r.fields;
+        return l.is_invalid != r.is_invalid && l.fields != r.fields &&
+               l.decls_blocks != r.decls_blocks;
     }
 
     bool operator!=(
@@ -684,7 +692,8 @@ namespace alvo::ast {
     }
 
     bool operator!=(const Decl::Enum& l, const Decl::Enum& r) {
-        return l.is_invalid != r.is_invalid && l.elements != r.elements;
+        return l.is_invalid != r.is_invalid && l.elements != r.elements &&
+               l.decls_blocks != r.decls_blocks;
     }
 
     bool operator!=(
@@ -699,11 +708,6 @@ namespace alvo::ast {
     bool operator!=(const Decl::Const& l, const Decl::Const& r) {
         return l.is_invalid != r.is_invalid && l.type != r.type &&
                l.expr != r.expr;
-    }
-
-    bool operator!=(const Decl::Decls& l, const Decl::Decls& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type &&
-               l.interface != r.interface && l.decls != r.decls;
     }
 
     bool operator!=(const Decl::Interface& l, const Decl::Interface& r) {
@@ -1279,15 +1283,11 @@ namespace std {
         const alvo::ast::Decl& n) const noexcept {
         std::size_t is_export_hash =
             std::hash<decltype(n.is_export)>()(n.is_export);
-        std::size_t is_decls_block_hash =
-            std::hash<decltype(n.is_decls_block)>()(n.is_decls_block);
         std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
         std::size_t generic_params_hash =
             std::hash<decltype(n.generic_params)>()(n.generic_params);
         std::size_t val_hash = std::hash<decltype(n.val)>()(n.val);
         std::size_t res = is_export_hash;
-        res ^= is_decls_block_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
-               (res >> 2);
         res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
                (res >> 2);
@@ -1309,13 +1309,34 @@ namespace std {
         return res;
     }
 
+    std::size_t hash<alvo::ast::Decl::DeclsBlock>::operator()(
+        const alvo::ast::Decl::DeclsBlock& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t interface_hash =
+            std::hash<decltype(n.interface)>()(n.interface);
+        std::size_t decls_hash = std::hash<decltype(n.decls)>()(n.decls);
+        std::size_t res = is_invalid_hash;
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        res ^= interface_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= decls_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
     std::size_t hash<alvo::ast::Decl::Struct>::operator()(
         const alvo::ast::Decl::Struct& n) const noexcept {
         std::size_t is_invalid_hash =
             std::hash<decltype(n.is_invalid)>()(n.is_invalid);
         std::size_t fields_hash = std::hash<decltype(n.fields)>()(n.fields);
+        std::size_t decls_blocks_hash =
+            std::hash<decltype(n.decls_blocks)>()(n.decls_blocks);
         std::size_t res = is_invalid_hash;
         res ^= fields_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^=
+            decls_blocks_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         return res;
     }
 
@@ -1340,8 +1361,12 @@ namespace std {
             std::hash<decltype(n.is_invalid)>()(n.is_invalid);
         std::size_t elements_hash =
             std::hash<decltype(n.elements)>()(n.elements);
+        std::size_t decls_blocks_hash =
+            std::hash<decltype(n.decls_blocks)>()(n.decls_blocks);
         std::size_t res = is_invalid_hash;
         res ^= elements_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^=
+            decls_blocks_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         return res;
     }
 
@@ -1374,21 +1399,6 @@ namespace std {
         std::size_t res = is_invalid_hash;
         res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        return res;
-    }
-
-    std::size_t hash<alvo::ast::Decl::Decls>::operator()(
-        const alvo::ast::Decl::Decls& n) const noexcept {
-        std::size_t is_invalid_hash =
-            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
-        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
-        std::size_t interface_hash =
-            std::hash<decltype(n.interface)>()(n.interface);
-        std::size_t decls_hash = std::hash<decltype(n.decls)>()(n.decls);
-        std::size_t res = is_invalid_hash;
-        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        res ^= interface_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        res ^= decls_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         return res;
     }
 

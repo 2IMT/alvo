@@ -592,6 +592,22 @@ namespace alvo::ast {
                 interfaces(interfaces) { }
         };
 
+        struct DeclsBlock {
+            bool is_invalid;
+            util::List<GenericParam> generic_params;
+            std::optional<Type> interface;
+            util::List<Decl> decls;
+
+            DeclsBlock(const bool& is_invalid,
+                const util::List<GenericParam>& generic_params,
+                const std::optional<Type>& interface,
+                const util::List<Decl>& decls) :
+                is_invalid(is_invalid),
+                generic_params(generic_params),
+                interface(interface),
+                decls(decls) { }
+        };
+
         struct Struct {
             struct Field {
                 bool is_invalid;
@@ -609,10 +625,13 @@ namespace alvo::ast {
 
             bool is_invalid;
             util::List<Field> fields;
+            util::List<DeclsBlock> decls_blocks;
 
-            Struct(const bool& is_invalid, const util::List<Field>& fields) :
+            Struct(const bool& is_invalid, const util::List<Field>& fields,
+                const util::List<DeclsBlock>& decls_blocks) :
                 is_invalid(is_invalid),
-                fields(fields) { }
+                fields(fields),
+                decls_blocks(decls_blocks) { }
         };
 
         struct Enum {
@@ -627,10 +646,13 @@ namespace alvo::ast {
 
             bool is_invalid;
             util::List<Element> elements;
+            util::List<DeclsBlock> decls_blocks;
 
-            Enum(const bool& is_invalid, const util::List<Element>& elements) :
+            Enum(const bool& is_invalid, const util::List<Element>& elements,
+                const util::List<DeclsBlock>& decls_blocks) :
                 is_invalid(is_invalid),
-                elements(elements) { }
+                elements(elements),
+                decls_blocks(decls_blocks) { }
         };
 
         struct TypeAlias {
@@ -651,21 +673,6 @@ namespace alvo::ast {
                 is_invalid(is_invalid),
                 type(type),
                 expr(expr) { }
-        };
-
-        struct Decls {
-            bool is_invalid;
-            Type type;
-            std::optional<Type> interface;
-            util::List<Decl> decls;
-
-            Decls(const bool& is_invalid, const Type& type,
-                const std::optional<Type>& interface,
-                const util::List<Decl>& decls) :
-                is_invalid(is_invalid),
-                type(type),
-                interface(interface),
-                decls(decls) { }
         };
 
         struct Interface {
@@ -694,18 +701,15 @@ namespace alvo::ast {
         };
 
         using Val = std::variant<Invalid, Func, Struct, Enum, TypeAlias, Const,
-            Decls, Interface>;
+            Interface>;
         bool is_export;
-        bool is_decls_block;
         std::string_view name;
         util::List<GenericParam> generic_params;
         Val val;
 
-        Decl(const bool& is_export, const bool& is_decls_block,
-            const std::string_view& name,
+        Decl(const bool& is_export, const std::string_view& name,
             const util::List<GenericParam>& generic_params, const Val& val) :
             is_export(is_export),
-            is_decls_block(is_decls_block),
             name(name),
             generic_params(generic_params),
             val(val) { }
@@ -820,13 +824,13 @@ namespace alvo::ast {
         const Func::Signature::Param& l, const Func::Signature::Param& r);
     bool operator==(const Decl& l, const Decl& r);
     bool operator==(const Decl::GenericParam& l, const Decl::GenericParam& r);
+    bool operator==(const Decl::DeclsBlock& l, const Decl::DeclsBlock& r);
     bool operator==(const Decl::Struct& l, const Decl::Struct& r);
     bool operator==(const Decl::Struct::Field& l, const Decl::Struct::Field& r);
     bool operator==(const Decl::Enum& l, const Decl::Enum& r);
     bool operator==(const Decl::Enum::Element& l, const Decl::Enum::Element& r);
     bool operator==(const Decl::TypeAlias& l, const Decl::TypeAlias& r);
     bool operator==(const Decl::Const& l, const Decl::Const& r);
-    bool operator==(const Decl::Decls& l, const Decl::Decls& r);
     bool operator==(const Decl::Interface& l, const Decl::Interface& r);
     bool operator==(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r);
@@ -926,13 +930,13 @@ namespace alvo::ast {
         const Func::Signature::Param& l, const Func::Signature::Param& r);
     bool operator!=(const Decl& l, const Decl& r);
     bool operator!=(const Decl::GenericParam& l, const Decl::GenericParam& r);
+    bool operator!=(const Decl::DeclsBlock& l, const Decl::DeclsBlock& r);
     bool operator!=(const Decl::Struct& l, const Decl::Struct& r);
     bool operator!=(const Decl::Struct::Field& l, const Decl::Struct::Field& r);
     bool operator!=(const Decl::Enum& l, const Decl::Enum& r);
     bool operator!=(const Decl::Enum::Element& l, const Decl::Enum::Element& r);
     bool operator!=(const Decl::TypeAlias& l, const Decl::TypeAlias& r);
     bool operator!=(const Decl::Const& l, const Decl::Const& r);
-    bool operator!=(const Decl::Decls& l, const Decl::Decls& r);
     bool operator!=(const Decl::Interface& l, const Decl::Interface& r);
     bool operator!=(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r);
@@ -1020,13 +1024,13 @@ namespace alvo::ast {
         void print_node(const Func::Signature::Param& n);
         void print_node(const Decl& n);
         void print_node(const Decl::GenericParam& n);
+        void print_node(const Decl::DeclsBlock& n);
         void print_node(const Decl::Struct& n);
         void print_node(const Decl::Struct::Field& n);
         void print_node(const Decl::Enum& n);
         void print_node(const Decl::Enum::Element& n);
         void print_node(const Decl::TypeAlias& n);
         void print_node(const Decl::Const& n);
-        void print_node(const Decl::Decls& n);
         void print_node(const Decl::Interface& n);
         void print_node(const Decl::Interface::Member& n);
         void print_node(const TopLevel& n);
@@ -1635,7 +1639,6 @@ namespace alvo::ast {
     void Printer<Sink>::print_node(const Decl& n) {
         node_begin("Decl");
         field("is_export", n.is_export);
-        field("is_decls_block", n.is_decls_block);
         field("name", n.name);
         field("generic_params", n.generic_params);
         field("val", n.val);
@@ -1652,10 +1655,21 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Decl::DeclsBlock& n) {
+        node_begin("DeclsBlock");
+        field("is_invalid", n.is_invalid);
+        field("generic_params", n.generic_params);
+        field("interface", n.interface);
+        field("decls", n.decls);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Decl::Struct& n) {
         node_begin("Struct");
         field("is_invalid", n.is_invalid);
         field("fields", n.fields);
+        field("decls_blocks", n.decls_blocks);
         node_end();
     }
 
@@ -1674,6 +1688,7 @@ namespace alvo::ast {
         node_begin("Enum");
         field("is_invalid", n.is_invalid);
         field("elements", n.elements);
+        field("decls_blocks", n.decls_blocks);
         node_end();
     }
 
@@ -1699,16 +1714,6 @@ namespace alvo::ast {
         field("is_invalid", n.is_invalid);
         field("type", n.type);
         field("expr", n.expr);
-        node_end();
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Decl::Decls& n) {
-        node_begin("Decls");
-        field("is_invalid", n.is_invalid);
-        field("type", n.type);
-        field("interface", n.interface);
-        field("decls", n.decls);
         node_end();
     }
 
@@ -2122,6 +2127,12 @@ namespace std {
     };
 
     template<>
+    struct hash<alvo::ast::Decl::DeclsBlock> {
+        std::size_t operator()(
+            const alvo::ast::Decl::DeclsBlock& n) const noexcept;
+    };
+
+    template<>
     struct hash<alvo::ast::Decl::Struct> {
         std::size_t operator()(const alvo::ast::Decl::Struct& n) const noexcept;
     };
@@ -2152,11 +2163,6 @@ namespace std {
     template<>
     struct hash<alvo::ast::Decl::Const> {
         std::size_t operator()(const alvo::ast::Decl::Const& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::Decl::Decls> {
-        std::size_t operator()(const alvo::ast::Decl::Decls& n) const noexcept;
     };
 
     template<>
