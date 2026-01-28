@@ -63,6 +63,7 @@ set(ALVO_SOURCES
     "src/ast.cpp"
     "src/ast/print.cpp"
     "src/args.cpp"
+    "src/util.cpp"
 )
 
 add_executable(alvo "src/main.cpp" ${ALVO_SOURCES})
