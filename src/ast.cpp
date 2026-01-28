@@ -14,42 +14,6 @@ namespace alvo::ast {
         return true;
     }
 
-    bool operator==(const PathSegment& l, const PathSegment& r) {
-        return l.val == r.val;
-    }
-
-    bool operator==([[maybe_unused]] const PathSegment::Root& l,
-        [[maybe_unused]] const PathSegment::Root& r) {
-        return true;
-    }
-
-    bool operator==([[maybe_unused]] const PathSegment::Super& l,
-        [[maybe_unused]] const PathSegment::Super& r) {
-        return true;
-    }
-
-    bool operator==(const PathSegment::Name& l, const PathSegment::Name& r) {
-        return l.value == r.value && l.generic_params == r.generic_params;
-    }
-
-    bool operator==(const Import& l, const Import& r) {
-        return l.kind == r.kind && l.segments == r.segments;
-    }
-
-    bool operator==([[maybe_unused]] const Import::Normal& l,
-        [[maybe_unused]] const Import::Normal& r) {
-        return true;
-    }
-
-    bool operator==([[maybe_unused]] const Import::Glob& l,
-        [[maybe_unused]] const Import::Glob& r) {
-        return true;
-    }
-
-    bool operator==(const Import::Renamed& l, const Import::Renamed& r) {
-        return l.renamed_to == r.renamed_to;
-    }
-
     bool operator==(const Type& l, const Type& r) {
         return l.val == r.val && l.nullable == r.nullable;
     }
@@ -102,8 +66,9 @@ namespace alvo::ast {
                l.return_type == r.return_type;
     }
 
-    bool operator==(const Type::Path& l, const Type::Path& r) {
-        return l.is_invalid == r.is_invalid && l.segments == r.segments;
+    bool operator==(const Type::Name& l, const Type::Name& r) {
+        return l.is_invalid == r.is_invalid && l.name == r.name &&
+               l.generic_params == r.generic_params;
     }
 
     bool operator==(const Type::Ref& l, const Type::Ref& r) {
@@ -223,6 +188,21 @@ namespace alvo::ast {
     bool operator==(const Expr::Builtin& l, const Expr::Builtin& r) {
         return l.is_invalid == r.is_invalid && l.name == r.name &&
                l.generic_params == r.generic_params && l.args == r.args;
+    }
+
+    bool operator==(const Expr::Name& l, const Expr::Name& r) {
+        return l.is_invalid == r.is_invalid && l.name == r.name &&
+               l.generic_params == r.generic_params;
+    }
+
+    bool operator==(
+        const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r) {
+        return l.is_invalid == r.is_invalid && l.type == r.type &&
+               l.name == r.name;
+    }
+
+    bool operator==(const Expr::MemberAccess& l, const Expr::MemberAccess& r) {
+        return l.expr == r.expr && l.name == r.name;
     }
 
     bool operator==(const Block& l, const Block& r) {
@@ -361,53 +341,13 @@ namespace alvo::ast {
                l.signature == r.signature;
     }
 
-    bool operator==(const TopLevel& l, const TopLevel& r) {
-        return l.val == r.val;
-    }
-
     bool operator==(const Module& l, const Module& r) {
-        return l.top_levels == r.top_levels;
+        return l.decls == r.decls;
     }
 
     bool operator!=(
         [[maybe_unused]] const Invalid& l, [[maybe_unused]] const Invalid& r) {
         return true;
-    }
-
-    bool operator!=(const PathSegment& l, const PathSegment& r) {
-        return l.val != r.val;
-    }
-
-    bool operator!=([[maybe_unused]] const PathSegment::Root& l,
-        [[maybe_unused]] const PathSegment::Root& r) {
-        return true;
-    }
-
-    bool operator!=([[maybe_unused]] const PathSegment::Super& l,
-        [[maybe_unused]] const PathSegment::Super& r) {
-        return true;
-    }
-
-    bool operator!=(const PathSegment::Name& l, const PathSegment::Name& r) {
-        return l.value != r.value && l.generic_params != r.generic_params;
-    }
-
-    bool operator!=(const Import& l, const Import& r) {
-        return l.kind != r.kind && l.segments != r.segments;
-    }
-
-    bool operator!=([[maybe_unused]] const Import::Normal& l,
-        [[maybe_unused]] const Import::Normal& r) {
-        return true;
-    }
-
-    bool operator!=([[maybe_unused]] const Import::Glob& l,
-        [[maybe_unused]] const Import::Glob& r) {
-        return true;
-    }
-
-    bool operator!=(const Import::Renamed& l, const Import::Renamed& r) {
-        return l.renamed_to != r.renamed_to;
     }
 
     bool operator!=(const Type& l, const Type& r) {
@@ -462,8 +402,9 @@ namespace alvo::ast {
                l.return_type != r.return_type;
     }
 
-    bool operator!=(const Type::Path& l, const Type::Path& r) {
-        return l.is_invalid != r.is_invalid && l.segments != r.segments;
+    bool operator!=(const Type::Name& l, const Type::Name& r) {
+        return l.is_invalid != r.is_invalid && l.name != r.name &&
+               l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Type::Ref& l, const Type::Ref& r) {
@@ -583,6 +524,21 @@ namespace alvo::ast {
     bool operator!=(const Expr::Builtin& l, const Expr::Builtin& r) {
         return l.is_invalid != r.is_invalid && l.name != r.name &&
                l.generic_params != r.generic_params && l.args != r.args;
+    }
+
+    bool operator!=(const Expr::Name& l, const Expr::Name& r) {
+        return l.is_invalid != r.is_invalid && l.name != r.name &&
+               l.generic_params != r.generic_params;
+    }
+
+    bool operator!=(
+        const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r) {
+        return l.is_invalid != r.is_invalid && l.type != r.type &&
+               l.name != r.name;
+    }
+
+    bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r) {
+        return l.expr != r.expr && l.name != r.name;
     }
 
     bool operator!=(const Block& l, const Block& r) {
@@ -721,12 +677,8 @@ namespace alvo::ast {
                l.signature != r.signature;
     }
 
-    bool operator!=(const TopLevel& l, const TopLevel& r) {
-        return l.val != r.val;
-    }
-
     bool operator!=(const Module& l, const Module& r) {
-        return l.top_levels != r.top_levels;
+        return l.decls != r.decls;
     }
 
 }
@@ -736,58 +688,6 @@ namespace std {
     std::size_t hash<alvo::ast::Invalid>::operator()(
         [[maybe_unused]] const alvo::ast::Invalid& n) const noexcept {
         return 0;
-    }
-
-    std::size_t hash<alvo::ast::PathSegment>::operator()(
-        const alvo::ast::PathSegment& n) const noexcept {
-        return std::hash<decltype(n.val)>()(n.val);
-    }
-
-    std::size_t hash<alvo::ast::PathSegment::Root>::operator()(
-        [[maybe_unused]] const alvo::ast::PathSegment::Root& n) const noexcept {
-        return 0;
-    }
-
-    std::size_t hash<alvo::ast::PathSegment::Super>::operator()(
-        [[maybe_unused]] const alvo::ast::PathSegment::Super& n)
-        const noexcept {
-        return 0;
-    }
-
-    std::size_t hash<alvo::ast::PathSegment::Name>::operator()(
-        const alvo::ast::PathSegment::Name& n) const noexcept {
-        std::size_t value_hash = std::hash<decltype(n.value)>()(n.value);
-        std::size_t generic_params_hash =
-            std::hash<decltype(n.generic_params)>()(n.generic_params);
-        std::size_t res = value_hash;
-        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
-               (res >> 2);
-        return res;
-    }
-
-    std::size_t hash<alvo::ast::Import>::operator()(
-        const alvo::ast::Import& n) const noexcept {
-        std::size_t kind_hash = std::hash<decltype(n.kind)>()(n.kind);
-        std::size_t segments_hash =
-            std::hash<decltype(n.segments)>()(n.segments);
-        std::size_t res = kind_hash;
-        res ^= segments_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        return res;
-    }
-
-    std::size_t hash<alvo::ast::Import::Normal>::operator()(
-        [[maybe_unused]] const alvo::ast::Import::Normal& n) const noexcept {
-        return 0;
-    }
-
-    std::size_t hash<alvo::ast::Import::Glob>::operator()(
-        [[maybe_unused]] const alvo::ast::Import::Glob& n) const noexcept {
-        return 0;
-    }
-
-    std::size_t hash<alvo::ast::Import::Renamed>::operator()(
-        const alvo::ast::Import::Renamed& n) const noexcept {
-        return std::hash<decltype(n.renamed_to)>()(n.renamed_to);
     }
 
     std::size_t hash<alvo::ast::Type>::operator()(
@@ -869,14 +769,17 @@ namespace std {
         return res;
     }
 
-    std::size_t hash<alvo::ast::Type::Path>::operator()(
-        const alvo::ast::Type::Path& n) const noexcept {
+    std::size_t hash<alvo::ast::Type::Name>::operator()(
+        const alvo::ast::Type::Name& n) const noexcept {
         std::size_t is_invalid_hash =
             std::hash<decltype(n.is_invalid)>()(n.is_invalid);
-        std::size_t segments_hash =
-            std::hash<decltype(n.segments)>()(n.segments);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
         std::size_t res = is_invalid_hash;
-        res ^= segments_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
         return res;
     }
 
@@ -1091,6 +994,41 @@ namespace std {
         res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
                (res >> 2);
         res ^= args_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::Name>::operator()(
+        const alvo::ast::Expr::Name& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = is_invalid_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::TypeMemberAccess>::operator()(
+        const alvo::ast::Expr::TypeMemberAccess& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t res = is_invalid_hash;
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::MemberAccess>::operator()(
+        const alvo::ast::Expr::MemberAccess& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t res = expr_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         return res;
     }
 
@@ -1429,14 +1367,9 @@ namespace std {
         return res;
     }
 
-    std::size_t hash<alvo::ast::TopLevel>::operator()(
-        const alvo::ast::TopLevel& n) const noexcept {
-        return std::hash<decltype(n.val)>()(n.val);
-    }
-
     std::size_t hash<alvo::ast::Module>::operator()(
         const alvo::ast::Module& n) const noexcept {
-        return std::hash<decltype(n.top_levels)>()(n.top_levels);
+        return std::hash<decltype(n.decls)>()(n.decls);
     }
 
 }

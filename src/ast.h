@@ -18,61 +18,15 @@
 namespace alvo::ast {
 
     struct Invalid;
-    struct PathSegment;
-    struct Import;
     struct Type;
     struct Expr;
     struct Block;
     struct Stmt;
     struct Func;
     struct Decl;
-    struct TopLevel;
     struct Module;
 
     struct Invalid { };
-
-    struct PathSegment {
-        struct Root { };
-
-        struct Super { };
-
-        struct Name {
-            std::string_view value;
-            util::List<Type> generic_params;
-
-            Name(const std::string_view& value,
-                const util::List<Type>& generic_params) :
-                value(value),
-                generic_params(generic_params) { }
-        };
-
-        using Val = std::variant<Invalid, Root, Super, Name>;
-        Val val;
-
-        PathSegment(const Val& val) :
-            val(val) { }
-    };
-
-    struct Import {
-        struct Normal { };
-
-        struct Glob { };
-
-        struct Renamed {
-            std::string_view renamed_to;
-
-            Renamed(const std::string_view& renamed_to) :
-                renamed_to(renamed_to) { }
-        };
-
-        using Kind = std::variant<Invalid, Normal, Glob, Renamed>;
-        Kind kind;
-        util::List<PathSegment> segments;
-
-        Import(const Kind& kind, const util::List<PathSegment>& segments) :
-            kind(kind),
-            segments(segments) { }
-    };
 
     struct Type {
         struct Unit { };
@@ -119,14 +73,16 @@ namespace alvo::ast {
                 return_type(return_type) { }
         };
 
-        struct Path {
+        struct Name {
             bool is_invalid;
-            util::List<PathSegment> segments;
+            std::string_view name;
+            util::List<Type> generic_params;
 
-            Path(const bool& is_invalid,
-                const util::List<PathSegment>& segments) :
+            Name(const bool& is_invalid, const std::string_view& name,
+                const util::List<Type>& generic_params) :
                 is_invalid(is_invalid),
-                segments(segments) { }
+                name(name),
+                generic_params(generic_params) { }
         };
 
         struct Ref {
@@ -139,7 +95,7 @@ namespace alvo::ast {
         };
 
         using Val = std::variant<Invalid, Unit, String, Char, Int, Byte, Float,
-            Bool, Array, Tup, Func, Path, Ref>;
+            Bool, Array, Tup, Func, Name, Ref>;
         Val val;
         bool nullable;
 
@@ -319,8 +275,6 @@ namespace alvo::ast {
                 Multiply,
                 Divide,
                 Mod,
-                Access,
-                StaticAccess,
             };
             util::Ptr<Expr> lhs;
             util::Ptr<Expr> rhs;
@@ -393,8 +347,41 @@ namespace alvo::ast {
                 args(args) { }
         };
 
+        struct Name {
+            bool is_invalid;
+            std::string_view name;
+            util::List<Type> generic_params;
+
+            Name(const bool& is_invalid, const std::string_view& name,
+                const util::List<Type>& generic_params) :
+                is_invalid(is_invalid),
+                name(name),
+                generic_params(generic_params) { }
+        };
+
+        struct TypeMemberAccess {
+            bool is_invalid;
+            Type type;
+            Name name;
+
+            TypeMemberAccess(
+                const bool& is_invalid, const Type& type, const Name& name) :
+                is_invalid(is_invalid),
+                type(type),
+                name(name) { }
+        };
+
+        struct MemberAccess {
+            util::Ptr<Expr> expr;
+            Name name;
+
+            MemberAccess(const util::Ptr<Expr>& expr, const Name& name) :
+                expr(expr),
+                name(name) { }
+        };
+
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
-            Cast, TryCast, Ref, Builtin, PathSegment>;
+            Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess>;
         Val val;
 
         Expr(const Val& val) :
@@ -715,35 +702,15 @@ namespace alvo::ast {
             val(val) { }
     };
 
-    struct TopLevel {
-        using Val = std::variant<Invalid, Import, Decl>;
-        Val val;
-
-        TopLevel(const Val& val) :
-            val(val) { }
-    };
-
     struct Module {
-        util::List<TopLevel> top_levels;
+        util::List<Decl> decls;
 
-        Module(const util::List<TopLevel>& top_levels) :
-            top_levels(top_levels) { }
+        Module(const util::List<Decl>& decls) :
+            decls(decls) { }
     };
 
     bool operator==(
         [[maybe_unused]] const Invalid& l, [[maybe_unused]] const Invalid& r);
-    bool operator==(const PathSegment& l, const PathSegment& r);
-    bool operator==([[maybe_unused]] const PathSegment::Root& l,
-        [[maybe_unused]] const PathSegment::Root& r);
-    bool operator==([[maybe_unused]] const PathSegment::Super& l,
-        [[maybe_unused]] const PathSegment::Super& r);
-    bool operator==(const PathSegment::Name& l, const PathSegment::Name& r);
-    bool operator==(const Import& l, const Import& r);
-    bool operator==([[maybe_unused]] const Import::Normal& l,
-        [[maybe_unused]] const Import::Normal& r);
-    bool operator==([[maybe_unused]] const Import::Glob& l,
-        [[maybe_unused]] const Import::Glob& r);
-    bool operator==(const Import::Renamed& l, const Import::Renamed& r);
     bool operator==(const Type& l, const Type& r);
     bool operator==([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r);
@@ -762,7 +729,7 @@ namespace alvo::ast {
     bool operator==(const Type::Array& l, const Type::Array& r);
     bool operator==(const Type::Tup& l, const Type::Tup& r);
     bool operator==(const Type::Func& l, const Type::Func& r);
-    bool operator==(const Type::Path& l, const Type::Path& r);
+    bool operator==(const Type::Name& l, const Type::Name& r);
     bool operator==(const Type::Ref& l, const Type::Ref& r);
     bool operator==(const Expr& l, const Expr& r);
     bool operator==(const Expr::Literal& l, const Expr::Literal& r);
@@ -802,6 +769,10 @@ namespace alvo::ast {
     bool operator==(const Expr::TryCast& l, const Expr::TryCast& r);
     bool operator==(const Expr::Ref& l, const Expr::Ref& r);
     bool operator==(const Expr::Builtin& l, const Expr::Builtin& r);
+    bool operator==(const Expr::Name& l, const Expr::Name& r);
+    bool operator==(
+        const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r);
+    bool operator==(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
     bool operator==(const Block& l, const Block& r);
     bool operator==(const Stmt& l, const Stmt& r);
     bool operator==(const Stmt::Let& l, const Stmt::Let& r);
@@ -834,22 +805,9 @@ namespace alvo::ast {
     bool operator==(const Decl::Interface& l, const Decl::Interface& r);
     bool operator==(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r);
-    bool operator==(const TopLevel& l, const TopLevel& r);
     bool operator==(const Module& l, const Module& r);
     bool operator!=(
         [[maybe_unused]] const Invalid& l, [[maybe_unused]] const Invalid& r);
-    bool operator!=(const PathSegment& l, const PathSegment& r);
-    bool operator!=([[maybe_unused]] const PathSegment::Root& l,
-        [[maybe_unused]] const PathSegment::Root& r);
-    bool operator!=([[maybe_unused]] const PathSegment::Super& l,
-        [[maybe_unused]] const PathSegment::Super& r);
-    bool operator!=(const PathSegment::Name& l, const PathSegment::Name& r);
-    bool operator!=(const Import& l, const Import& r);
-    bool operator!=([[maybe_unused]] const Import::Normal& l,
-        [[maybe_unused]] const Import::Normal& r);
-    bool operator!=([[maybe_unused]] const Import::Glob& l,
-        [[maybe_unused]] const Import::Glob& r);
-    bool operator!=(const Import::Renamed& l, const Import::Renamed& r);
     bool operator!=(const Type& l, const Type& r);
     bool operator!=([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r);
@@ -868,7 +826,7 @@ namespace alvo::ast {
     bool operator!=(const Type::Array& l, const Type::Array& r);
     bool operator!=(const Type::Tup& l, const Type::Tup& r);
     bool operator!=(const Type::Func& l, const Type::Func& r);
-    bool operator!=(const Type::Path& l, const Type::Path& r);
+    bool operator!=(const Type::Name& l, const Type::Name& r);
     bool operator!=(const Type::Ref& l, const Type::Ref& r);
     bool operator!=(const Expr& l, const Expr& r);
     bool operator!=(const Expr::Literal& l, const Expr::Literal& r);
@@ -908,6 +866,10 @@ namespace alvo::ast {
     bool operator!=(const Expr::TryCast& l, const Expr::TryCast& r);
     bool operator!=(const Expr::Ref& l, const Expr::Ref& r);
     bool operator!=(const Expr::Builtin& l, const Expr::Builtin& r);
+    bool operator!=(const Expr::Name& l, const Expr::Name& r);
+    bool operator!=(
+        const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r);
+    bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
     bool operator!=(const Block& l, const Block& r);
     bool operator!=(const Stmt& l, const Stmt& r);
     bool operator!=(const Stmt::Let& l, const Stmt::Let& r);
@@ -940,7 +902,6 @@ namespace alvo::ast {
     bool operator!=(const Decl::Interface& l, const Decl::Interface& r);
     bool operator!=(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r);
-    bool operator!=(const TopLevel& l, const TopLevel& r);
     bool operator!=(const Module& l, const Module& r);
 
     template<print::PrinterSink Sink>
@@ -957,14 +918,6 @@ namespace alvo::ast {
             Base(sink, indent_width) { }
 
         void print_node(const Invalid& n);
-        void print_node(const PathSegment& n);
-        void print_node(const PathSegment::Root& n);
-        void print_node(const PathSegment::Super& n);
-        void print_node(const PathSegment::Name& n);
-        void print_node(const Import& n);
-        void print_node(const Import::Normal& n);
-        void print_node(const Import::Glob& n);
-        void print_node(const Import::Renamed& n);
         void print_node(const Type& n);
         void print_node(const Type::Unit& n);
         void print_node(const Type::String& n);
@@ -976,7 +929,7 @@ namespace alvo::ast {
         void print_node(const Type::Array& n);
         void print_node(const Type::Tup& n);
         void print_node(const Type::Func& n);
-        void print_node(const Type::Path& n);
+        void print_node(const Type::Name& n);
         void print_node(const Type::Ref& n);
         void print_node(const Expr& n);
         void print_node(const Expr::Literal& n);
@@ -1005,6 +958,9 @@ namespace alvo::ast {
         void print_node(const Expr::TryCast& n);
         void print_node(const Expr::Ref& n);
         void print_node(const Expr::Builtin& n);
+        void print_node(const Expr::Name& n);
+        void print_node(const Expr::TypeMemberAccess& n);
+        void print_node(const Expr::MemberAccess& n);
         void print_node(const Block& n);
         void print_node(const Stmt& n);
         void print_node(const Stmt::Let& n);
@@ -1033,65 +989,12 @@ namespace alvo::ast {
         void print_node(const Decl::Const& n);
         void print_node(const Decl::Interface& n);
         void print_node(const Decl::Interface::Member& n);
-        void print_node(const TopLevel& n);
         void print_node(const Module& n);
     };
 
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node([[maybe_unused]] const Invalid& n) {
         node("Invalid");
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const PathSegment& n) {
-        node_begin("PathSegment");
-        field("val", n.val);
-        node_end();
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(
-        [[maybe_unused]] const PathSegment::Root& n) {
-        node("Root");
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(
-        [[maybe_unused]] const PathSegment::Super& n) {
-        node("Super");
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const PathSegment::Name& n) {
-        node_begin("Name");
-        field("value", n.value);
-        field("generic_params", n.generic_params);
-        node_end();
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Import& n) {
-        node_begin("Import");
-        field("kind", n.kind);
-        field("segments", n.segments);
-        node_end();
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node([[maybe_unused]] const Import::Normal& n) {
-        node("Normal");
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node([[maybe_unused]] const Import::Glob& n) {
-        node("Glob");
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Import::Renamed& n) {
-        node_begin("Renamed");
-        field("renamed_to", n.renamed_to);
-        node_end();
     }
 
     template<print::PrinterSink Sink>
@@ -1163,10 +1066,11 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Type::Path& n) {
-        node_begin("Path");
+    void Printer<Sink>::print_node(const Type::Name& n) {
+        node_begin("Name");
         field("is_invalid", n.is_invalid);
-        field("segments", n.segments);
+        field("name", n.name);
+        field("generic_params", n.generic_params);
         node_end();
     }
 
@@ -1433,12 +1337,6 @@ namespace alvo::ast {
         case Expr::Binop::Op::Mod:
             node("Mod");
             break;
-        case Expr::Binop::Op::Access:
-            node("Access");
-            break;
-        case Expr::Binop::Op::StaticAccess:
-            node("StaticAccess");
-            break;
         }
     }
 
@@ -1489,6 +1387,32 @@ namespace alvo::ast {
         field("name", n.name);
         field("generic_params", n.generic_params);
         field("args", n.args);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::Name& n) {
+        node_begin("Name");
+        field("is_invalid", n.is_invalid);
+        field("name", n.name);
+        field("generic_params", n.generic_params);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::TypeMemberAccess& n) {
+        node_begin("TypeMemberAccess");
+        field("is_invalid", n.is_invalid);
+        field("type", n.type);
+        field("name", n.name);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::MemberAccess& n) {
+        node_begin("MemberAccess");
+        field("expr", n.expr);
+        field("name", n.name);
         node_end();
     }
 
@@ -1736,16 +1660,9 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const TopLevel& n) {
-        node_begin("TopLevel");
-        field("val", n.val);
-        node_end();
-    }
-
-    template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Module& n) {
         node_begin("Module");
-        field("top_levels", n.top_levels);
+        field("decls", n.decls);
         node_end();
     }
 
@@ -1756,51 +1673,6 @@ namespace std {
     template<>
     struct hash<alvo::ast::Invalid> {
         std::size_t operator()(const alvo::ast::Invalid& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::PathSegment> {
-        std::size_t operator()(const alvo::ast::PathSegment& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::PathSegment::Root> {
-        std::size_t operator()(
-            const alvo::ast::PathSegment::Root& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::PathSegment::Super> {
-        std::size_t operator()(
-            const alvo::ast::PathSegment::Super& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::PathSegment::Name> {
-        std::size_t operator()(
-            const alvo::ast::PathSegment::Name& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::Import> {
-        std::size_t operator()(const alvo::ast::Import& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::Import::Normal> {
-        std::size_t operator()(
-            const alvo::ast::Import::Normal& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::Import::Glob> {
-        std::size_t operator()(const alvo::ast::Import::Glob& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::Import::Renamed> {
-        std::size_t operator()(
-            const alvo::ast::Import::Renamed& n) const noexcept;
     };
 
     template<>
@@ -1859,8 +1731,8 @@ namespace std {
     };
 
     template<>
-    struct hash<alvo::ast::Type::Path> {
-        std::size_t operator()(const alvo::ast::Type::Path& n) const noexcept;
+    struct hash<alvo::ast::Type::Name> {
+        std::size_t operator()(const alvo::ast::Type::Name& n) const noexcept;
     };
 
     template<>
@@ -2026,6 +1898,23 @@ namespace std {
     };
 
     template<>
+    struct hash<alvo::ast::Expr::Name> {
+        std::size_t operator()(const alvo::ast::Expr::Name& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::TypeMemberAccess> {
+        std::size_t operator()(
+            const alvo::ast::Expr::TypeMemberAccess& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::MemberAccess> {
+        std::size_t operator()(
+            const alvo::ast::Expr::MemberAccess& n) const noexcept;
+    };
+
+    template<>
     struct hash<alvo::ast::Block> {
         std::size_t operator()(const alvo::ast::Block& n) const noexcept;
     };
@@ -2175,11 +2064,6 @@ namespace std {
     struct hash<alvo::ast::Decl::Interface::Member> {
         std::size_t operator()(
             const alvo::ast::Decl::Interface::Member& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::TopLevel> {
-        std::size_t operator()(const alvo::ast::TopLevel& n) const noexcept;
     };
 
     template<>

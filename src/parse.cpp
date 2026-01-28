@@ -119,79 +119,6 @@ namespace alvo::parse {
         m_diag_emitter.set_sink(sink);
     }
 
-    PathSegment Parser::parse_path_segment() {
-        SectionGuard section_guard(this, __func__);
-
-        PathSegment::Val val;
-        std::optional<tok::Tok> name;
-        if (accept(KwRoot)) {
-            val = PathSegment::Root {};
-        } else if (accept(KwSuper)) {
-            val = PathSegment::Super {};
-        } else if ((name = accept_and_get(Ident)).has_value()) {
-            List<Type> generic_params;
-            std::string_view value = (*name).value;
-            if (accept(LAngle)) {
-                generic_params.push_back(*m_arena, parse_type());
-                while (accept(Comma)) {
-                    generic_params.push_back(*m_arena, parse_type());
-                }
-                if (!expect(RAngle)) {
-                    synchronize({ ColonColon, Dot, Semicolon, Comma, RAngle });
-                    return PathSegment(Invalid {});
-                }
-            }
-            val = PathSegment::Name(value, generic_params);
-        } else {
-            synchronize({ ColonColon, Dot, Semicolon });
-            return PathSegment(Invalid {});
-        }
-        return PathSegment(val);
-    }
-
-    Import Parser::parse_import() {
-        SectionGuard section_guard(this, __func__);
-
-        Import::Kind kind = Import::Normal {};
-        List<PathSegment> segments;
-        if (!expect(KwImport)) {
-            synchronize({ Semicolon, Eof });
-            return Import(Invalid {}, segments);
-        }
-        while (true) {
-            if (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
-                segments.push_back(*m_arena, parse_path_segment());
-                if (!accept(ColonColon)) {
-                    break;
-                }
-            } else if (accept(Star)) {
-                kind = Import::Glob {};
-                break;
-            } else {
-                synchronize({ Semicolon, Eof });
-                return Import(Invalid {}, segments);
-            }
-        }
-        if (accept(KwAs)) {
-            if (std::holds_alternative<Import::Glob>(kind)) {
-                // Err
-                synchronize({ Semicolon, Eof });
-                return Import(Invalid {}, segments);
-            }
-            std::optional<tok::Tok> name = expect_and_get(Ident);
-            if (!name) {
-                // Err
-                synchronize({ Semicolon, Eof });
-                return Import(Invalid {}, segments);
-            }
-            kind = Import::Renamed { (*name).value };
-        }
-        if (!expect(Semicolon)) {
-            synchronize({ Semicolon, Eof });
-        }
-        return Import(kind, segments);
-    }
-
     Type Parser::parse_type() {
         SectionGuard section_guard(this, __func__);
 
@@ -216,8 +143,8 @@ namespace alvo::parse {
             val = parse_type_tup();
         } else if (accept(KwFunc)) {
             val = parse_type_func();
-        } else if (curr_is(Ident) || curr_is(KwRoot) || curr_is(KwSuper)) {
-            val = parse_type_path();
+        } else if (curr_is(Ident)) {
+            val = parse_type_name();
         } else if (curr_is(KwRef)) {
             val = parse_type_ref();
         } else {
@@ -305,17 +232,29 @@ namespace alvo::parse {
             false, params, m_node_ctx.make_node<Type>(return_type));
     }
 
-    Type::Path Parser::parse_type_path() {
+    Type::Name Parser::parse_type_name() { 
         SectionGuard section_guard(this, __func__);
 
-        List<PathSegment> segments;
-        while (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
-            segments.push_back(*m_arena, parse_path_segment());
-            if (!accept(ColonColon)) {
-                break;
+        List<Type> generic_params;
+
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
+            synchronize(TYPE_CTX_SYNC);
+            return Type::Name(true, "", {});
+        }
+        std::string_view name = tok_name->value;
+        if (accept(LAngle)) {
+            generic_params.push_back(*m_arena, parse_type());
+            while (accept(Comma)) {
+                generic_params.push_back(*m_arena, parse_type());
+            }
+            if (!expect(RAngle)) {
+                synchronize(TYPE_CTX_SYNC);
+                return Type::Name(true, "", {});
             }
         }
-        return Type::Path(false, segments);
+        
+        return Type::Name(false, name, generic_params);
     }
 
     Type::Ref Parser::parse_type_ref() {
@@ -499,6 +438,53 @@ namespace alvo::parse {
         }
         Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
         return Expr::Literal::Struct::Field(false, name, expr);
+    }
+
+    Expr::Name Parser::parse_expr_name() { 
+        SectionGuard section_guard(this, __func__);
+
+        List<Type> generic_params;
+
+        std::optional<tok::Tok> tok_name = expect_and_get(Ident);
+        if (!tok_name) {
+            synchronize(TYPE_CTX_SYNC);
+            return Expr::Name(true, "", {});
+        }
+        std::string_view name = tok_name->value;
+        if (accept(LAngle)) {
+            generic_params.push_back(*m_arena, parse_type());
+            while (accept(Comma)) {
+                generic_params.push_back(*m_arena, parse_type());
+            }
+            if (!expect(RAngle)) {
+                synchronize(TYPE_CTX_SYNC);
+                return Expr::Name(true, "", {});
+            }
+        }
+        
+        return Expr::Name(false, name, generic_params);
+    }
+
+    Expr::TypeMemberAccess Parser::parse_expr_type_member_access() {
+        SectionGuard section_guard(this, __func__);
+
+        Expr::TypeMemberAccess invalid(true, Type(Invalid {}, false), Expr::Name(true, "", {}));
+
+        if (!expect(ColonColon)) {
+            synchronize(EXPR_CTX_SYNC);
+            return invalid;
+        }
+
+        Type type = parse_type();
+
+        if (!expect(Dot)) {
+            synchronize(EXPR_CTX_SYNC);
+            return invalid;
+        }
+
+        Expr::Name name = parse_expr_name();
+
+        return Expr::TypeMemberAccess(false, type, name);
     }
 
     Expr::Ref Parser::parse_expr_ref() {
@@ -1201,36 +1187,20 @@ namespace alvo::parse {
         return Decl::Interface::Member(false, name, generic_params, signature);
     }
 
-    TopLevel Parser::parse_top_level() {
-        SectionGuard section_guard(this, __func__);
-
-        TopLevel::Val val;
-        if (curr_is(KwImport)) {
-            val = parse_import();
-        } else if (curr_is(Ident) || curr_is(KwDecls) || curr_is(KwExport)) {
-            val = parse_decl();
-        } else {
-            // TODO: Err
-            synchronize(TOP_LEVEL_CTX_SYNC);
-            return TopLevel(Invalid {});
-        }
-        return TopLevel(val);
-    }
-
     Module Parser::parse_module() {
         SectionGuard section_guard(this, __func__);
 
-        List<TopLevel> top_levels;
+        List<Decl> decls;
         while (!curr_is(Eof)) {
-            if (curr_is(KwImport) || curr_is(Ident) || curr_is(KwDecls) ||
+            if (curr_is(Ident) ||
                 curr_is(KwExport)) {
-                top_levels.push_back(*m_arena, parse_top_level());
+                decls.push_back(*m_arena, parse_decl());
             } else {
-                synchronize({ KwImport, Ident, KwDecls, KwExport });
+                synchronize({ Ident, KwExport });
                 // TODO: Err
             }
         }
-        return Module(top_levels);
+        return Module(decls);
     }
 
     std::optional<int> Parser::prefix_bp(tok::TokKind kind) {
@@ -1312,7 +1282,6 @@ namespace alvo::parse {
 
         // Member Access
         case Dot:
-        case ColonColon:
             return std::make_pair(27, 28);
 
         default:
@@ -1330,8 +1299,8 @@ namespace alvo::parse {
             if (!expect(RParen)) {
                 // Err
             }
-        } else if (curr_is(KwRoot) || curr_is(KwSuper) || curr_is(Ident)) {
-            lhs.val = parse_path_segment();
+        } else if (curr_is(Ident)) {
+            lhs.val = parse_expr_name();
         } else if ((bp_prefix = prefix_bp(lexer_peek().kind)).has_value()) {
             Expr::Unop::Op op = parse_unop_op();
             Ptr<Expr> expr =
@@ -1348,6 +1317,8 @@ namespace alvo::parse {
             lhs.val = parse_expr_ref();
         } else if (curr_is(KwBuiltin)) {
             lhs.val = parse_expr_builtin();
+        } else if (curr_is(ColonColon)) {
+            lhs.val = parse_expr_type_member_access();
         } else {
             synchronize(EXPR_CTX_SYNC);
             return Expr(Invalid {});
@@ -1409,11 +1380,17 @@ namespace alvo::parse {
                 if ((*bp_infix).first < min_bp) {
                     break;
                 }
-                Expr::Binop::Op op = parse_binop_op();
-                Ptr<Expr> res_rhs = m_node_ctx.make_node<Expr>(
-                    parse_expr_bp((*bp_infix).second));
+                if (accept(Dot)) {
+                    res.val = Expr::MemberAccess {
+                        res_lhs, parse_expr_name()
+                    };
+                } else {
+                    Expr::Binop::Op op = parse_binop_op();
+                    Ptr<Expr> res_rhs = m_node_ctx.make_node<Expr>(
+                        parse_expr_bp((*bp_infix).second));
 
-                res.val = Expr::Binop { res_lhs, res_rhs, op };
+                    res.val = Expr::Binop { res_lhs, res_rhs, op };
+                }
                 lhs = res;
                 continue;
             }
@@ -1505,10 +1482,6 @@ namespace alvo::parse {
             return Binop::Divide;
         case Percent:
             return Binop::Mod;
-        case Dot:
-            return Binop::Access;
-        case ColonColon:
-            return Binop::StaticAccess;
         default:
             return Binop::Invalid;
         }

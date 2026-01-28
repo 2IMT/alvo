@@ -42,10 +42,6 @@ namespace alvo::parse {
 
         void set_diag_sink(diag::DiagSink& sink);
 
-        ast::PathSegment parse_path_segment();
-
-        ast::Import parse_import();
-
         ast::Type parse_type();
 
         ast::Type::Array parse_type_array();
@@ -54,7 +50,7 @@ namespace alvo::parse {
 
         ast::Type::Func parse_type_func();
 
-        ast::Type::Path parse_type_path();
+        ast::Type::Name parse_type_name();
 
         ast::Type::Ref parse_type_ref();
 
@@ -69,6 +65,10 @@ namespace alvo::parse {
         ast::Expr::Literal::Struct parse_expr_literal_struct();
 
         ast::Expr::Literal::Struct::Field parse_expr_literal_struct_field();
+
+        ast::Expr::Name parse_expr_name();
+
+        ast::Expr::TypeMemberAccess parse_expr_type_member_access();
 
         ast::Expr::Ref parse_expr_ref();
 
@@ -123,8 +123,6 @@ namespace alvo::parse {
         ast::Decl::Interface parse_decl_interface();
 
         ast::Decl::Interface::Member parse_decl_interface_member();
-
-        ast::TopLevel parse_top_level();
 
         ast::Module parse_module();
 
