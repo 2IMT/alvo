@@ -18,6 +18,7 @@
 namespace alvo::ast {
 
     struct Invalid;
+    struct Id;
     struct Type;
     struct Expr;
     struct Block;
@@ -27,6 +28,13 @@ namespace alvo::ast {
     struct Module;
 
     struct Invalid { };
+
+    struct Id {
+        uint64_t id;
+
+        Id(const uint64_t& id) :
+            id(id) { }
+    };
 
     struct Type {
         struct Unit { };
@@ -94,8 +102,26 @@ namespace alvo::ast {
                 type(type) { }
         };
 
+        struct LocalGeneric {
+            Id id;
+
+            LocalGeneric(const Id& id) :
+                id(id) { }
+        };
+
+        struct ResolvedUserDefinedType {
+            Id id;
+            util::List<Type> generic_params;
+
+            ResolvedUserDefinedType(
+                const Id& id, const util::List<Type>& generic_params) :
+                id(id),
+                generic_params(generic_params) { }
+        };
+
         using Val = std::variant<Invalid, Unit, String, Char, Int, Byte, Float,
-            Bool, Array, Tup, Func, Name, Ref>;
+            Bool, Array, Tup, Func, Name, Ref, LocalGeneric,
+            ResolvedUserDefinedType>;
         Val val;
         bool nullable;
 
@@ -380,8 +406,64 @@ namespace alvo::ast {
                 name(name) { }
         };
 
+        struct LocalVar {
+            Id id;
+
+            LocalVar(const Id& id) :
+                id(id) { }
+        };
+
+        struct ResolvedDecl {
+            Id decl_id;
+            util::List<Type> generic_params;
+
+            ResolvedDecl(
+                const Id& decl_id, const util::List<Type>& generic_params) :
+                decl_id(decl_id),
+                generic_params(generic_params) { }
+        };
+
+        struct ResolvedMemberAccess {
+            util::Ptr<Expr> expr;
+            Id member_id;
+            util::List<Type> generic_params;
+
+            ResolvedMemberAccess(const util::Ptr<Expr>& expr,
+                const Id& member_id, const util::List<Type>& generic_params) :
+                expr(expr),
+                member_id(member_id),
+                generic_params(generic_params) { }
+        };
+
+        struct ResolvedTypeMemberAccess {
+            Type type;
+            Id member_id;
+            util::List<Type> generic_params;
+
+            ResolvedTypeMemberAccess(const Type& type, const Id& member_id,
+                const util::List<Type>& generic_params) :
+                type(type),
+                member_id(member_id),
+                generic_params(generic_params) { }
+        };
+
+        struct ResolvedGenericMemberAccess {
+            Id generic_id;
+            std::string_view name;
+            util::List<Type> generic_params;
+
+            ResolvedGenericMemberAccess(const Id& generic_id,
+                const std::string_view& name,
+                const util::List<Type>& generic_params) :
+                generic_id(generic_id),
+                name(name),
+                generic_params(generic_params) { }
+        };
+
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
-            Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess>;
+            Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess,
+            LocalVar, ResolvedDecl, ResolvedMemberAccess,
+            ResolvedTypeMemberAccess, ResolvedGenericMemberAccess>;
         Val val;
 
         Expr(const Val& val) :
@@ -711,6 +793,7 @@ namespace alvo::ast {
 
     bool operator==(
         [[maybe_unused]] const Invalid& l, [[maybe_unused]] const Invalid& r);
+    bool operator==(const Id& l, const Id& r);
     bool operator==(const Type& l, const Type& r);
     bool operator==([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r);
@@ -731,6 +814,9 @@ namespace alvo::ast {
     bool operator==(const Type::Func& l, const Type::Func& r);
     bool operator==(const Type::Name& l, const Type::Name& r);
     bool operator==(const Type::Ref& l, const Type::Ref& r);
+    bool operator==(const Type::LocalGeneric& l, const Type::LocalGeneric& r);
+    bool operator==(const Type::ResolvedUserDefinedType& l,
+        const Type::ResolvedUserDefinedType& r);
     bool operator==(const Expr& l, const Expr& r);
     bool operator==(const Expr::Literal& l, const Expr::Literal& r);
     bool operator==([[maybe_unused]] const Expr::Literal::Unit& l,
@@ -773,6 +859,14 @@ namespace alvo::ast {
     bool operator==(
         const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r);
     bool operator==(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
+    bool operator==(const Expr::LocalVar& l, const Expr::LocalVar& r);
+    bool operator==(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
+    bool operator==(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r);
+    bool operator==(const Expr::ResolvedTypeMemberAccess& l,
+        const Expr::ResolvedTypeMemberAccess& r);
+    bool operator==(const Expr::ResolvedGenericMemberAccess& l,
+        const Expr::ResolvedGenericMemberAccess& r);
     bool operator==(const Block& l, const Block& r);
     bool operator==(const Stmt& l, const Stmt& r);
     bool operator==(const Stmt::Let& l, const Stmt::Let& r);
@@ -808,6 +902,7 @@ namespace alvo::ast {
     bool operator==(const Module& l, const Module& r);
     bool operator!=(
         [[maybe_unused]] const Invalid& l, [[maybe_unused]] const Invalid& r);
+    bool operator!=(const Id& l, const Id& r);
     bool operator!=(const Type& l, const Type& r);
     bool operator!=([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r);
@@ -828,6 +923,9 @@ namespace alvo::ast {
     bool operator!=(const Type::Func& l, const Type::Func& r);
     bool operator!=(const Type::Name& l, const Type::Name& r);
     bool operator!=(const Type::Ref& l, const Type::Ref& r);
+    bool operator!=(const Type::LocalGeneric& l, const Type::LocalGeneric& r);
+    bool operator!=(const Type::ResolvedUserDefinedType& l,
+        const Type::ResolvedUserDefinedType& r);
     bool operator!=(const Expr& l, const Expr& r);
     bool operator!=(const Expr::Literal& l, const Expr::Literal& r);
     bool operator!=([[maybe_unused]] const Expr::Literal::Unit& l,
@@ -870,6 +968,14 @@ namespace alvo::ast {
     bool operator!=(
         const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r);
     bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
+    bool operator!=(const Expr::LocalVar& l, const Expr::LocalVar& r);
+    bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
+    bool operator!=(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r);
+    bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
+        const Expr::ResolvedTypeMemberAccess& r);
+    bool operator!=(const Expr::ResolvedGenericMemberAccess& l,
+        const Expr::ResolvedGenericMemberAccess& r);
     bool operator!=(const Block& l, const Block& r);
     bool operator!=(const Stmt& l, const Stmt& r);
     bool operator!=(const Stmt::Let& l, const Stmt::Let& r);
@@ -918,6 +1024,7 @@ namespace alvo::ast {
             Base(sink, indent_width) { }
 
         void print_node(const Invalid& n);
+        void print_node(const Id& n);
         void print_node(const Type& n);
         void print_node(const Type::Unit& n);
         void print_node(const Type::String& n);
@@ -931,6 +1038,8 @@ namespace alvo::ast {
         void print_node(const Type::Func& n);
         void print_node(const Type::Name& n);
         void print_node(const Type::Ref& n);
+        void print_node(const Type::LocalGeneric& n);
+        void print_node(const Type::ResolvedUserDefinedType& n);
         void print_node(const Expr& n);
         void print_node(const Expr::Literal& n);
         void print_node(const Expr::Literal::Unit& n);
@@ -961,6 +1070,11 @@ namespace alvo::ast {
         void print_node(const Expr::Name& n);
         void print_node(const Expr::TypeMemberAccess& n);
         void print_node(const Expr::MemberAccess& n);
+        void print_node(const Expr::LocalVar& n);
+        void print_node(const Expr::ResolvedDecl& n);
+        void print_node(const Expr::ResolvedMemberAccess& n);
+        void print_node(const Expr::ResolvedTypeMemberAccess& n);
+        void print_node(const Expr::ResolvedGenericMemberAccess& n);
         void print_node(const Block& n);
         void print_node(const Stmt& n);
         void print_node(const Stmt::Let& n);
@@ -995,6 +1109,13 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node([[maybe_unused]] const Invalid& n) {
         node("Invalid");
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Id& n) {
+        node_begin("Id");
+        field("id", n.id);
+        node_end();
     }
 
     template<print::PrinterSink Sink>
@@ -1079,6 +1200,21 @@ namespace alvo::ast {
         node_begin("Ref");
         field("is_invalid", n.is_invalid);
         field("type", n.type);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Type::LocalGeneric& n) {
+        node_begin("LocalGeneric");
+        field("id", n.id);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Type::ResolvedUserDefinedType& n) {
+        node_begin("ResolvedUserDefinedType");
+        field("id", n.id);
+        field("generic_params", n.generic_params);
         node_end();
     }
 
@@ -1417,6 +1553,48 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::LocalVar& n) {
+        node_begin("LocalVar");
+        field("id", n.id);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::ResolvedDecl& n) {
+        node_begin("ResolvedDecl");
+        field("decl_id", n.decl_id);
+        field("generic_params", n.generic_params);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::ResolvedMemberAccess& n) {
+        node_begin("ResolvedMemberAccess");
+        field("expr", n.expr);
+        field("member_id", n.member_id);
+        field("generic_params", n.generic_params);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::ResolvedTypeMemberAccess& n) {
+        node_begin("ResolvedTypeMemberAccess");
+        field("type", n.type);
+        field("member_id", n.member_id);
+        field("generic_params", n.generic_params);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::ResolvedGenericMemberAccess& n) {
+        node_begin("ResolvedGenericMemberAccess");
+        field("generic_id", n.generic_id);
+        field("name", n.name);
+        field("generic_params", n.generic_params);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Block& n) {
         node_begin("Block");
         field("is_invalid", n.is_invalid);
@@ -1676,6 +1854,11 @@ namespace std {
     };
 
     template<>
+    struct hash<alvo::ast::Id> {
+        std::size_t operator()(const alvo::ast::Id& n) const noexcept;
+    };
+
+    template<>
     struct hash<alvo::ast::Type> {
         std::size_t operator()(const alvo::ast::Type& n) const noexcept;
     };
@@ -1738,6 +1921,18 @@ namespace std {
     template<>
     struct hash<alvo::ast::Type::Ref> {
         std::size_t operator()(const alvo::ast::Type::Ref& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::LocalGeneric> {
+        std::size_t operator()(
+            const alvo::ast::Type::LocalGeneric& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Type::ResolvedUserDefinedType> {
+        std::size_t operator()(
+            const alvo::ast::Type::ResolvedUserDefinedType& n) const noexcept;
     };
 
     template<>
@@ -1912,6 +2107,37 @@ namespace std {
     struct hash<alvo::ast::Expr::MemberAccess> {
         std::size_t operator()(
             const alvo::ast::Expr::MemberAccess& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::LocalVar> {
+        std::size_t operator()(
+            const alvo::ast::Expr::LocalVar& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::ResolvedDecl> {
+        std::size_t operator()(
+            const alvo::ast::Expr::ResolvedDecl& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::ResolvedMemberAccess> {
+        std::size_t operator()(
+            const alvo::ast::Expr::ResolvedMemberAccess& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::ResolvedTypeMemberAccess> {
+        std::size_t operator()(
+            const alvo::ast::Expr::ResolvedTypeMemberAccess& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Expr::ResolvedGenericMemberAccess> {
+        std::size_t operator()(
+            const alvo::ast::Expr::ResolvedGenericMemberAccess& n)
+            const noexcept;
     };
 
     template<>

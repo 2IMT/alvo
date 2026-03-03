@@ -14,6 +14,8 @@ namespace alvo::ast {
         return true;
     }
 
+    bool operator==(const Id& l, const Id& r) { return l.id == r.id; }
+
     bool operator==(const Type& l, const Type& r) {
         return l.val == r.val && l.nullable == r.nullable;
     }
@@ -73,6 +75,15 @@ namespace alvo::ast {
 
     bool operator==(const Type::Ref& l, const Type::Ref& r) {
         return l.is_invalid == r.is_invalid && l.type == r.type;
+    }
+
+    bool operator==(const Type::LocalGeneric& l, const Type::LocalGeneric& r) {
+        return l.id == r.id;
+    }
+
+    bool operator==(const Type::ResolvedUserDefinedType& l,
+        const Type::ResolvedUserDefinedType& r) {
+        return l.id == r.id && l.generic_params == r.generic_params;
     }
 
     bool operator==(const Expr& l, const Expr& r) { return l.val == r.val; }
@@ -203,6 +214,32 @@ namespace alvo::ast {
 
     bool operator==(const Expr::MemberAccess& l, const Expr::MemberAccess& r) {
         return l.expr == r.expr && l.name == r.name;
+    }
+
+    bool operator==(const Expr::LocalVar& l, const Expr::LocalVar& r) {
+        return l.id == r.id;
+    }
+
+    bool operator==(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r) {
+        return l.decl_id == r.decl_id && l.generic_params == r.generic_params;
+    }
+
+    bool operator==(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r) {
+        return l.expr == r.expr && l.member_id == r.member_id &&
+               l.generic_params == r.generic_params;
+    }
+
+    bool operator==(const Expr::ResolvedTypeMemberAccess& l,
+        const Expr::ResolvedTypeMemberAccess& r) {
+        return l.type == r.type && l.member_id == r.member_id &&
+               l.generic_params == r.generic_params;
+    }
+
+    bool operator==(const Expr::ResolvedGenericMemberAccess& l,
+        const Expr::ResolvedGenericMemberAccess& r) {
+        return l.generic_id == r.generic_id && l.name == r.name &&
+               l.generic_params == r.generic_params;
     }
 
     bool operator==(const Block& l, const Block& r) {
@@ -350,6 +387,8 @@ namespace alvo::ast {
         return true;
     }
 
+    bool operator!=(const Id& l, const Id& r) { return l.id != r.id; }
+
     bool operator!=(const Type& l, const Type& r) {
         return l.val != r.val && l.nullable != r.nullable;
     }
@@ -409,6 +448,15 @@ namespace alvo::ast {
 
     bool operator!=(const Type::Ref& l, const Type::Ref& r) {
         return l.is_invalid != r.is_invalid && l.type != r.type;
+    }
+
+    bool operator!=(const Type::LocalGeneric& l, const Type::LocalGeneric& r) {
+        return l.id != r.id;
+    }
+
+    bool operator!=(const Type::ResolvedUserDefinedType& l,
+        const Type::ResolvedUserDefinedType& r) {
+        return l.id != r.id && l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Expr& l, const Expr& r) { return l.val != r.val; }
@@ -539,6 +587,32 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r) {
         return l.expr != r.expr && l.name != r.name;
+    }
+
+    bool operator!=(const Expr::LocalVar& l, const Expr::LocalVar& r) {
+        return l.id != r.id;
+    }
+
+    bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r) {
+        return l.decl_id != r.decl_id && l.generic_params != r.generic_params;
+    }
+
+    bool operator!=(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r) {
+        return l.expr != r.expr && l.member_id != r.member_id &&
+               l.generic_params != r.generic_params;
+    }
+
+    bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
+        const Expr::ResolvedTypeMemberAccess& r) {
+        return l.type != r.type && l.member_id != r.member_id &&
+               l.generic_params != r.generic_params;
+    }
+
+    bool operator!=(const Expr::ResolvedGenericMemberAccess& l,
+        const Expr::ResolvedGenericMemberAccess& r) {
+        return l.generic_id != r.generic_id && l.name != r.name &&
+               l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Block& l, const Block& r) {
@@ -690,6 +764,11 @@ namespace std {
         return 0;
     }
 
+    std::size_t hash<alvo::ast::Id>::operator()(
+        const alvo::ast::Id& n) const noexcept {
+        return std::hash<decltype(n.id)>()(n.id);
+    }
+
     std::size_t hash<alvo::ast::Type>::operator()(
         const alvo::ast::Type& n) const noexcept {
         std::size_t val_hash = std::hash<decltype(n.val)>()(n.val);
@@ -790,6 +869,22 @@ namespace std {
         std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
         std::size_t res = is_invalid_hash;
         res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Type::LocalGeneric>::operator()(
+        const alvo::ast::Type::LocalGeneric& n) const noexcept {
+        return std::hash<decltype(n.id)>()(n.id);
+    }
+
+    std::size_t hash<alvo::ast::Type::ResolvedUserDefinedType>::operator()(
+        const alvo::ast::Type::ResolvedUserDefinedType& n) const noexcept {
+        std::size_t id_hash = std::hash<decltype(n.id)>()(n.id);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = id_hash;
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
         return res;
     }
 
@@ -1029,6 +1124,64 @@ namespace std {
         std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
         std::size_t res = expr_hash;
         res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::LocalVar>::operator()(
+        const alvo::ast::Expr::LocalVar& n) const noexcept {
+        return std::hash<decltype(n.id)>()(n.id);
+    }
+
+    std::size_t hash<alvo::ast::Expr::ResolvedDecl>::operator()(
+        const alvo::ast::Expr::ResolvedDecl& n) const noexcept {
+        std::size_t decl_id_hash = std::hash<decltype(n.decl_id)>()(n.decl_id);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = decl_id_hash;
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::ResolvedMemberAccess>::operator()(
+        const alvo::ast::Expr::ResolvedMemberAccess& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t member_id_hash =
+            std::hash<decltype(n.member_id)>()(n.member_id);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = expr_hash;
+        res ^= member_id_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::ResolvedTypeMemberAccess>::operator()(
+        const alvo::ast::Expr::ResolvedTypeMemberAccess& n) const noexcept {
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t member_id_hash =
+            std::hash<decltype(n.member_id)>()(n.member_id);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = type_hash;
+        res ^= member_id_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        return res;
+    }
+
+    std::size_t hash<alvo::ast::Expr::ResolvedGenericMemberAccess>::operator()(
+        const alvo::ast::Expr::ResolvedGenericMemberAccess& n) const noexcept {
+        std::size_t generic_id_hash =
+            std::hash<decltype(n.generic_id)>()(n.generic_id);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t res = generic_id_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
         return res;
     }
 

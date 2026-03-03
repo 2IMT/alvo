@@ -12,6 +12,9 @@
     "namespace": "alvo::ast",
     "ast": {
         "Invalid": {},
+        "Id": {
+            "id": "uint64_t"
+        },
         "Type": {
             "Unit": {},
             "String": {},
@@ -42,7 +45,14 @@
                 "is_invalid": "bool",
                 "type": "util::Ptr<Type>"
             },
-            "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Name, Ref>",
+            "LocalGeneric": {
+                "id": "Id"
+            },
+            "ResolvedUserDefinedType": {
+                "id": "Id",
+                "generic_params": "util::List<Type>"
+            },
+            "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Name, Ref, LocalGeneric, ResolvedUserDefinedType>",
             "val": "Val",
             "nullable": "bool"
         },
@@ -187,7 +197,24 @@
                 "expr": "util::Ptr<Expr>",
                 "name": "Name"
             },
-            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess>",
+            "LocalVar": {
+                "id": "Id"
+            },
+            "ResolvedDecl": {
+                "decl_id": "Id",
+                "generic_params": "util::List<Type>"
+            },
+            "ResolvedTypeMemberAccess": {
+                "type": "Type",
+                "member_id": "Id",
+                "generic_params": "util::List<Type>"
+            },
+            "ResolvedGenericMemberAccess": {
+                "generic_id": "Id",
+                "name": "std::string_view",
+                "generic_params": "util::List<Type>"
+            },
+            "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, ResolvedDecl, ResolvedTypeMemberAccess, ResolvedGenericMemberAccess>",
             "val": "Val"
         },
         "Block": {
