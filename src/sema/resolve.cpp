@@ -627,11 +627,30 @@ namespace alvo::sema::resolve {
                             [&](ast::Type::Name&) { ALVO_UNREACHABLE(); },
                             [&](ast::Type::Ref&) { ALVO_NOT_IMPLEMENTED(); },
                             [&](ast::Type::LocalGeneric& local_generic) {
-                                expr.val =
-                                    ast::Expr::ResolvedGenericMemberAccess(
-                                        local_generic.id,
-                                        type_member_access.name.name,
-                                        type_member_access.name.generic_params);
+                                auto entry = m_generic_scope_stack.get_by_id(
+                                    local_generic.id);
+
+                                if (entry.element.empty()) {
+                                    // member access for generic with no bounds
+                                    // TODO: report error
+                                    return;
+                                }
+
+                                auto handle = search_interface_members(
+                                    type_member_access.name.name,
+                                    entry.element);
+                                if (!handle) {
+                                    // exact member not found
+                                    return;
+                                }
+
+                                expr.val = ast::Expr::ResolvedTypeMemberAccess(
+                                    ast::Type(
+                                        ast::Type::ResolvedUserDefinedType(
+                                            handle->interface_type_id, {}),
+                                        type_member_access.type.nullable),
+                                    handle->member_id,
+                                    type_member_access.name.generic_params);
                             },
                             [&](ast::Type::ResolvedUserDefinedType&
                                     user_defined_type) {
@@ -882,6 +901,49 @@ namespace alvo::sema::resolve {
             resolve_generic_params(entry.element.generic_params);
             resolve_ast_func_signature(entry.element.signature, false);
         }
+    }
+
+    std::optional<NameResolver::InterfaceMemberHandle>
+    NameResolver::search_interface_members(std::string_view name,
+        const std::unordered_set<ast::Type>& interfaces) {
+        std::optional<ast::Id> interface_type_id;
+        std::optional<ast::Id> member_id;
+        for (const auto& type : interfaces) {
+            if (auto resolved_type =
+                    std::get_if<ast::Type::ResolvedUserDefinedType>(
+                        &type.val)) {
+                auto& user_defined_type =
+                    m_name_index->user_defined_types.get_by_id(
+                        resolved_type->id);
+                if (auto interface = std::get_if<UserDefinedType::Interface>(
+                        &user_defined_type.val)) {
+                    if (!interface->member_functions.has(name)) {
+                        continue;
+                    }
+                    if (interface_type_id.has_value()) {
+                        // Ambiguous reference
+                        // TODO: report error
+                        return std::nullopt;
+                    }
+
+                    interface_type_id = resolved_type->id;
+                    member_id = interface->member_functions.get_id(name);
+                } else {
+                    ALVO_UNREACHABLE();
+                }
+            } else {
+                ALVO_UNREACHABLE();
+            }
+        }
+
+        if (!interface_type_id.has_value()) {
+            return std::nullopt;
+        }
+
+        return InterfaceMemberHandle {
+            .interface_type_id = *interface_type_id,
+            .member_id = *member_id,
+        };
     }
 
 }

@@ -227,6 +227,25 @@ namespace alvo::sema::resolve {
             throw std::out_of_range("name not found in scope stack");
         }
 
+        bool has_id(ast::Id id) const {
+            for (auto& scope : m_scopes) {
+                if (scope.has_id(id)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        Entry get_by_id(ast::Id id) const {
+            for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
+                auto& scope = *it;
+                if (scope.has_id(id)) {
+                    return scope.get_by_id(id);
+                }
+            }
+            throw std::out_of_range("id not found in scope stack");
+        }
+
         void pop() {
             m_scopes.pop_back();
             m_id_stack.pop();
@@ -251,7 +270,13 @@ namespace alvo::sema::resolve {
 
             Entry get(std::string_view name) {
                 ast::Id id = m_element_ids.at(name);
-                Entry entry(id, m_elements.at(id));
+                return get_by_id(id);
+            }
+
+            bool has_id(ast::Id id) const { return m_elements.contains(id); }
+
+            Entry get_by_id(ast::Id id) const {
+                return Entry(id, m_elements.at(id));
             }
 
         private:
@@ -344,6 +369,11 @@ namespace alvo::sema::resolve {
         void resolve(ast::Module& module);
 
     private:
+        struct InterfaceMemberHandle {
+            ast::Id interface_type_id;
+            ast::Id member_id;
+        };
+
         NameIndex* m_name_index;
         diag::DiagEmitter m_diag_emitter;
         ScopeStack<std::string_view, true> m_scope_stack;
@@ -404,6 +434,10 @@ namespace alvo::sema::resolve {
         void resolve_enum(UserDefinedType::Enum& enum_);
 
         void resolve_interface(UserDefinedType::Interface& interface);
+
+        std::optional<InterfaceMemberHandle> search_interface_members(
+            std::string_view name,
+            const std::unordered_set<ast::Type>& interfaces);
     };
 
 }
