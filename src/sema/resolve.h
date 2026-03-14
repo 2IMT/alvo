@@ -345,8 +345,10 @@ namespace alvo::sema::resolve {
         GenericParams generic_params;
         Val val;
         bool is_export;
-        std::unordered_map<ast::Type, InterfaceImplementation> unresolved_interface_implementations;
-        std::unordered_map<ast::Id, InterfaceImplementation> interface_implementations;
+        std::unordered_map<ast::Type, InterfaceImplementation>
+            unresolved_interface_implementations;
+        std::unordered_map<ast::Id, InterfaceImplementation>
+            interface_implementations;
     };
 
     struct NameIndex {
@@ -438,13 +440,17 @@ namespace alvo::sema::resolve {
 
         void resolve_interface(UserDefinedType::Interface& interface);
 
-        std::optional<std::vector<DeclsBlockElement>> get_decls_block_elements(const ast::Decl::DeclsBlock& block, const GenericParams& generic_params);
+        std::optional<std::vector<DeclsBlockElement>> get_decls_block_elements(
+            const ast::Decl::DeclsBlock& block,
+            const GenericParams& generic_params);
 
         std::optional<InterfaceMemberHandle> search_interface_members(
             std::string_view name,
             const std::unordered_set<ast::Type>& interfaces);
 
-        UserDefinedType::InterfaceImplementation create_interface_implementation(const std::vector<DeclsBlockElement>& members);
+        UserDefinedType::InterfaceImplementation
+        create_interface_implementation(
+            const std::vector<DeclsBlockElement>& members);
     };
 
 }
