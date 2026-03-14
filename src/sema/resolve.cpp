@@ -181,71 +181,44 @@ namespace alvo::sema::resolve {
             );
             // clang-format on
         }
+        std::unordered_map<ast::Type, UserDefinedType::InterfaceImplementation>
+            unresolved_interface_implementations;
         for (auto& decls_block : struct_.decls_blocks) {
-            if (decls_block.is_invalid) {
+            std::optional<std::vector<DeclsBlockElement>> decls_block_elements =
+                get_decls_block_elements(decls_block, generic_params);
+
+            if (!decls_block_elements) {
                 continue;
             }
 
-            if (decls_block.interface.has_value()) {
-                // TODO: handle interface implementations
-                continue;
-            }
-            GenericParams block_bounds =
-                create_generic_params(decls_block.generic_params);
-            if (!check_decls_block_bounds(generic_params, block_bounds)) {
-                // TODO: report error
-                continue;
-            }
-            for (auto& decl : decls_block.decls) {
-                using OptFunc = std::optional<ast::Func>;
-                OptFunc func = std::visit(
-                    util::overload {
-                        [&](const ast::Invalid&) { return OptFunc(); },
-                        [&](const ast::Func& func) { return OptFunc(func); },
-                        [&](const ast::Decl::Struct&) { return OptFunc(); },
-                        [&](const ast::Decl::Enum&) { return OptFunc(); },
-                        [&](const ast::Decl::TypeAlias&) { return OptFunc(); },
-                        [&](const ast::Decl::Const&) { return OptFunc(); },
-                        [&](const ast::Decl::Interface&) { return OptFunc(); },
-                    },
-                    decl.val);
-
-                if (!func) {
-                    // TODO: report error
-                    continue;
-                }
-
-                if (func->is_invalid) {
-                    continue;
-                }
-
-                GenericParams func_generic_params =
-                    create_generic_params(decl.generic_params);
-
-                if (res_struct.members.has(decl.name)) {
-                    // TODO: report error
-                    continue;
-                }
-
+            if (decls_block.interface) { // block is interface implementation
                 // clang-format off
-                res_struct.members.put(
-                    decl.name,
-                    UserDefinedType::Struct::Member {
-                        .val = UserDefinedType::MemberFunc {
-                            .decls_block_bounds = block_bounds,
-                            .generic_params = func_generic_params,
-                            .func = *func,
-                        },
-                        .is_export = decl.is_export,
-                    }
-                );
+                unresolved_interface_implementations.insert({ 
+                    *decls_block.interface, 
+                    create_interface_implementation(*decls_block_elements) 
+                });
                 // clang-format on
+            } else { // block is regular decls block
+                for (auto& elem : *decls_block_elements) {
+                    // clang-format off
+                    res_struct.members.put(
+                        elem.name,
+                        UserDefinedType::Struct::Member {
+                            .val = elem.func, 
+                            .is_export = elem.is_export,
+                        }
+                    );
+                    // clang-format on
+                }
             }
         }
         UserDefinedType res = {
             .generic_params = generic_params,
             .val = res_struct,
             .is_export = is_export,
+            .unresolved_interface_implementations =
+                unresolved_interface_implementations,
+            .interface_implementations = {},
         };
         m_name_index->user_defined_types.put(name, res);
     }
@@ -269,71 +242,46 @@ namespace alvo::sema::resolve {
                                                    .is_export = true,
                                                });
         }
+        std::unordered_map<ast::Type, UserDefinedType::InterfaceImplementation>
+            unresolved_interface_implementations;
         for (auto& decls_block : enum_.decls_blocks) {
-            if (decls_block.is_invalid) {
+            std::optional<std::vector<DeclsBlockElement>> decls_block_elements =
+                get_decls_block_elements(decls_block, {});
+
+            if (!decls_block_elements) {
                 continue;
             }
 
-            if (decls_block.interface.has_value()) {
-                // TODO: handle interface implementations
-                continue;
-            }
-            for (auto& decl : decls_block.decls) {
-                using OptFunc = std::optional<ast::Func>;
-                OptFunc func = std::visit(
-                    util::overload {
-                        [&](const ast::Invalid&) { return OptFunc(); },
-                        [&](const ast::Func& func) { return OptFunc(func); },
-                        [&](const ast::Decl::Struct&) { return OptFunc(); },
-                        [&](const ast::Decl::Enum&) { return OptFunc(); },
-                        [&](const ast::Decl::TypeAlias&) { return OptFunc(); },
-                        [&](const ast::Decl::Const&) { return OptFunc(); },
-                        [&](const ast::Decl::Interface&) { return OptFunc(); },
-                    },
-                    decl.val);
-
-                if (!func) {
-                    // TODO: report error
-                    continue;
-                }
-
-                if (func->is_invalid) {
-                    continue;
-                }
-
-                GenericParams func_generic_params =
-                    create_generic_params(decl.generic_params);
-
-                if (res_enum.members.has(decl.name)) {
-                    // TODO: report error
-                    continue;
-                }
-
+            if (decls_block.interface) { // block is interface implementation
                 // clang-format off
-                res_enum.members.put(
-                    decl.name,
-                    UserDefinedType::Enum::Member {
-                        .val = UserDefinedType::MemberFunc {
-                            .decls_block_bounds = {},
-                            .generic_params = func_generic_params,
-                            .func = *func,
-                        },
-                        .is_export = decl.is_export,
-                    }
-                );
+                unresolved_interface_implementations.insert({ 
+                    *decls_block.interface, 
+                    create_interface_implementation(*decls_block_elements) 
+                });
                 // clang-format on
+            } else {
+                for (auto& elem : *decls_block_elements) {
+                    // clang-format off
+                    res_enum.members.put(
+                        elem.name,
+                        UserDefinedType::Enum::Member {
+                            .val = elem.func,
+                            .is_export = elem.is_export,
+                        }
+                    );
+                    // clang-format on
+                }
             }
         }
-        // clang-format off
-        m_name_index->user_defined_types.put(
-            name, 
-            UserDefinedType {
-                .generic_params = {},
-                .val = res_enum,
-                .is_export = is_export,
-            } 
-        );
-        // clang-format on
+        UserDefinedType res = {
+            .generic_params = {},
+            .val = res_enum,
+            .is_export = is_export,
+            .unresolved_interface_implementations =
+                unresolved_interface_implementations,
+            .interface_implementations = {},
+        };
+        m_name_index->user_defined_types.put(name, res);
     }
 
     void NameResolver::collect_interface(std::string_view name, bool is_export,
@@ -371,16 +319,14 @@ namespace alvo::sema::resolve {
             );
             // clang-format on
         }
-        // clang-format off
-        m_name_index->user_defined_types.put(
-            name,
-            UserDefinedType {
-                .generic_params = generic_params,
-                .val = res_interface,
-                .is_export = is_export,
-            }
-        );
-        // clang-format on
+        UserDefinedType res = {
+            .generic_params = generic_params,
+            .val = res_interface,
+            .is_export = is_export,
+            .unresolved_interface_implementations = {},
+            .interface_implementations = {},
+        };
+        m_name_index->user_defined_types.put(name, res);
     }
 
     void NameResolver::resolve_declarations() {
@@ -903,6 +849,64 @@ namespace alvo::sema::resolve {
         }
     }
 
+    std::optional<std::vector<NameResolver::DeclsBlockElement>>
+    NameResolver::get_decls_block_elements(const ast::Decl::DeclsBlock& block,
+        const GenericParams& generic_params) {
+        std::vector<NameResolver::DeclsBlockElement> res;
+        if (block.is_invalid) {
+            return std::nullopt;
+        }
+
+        GenericParams block_bounds =
+            create_generic_params(block.generic_params);
+        if (!check_decls_block_bounds(generic_params, block_bounds)) {
+            // TODO: report error
+            return std::nullopt;
+        }
+        for (auto& decl : block.decls) {
+            using OptFunc = std::optional<ast::Func>;
+            OptFunc func = std::visit(
+                util::overload {
+                    [&](const ast::Invalid&) { return OptFunc(); },
+                    [&](const ast::Func& func) { return OptFunc(func); },
+                    [&](const ast::Decl::Struct&) { return OptFunc(); },
+                    [&](const ast::Decl::Enum&) { return OptFunc(); },
+                    [&](const ast::Decl::TypeAlias&) { return OptFunc(); },
+                    [&](const ast::Decl::Const&) { return OptFunc(); },
+                    [&](const ast::Decl::Interface&) { return OptFunc(); },
+                },
+                decl.val);
+
+            if (!func) {
+                // TODO: report error
+                continue;
+            }
+
+            if (func->is_invalid) {
+                continue;
+            }
+
+            GenericParams func_generic_params =
+                create_generic_params(decl.generic_params);
+
+            // clang-format off
+            res.push_back(
+                DeclsBlockElement {
+                    .name = decl.name,
+                    .is_export = decl.is_export,
+                    .func = UserDefinedType::MemberFunc {
+                        .decls_block_bounds = block_bounds,
+                        .generic_params = func_generic_params,
+                        .func = *func,
+                    }
+                }
+            );
+            // clang-format on
+        }
+
+        return res;
+    }
+
     std::optional<NameResolver::InterfaceMemberHandle>
     NameResolver::search_interface_members(std::string_view name,
         const std::unordered_set<ast::Type>& interfaces) {
@@ -944,6 +948,16 @@ namespace alvo::sema::resolve {
             .interface_type_id = *interface_type_id,
             .member_id = *member_id,
         };
+    }
+
+    UserDefinedType::InterfaceImplementation
+    NameResolver::create_interface_implementation(
+        const std::vector<DeclsBlockElement>& members) {
+        UserDefinedType::InterfaceImplementation res;
+        for (const auto& member : members) {
+            res.members.put(member.name, member.func);
+        }
+        return res;
     }
 
 }

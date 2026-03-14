@@ -147,12 +147,6 @@ namespace alvo::sema::resolve {
         }
     };
 
-    using InterfaceImplementation =
-        std::unordered_map<std::string_view, ast::Func>;
-
-    using InterfaceImplementations =
-        std::unordered_map<ast::Type, InterfaceImplementation>;
-
     using Bounds = std::unordered_set<ast::Type>;
     using GenericParams = std::unordered_map<std::string_view, Bounds>;
 
@@ -308,6 +302,10 @@ namespace alvo::sema::resolve {
             ast::Func func;
         };
 
+        struct InterfaceImplementation {
+            Storage<MemberFunc> members;
+        };
+
         struct Struct {
             struct Member {
                 struct Field {
@@ -347,6 +345,8 @@ namespace alvo::sema::resolve {
         GenericParams generic_params;
         Val val;
         bool is_export;
+        std::unordered_map<ast::Type, InterfaceImplementation> unresolved_interface_implementations;
+        std::unordered_map<ast::Id, InterfaceImplementation> interface_implementations;
     };
 
     struct NameIndex {
@@ -355,9 +355,6 @@ namespace alvo::sema::resolve {
         Storage<UserDefinedType> user_defined_types;
 
         Storage<Decl> decls;
-
-        std::unordered_map<std::string_view, InterfaceImplementations>
-            interface_implementations;
     };
 
     class NameResolver {
@@ -372,6 +369,12 @@ namespace alvo::sema::resolve {
         struct InterfaceMemberHandle {
             ast::Id interface_type_id;
             ast::Id member_id;
+        };
+
+        struct DeclsBlockElement {
+            std::string_view name;
+            bool is_export;
+            UserDefinedType::MemberFunc func;
         };
 
         NameIndex* m_name_index;
@@ -435,9 +438,13 @@ namespace alvo::sema::resolve {
 
         void resolve_interface(UserDefinedType::Interface& interface);
 
+        std::optional<std::vector<DeclsBlockElement>> get_decls_block_elements(const ast::Decl::DeclsBlock& block, const GenericParams& generic_params);
+
         std::optional<InterfaceMemberHandle> search_interface_members(
             std::string_view name,
             const std::unordered_set<ast::Type>& interfaces);
+
+        UserDefinedType::InterfaceImplementation create_interface_implementation(const std::vector<DeclsBlockElement>& members);
     };
 
 }
