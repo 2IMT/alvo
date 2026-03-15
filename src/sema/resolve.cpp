@@ -28,6 +28,45 @@ namespace alvo::sema::resolve {
 
     void ScopedIdStack::pop() { m_frames.pop_back(); }
 
+    std::optional<ast::Id> UserDefinedType::lookup_member_func(
+        std::string_view name) {
+        std::optional<ast::Id> res = std::nullopt;
+        std::visit(
+            util::overload {
+                [&](Struct& struct_) {
+                    if (!struct_.members.has(name)) {
+                        return;
+                    }
+                    auto& member = struct_.members.get(name);
+                    ast::Id id = struct_.members.get_id(name);
+                    if (!std::holds_alternative<MemberFunc>(member.val)) {
+                        return;
+                    }
+                    res = id;
+                },
+                [&](Enum& enum_) {
+                    if (!enum_.members.has(name)) {
+                        return;
+                    }
+                    auto& member = enum_.members.get(name);
+                    ast::Id id = enum_.members.get_id(name);
+                    if (!std::holds_alternative<MemberFunc>(member.val)) {
+                        return;
+                    }
+                    res = id;
+                },
+                [&](Interface& interface) {
+                    if (!interface.member_functions.has(name)) {
+                        return;
+                    }
+                    ast::Id id = interface.member_functions.get_id(name);
+                    res = id;
+                },
+            },
+            val);
+        return res;
+    }
+
     NameResolver::NameResolver(NameIndex& name_index) :
         m_name_index(&name_index),
         m_diag_emitter(),
@@ -40,6 +79,7 @@ namespace alvo::sema::resolve {
 
     void NameResolver::resolve(ast::Module& module) {
         collect_declarations(module);
+        resolve_interfaces_in_interface_implementations();
         resolve_declarations();
     }
 
@@ -329,6 +369,66 @@ namespace alvo::sema::resolve {
         m_name_index->user_defined_types.put(name, res);
     }
 
+    void NameResolver::resolve_interfaces_in_interface_implementations() {
+        for (auto entry : m_name_index->user_defined_types) {
+            for (auto& [t, impl] :
+                entry.element.unresolved_interface_implementations) {
+                ast::Type type = t;
+                resolve_ast_type(type);
+                std::optional<ast::Type::ResolvedUserDefinedType> interface =
+                    std::nullopt;
+                std::visit(
+                    util::overload {
+                        [&](const ast::Invalid&) {},
+                        [&](const ast::Type::Unit&) {},
+                        [&](const ast::Type::String&) {},
+                        [&](const ast::Type::Char&) {},
+                        [&](const ast::Type::Int&) {},
+                        [&](const ast::Type::Byte&) {},
+                        [&](const ast::Type::Float&) {},
+                        [&](const ast::Type::Bool&) {},
+                        [&](const ast::Type::Array&) {},
+                        [&](const ast::Type::Tup&) {},
+                        [&](const ast::Type::Func&) {},
+                        [&](const ast::Type::Name& name) {
+                            if (name.is_invalid)
+                                return;
+                            m_name_index->user_defined_types.has(name.name);
+                            UserDefinedType& found =
+                                m_name_index->user_defined_types.get(name.name);
+                            bool is_interface = std::holds_alternative<
+                                UserDefinedType::Interface>(found.val);
+                            if (!is_interface) {
+                                // TODO: report error
+                                return;
+                            }
+                            ast::Id type_id =
+                                m_name_index->user_defined_types.get_id(
+                                    name.name);
+                            interface = ast::Type::ResolvedUserDefinedType(
+                                type_id, name.generic_params);
+                        },
+                        [&](const ast::Type::Ref&) {},
+                        [&](const ast::Type::LocalGeneric&) {
+                            ALVO_UNREACHABLE();
+                        },
+                        [&](const ast::Type::ResolvedUserDefinedType&) {
+                            ALVO_UNREACHABLE();
+                        },
+                    },
+                    type.val);
+
+                if (!interface) {
+                    // TODO: report error
+                    continue;
+                }
+
+                entry.element.interface_implementations.insert(
+                    { *interface, impl });
+            }
+        }
+    }
+
     void NameResolver::resolve_declarations() {
         for (auto entry : m_name_index->decls) {
             std::visit(util::overload { [&](Decl::Func& func) {
@@ -582,9 +682,12 @@ namespace alvo::sema::resolve {
                                     return;
                                 }
 
+                                std::vector<ast::Id> interface_ids =
+                                    extract_type_ids_from_bounds(entry.element);
+
                                 auto handle = search_interface_members(
                                     type_member_access.name.name,
-                                    entry.element);
+                                    interface_ids);
                                 if (!handle) {
                                     // exact member not found
                                     return;
@@ -603,40 +706,18 @@ namespace alvo::sema::resolve {
                                 auto& type =
                                     m_name_index->user_defined_types.get_by_id(
                                         user_defined_type.id);
-                                std::optional<ast::Id> member_id;
-                                std::visit(
-                                    util::overload {
-                                        [&](UserDefinedType::Struct& s) {
-                                            if (!s.members.has(
-                                                    type_member_access.name
-                                                        .name)) {
-                                                // TODO: report error
-                                            }
-                                            member_id = s.members.get_id(
-                                                type_member_access.name.name);
-                                        },
-                                        [&](UserDefinedType::Enum& e) {
-                                            if (!e.members.has(
-                                                    type_member_access.name
-                                                        .name)) {
-                                                // TODO: report error
-                                            }
-                                            member_id = e.members.get_id(
-                                                type_member_access.name.name);
-                                        },
-                                        [&](UserDefinedType::Interface& i) {
-                                            if (!i.member_functions.has(
-                                                    type_member_access.name
-                                                        .name)) {
-                                                // TODO: report error
-                                            }
-                                            member_id =
-                                                i.member_functions.get_id(
-                                                    type_member_access.name
-                                                        .name);
-                                        },
-                                    },
-                                    type.val);
+
+                                auto member_id = type.lookup_member_func(
+                                    type_member_access.name.name);
+                                if (!member_id) {
+                                    // TODO: repot error
+                                    return;
+                                }
+                                expr.val = ast::Expr::ResolvedTypeMemberAccess(
+                                    ast::Type(user_defined_type,
+                                        type_member_access.type.nullable),
+                                    *member_id,
+                                    type_member_access.name.generic_params);
                             },
                         },
                         type.val);
@@ -805,6 +886,10 @@ namespace alvo::sema::resolve {
                 } },
             user_defined_type.val);
 
+        for (auto& [type, impl] : user_defined_type.interface_implementations) {
+            resolve_interface_implementation(impl);
+        }
+
         m_generic_scope_stack.pop();
     }
 
@@ -846,6 +931,13 @@ namespace alvo::sema::resolve {
         for (auto entry : interface.member_functions) {
             resolve_generic_params(entry.element.generic_params);
             resolve_ast_func_signature(entry.element.signature, false);
+        }
+    }
+
+    void NameResolver::resolve_interface_implementation(
+        UserDefinedType::InterfaceImplementation& impl) {
+        for (auto entry : impl.members) {
+            resolve_member_func(entry.element);
         }
     }
 
@@ -907,34 +999,46 @@ namespace alvo::sema::resolve {
         return res;
     }
 
-    std::optional<NameResolver::InterfaceMemberHandle>
-    NameResolver::search_interface_members(std::string_view name,
-        const std::unordered_set<ast::Type>& interfaces) {
-        std::optional<ast::Id> interface_type_id;
-        std::optional<ast::Id> member_id;
-        for (const auto& type : interfaces) {
+    std::vector<ast::Id> NameResolver::extract_type_ids_from_bounds(
+        const Bounds& bounds) {
+        std::vector<ast::Id> res;
+        for (const auto& type : bounds) {
             if (auto resolved_type =
                     std::get_if<ast::Type::ResolvedUserDefinedType>(
                         &type.val)) {
                 auto& user_defined_type =
                     m_name_index->user_defined_types.get_by_id(
                         resolved_type->id);
-                if (auto interface = std::get_if<UserDefinedType::Interface>(
-                        &user_defined_type.val)) {
-                    if (!interface->member_functions.has(name)) {
-                        continue;
-                    }
-                    if (interface_type_id.has_value()) {
-                        // Ambiguous reference
-                        // TODO: report error
-                        return std::nullopt;
-                    }
-
-                    interface_type_id = resolved_type->id;
-                    member_id = interface->member_functions.get_id(name);
-                } else {
-                    ALVO_UNREACHABLE();
+                if (std::holds_alternative<UserDefinedType::Interface>(
+                        user_defined_type.val)) {
+                    res.push_back(resolved_type->id);
                 }
+            }
+        }
+        return res;
+    }
+
+    std::optional<NameResolver::InterfaceMemberHandle>
+    NameResolver::search_interface_members(
+        std::string_view name, const std::vector<ast::Id>& interface_ids) {
+        std::optional<ast::Id> interface_type_id;
+        std::optional<ast::Id> member_id;
+        for (const auto& id : interface_ids) {
+            auto& user_defined_type =
+                m_name_index->user_defined_types.get_by_id(id);
+            if (auto interface = std::get_if<UserDefinedType::Interface>(
+                    &user_defined_type.val)) {
+                if (!interface->member_functions.has(name)) {
+                    continue;
+                }
+                if (interface_type_id.has_value()) {
+                    // Ambiguous reference
+                    // TODO: report error
+                    return std::nullopt;
+                }
+
+                interface_type_id = id;
+                member_id = interface->member_functions.get_id(name);
             } else {
                 ALVO_UNREACHABLE();
             }

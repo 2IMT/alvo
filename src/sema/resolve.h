@@ -341,21 +341,21 @@ namespace alvo::sema::resolve {
             Storage<Member> member_functions;
         };
 
+        std::optional<ast::Id> lookup_member_func(std::string_view name);
+
         using Val = std::variant<Struct, Enum, Interface>;
         GenericParams generic_params;
         Val val;
         bool is_export;
         std::unordered_map<ast::Type, InterfaceImplementation>
             unresolved_interface_implementations;
-        std::unordered_map<ast::Id, InterfaceImplementation>
+        std::unordered_map<ast::Type::ResolvedUserDefinedType,
+            InterfaceImplementation>
             interface_implementations;
     };
 
     struct NameIndex {
-        std::unordered_map<ast::Type, ast::Func> builtin_type_member_functions;
-
         Storage<UserDefinedType> user_defined_types;
-
         Storage<Decl> decls;
     };
 
@@ -409,6 +409,8 @@ namespace alvo::sema::resolve {
             ast::util::List<ast::Decl::GenericParam> ast_generic_params,
             ast::Decl::Interface& interface);
 
+        void resolve_interfaces_in_interface_implementations();
+
         void resolve_declarations();
 
         void resolve_func(Decl::Func& func);
@@ -440,13 +442,17 @@ namespace alvo::sema::resolve {
 
         void resolve_interface(UserDefinedType::Interface& interface);
 
+        void resolve_interface_implementation(
+            UserDefinedType::InterfaceImplementation& impl);
+
         std::optional<std::vector<DeclsBlockElement>> get_decls_block_elements(
             const ast::Decl::DeclsBlock& block,
             const GenericParams& generic_params);
 
+        std::vector<ast::Id> extract_type_ids_from_bounds(const Bounds& bounds);
+
         std::optional<InterfaceMemberHandle> search_interface_members(
-            std::string_view name,
-            const std::unordered_set<ast::Type>& interfaces);
+            std::string_view name, const std::vector<ast::Id>& interface_ids);
 
         UserDefinedType::InterfaceImplementation
         create_interface_implementation(
