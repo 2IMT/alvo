@@ -13,6 +13,7 @@
 #include "ast.h"
 #include "mem.h"
 #include "args.h"
+#include "sema/resolve.h"
 
 class Handler {
 public:
@@ -146,6 +147,14 @@ int main(int argc, char** argv) {
         printer.print_node(module);
         fmt::print("\n");
     }
+
+    using namespace sema;
+
+    resolve::NameIndex name_index;
+    resolve::NameResolver name_resolver(name_index);
+    name_resolver.set_diag_sink(diag_sink);
+
+    name_resolver.resolve(module);
 
     if (args->show_allocs) {
         std::size_t alloced = node_arena.get_total_allocated();
