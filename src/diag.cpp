@@ -118,8 +118,7 @@ namespace alvo::diag {
                 },
                 [this](const Err::VariableRedefinition& r) {
                     fmt::print(*m_os, "redefinition of variable `{}`", r.name);
-                }
-            },
+                } },
             err.val);
         fmt::print("\n");
     }

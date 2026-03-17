@@ -20,15 +20,14 @@ namespace alvo::sema::resolve {
         class BaseIterator {
         public:
             struct Entry {
-                using ElementType = std::conditional_t<IsConst, const StoredType&, StoredType>;
+                using ElementType =
+                    std::conditional_t<IsConst, const StoredType&, StoredType>;
 
                 ast::Id id;
                 std::string_view name;
-                ElementType
-                    element;
+                ElementType element;
 
-                Entry(ast::Id id, std::string_view name,
-                    ElementType element) :
+                Entry(ast::Id id, std::string_view name, ElementType element) :
                     id(id),
                     name(name),
                     element(element) { }
@@ -271,9 +270,7 @@ namespace alvo::sema::resolve {
 
             bool has_id(ast::Id id) { return m_elements.contains(id); }
 
-            Entry get_by_id(ast::Id id) {
-                return Entry(id, m_elements.at(id));
-            }
+            Entry get_by_id(ast::Id id) { return Entry(id, m_elements.at(id)); }
 
         private:
             std::unordered_map<std::string_view, ast::Id> m_element_ids;

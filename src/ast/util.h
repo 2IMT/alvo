@@ -233,9 +233,7 @@ namespace alvo::ast::util {
             m_tail(nullptr),
             m_size(0) { }
 
-        operator std::vector<T>() const {
-            return to_vector();
-        }
+        operator std::vector<T>() const { return to_vector(); }
 
         void push_back(mem::Arena& arena, const T& val) {
             void* mem = arena.alloc(sizeof(Node), alignof(Node));
@@ -339,7 +337,8 @@ namespace alvo::ast::util {
 namespace std {
     template<typename T>
     struct hash<alvo::ast::util::Ptr<T>> {
-        std::size_t operator()(const alvo::ast::util::Ptr<T>& ptr) const noexcept {
+        std::size_t operator()(
+            const alvo::ast::util::Ptr<T>& ptr) const noexcept {
             if (!ptr.get_ptr()) {
                 return 0;
             }
@@ -349,7 +348,8 @@ namespace std {
 
     template<typename T>
     struct hash<alvo::ast::util::Array<T>> {
-        std::size_t operator()(const alvo::ast::util::Array<T>& arr) const noexcept {
+        std::size_t operator()(
+            const alvo::ast::util::Array<T>& arr) const noexcept {
             size_t hash = 0;
             for (const T& v : arr) {
                 alvo::util::hash_combine(hash, std::hash<T>()(v));
@@ -360,7 +360,8 @@ namespace std {
 
     template<typename T>
     struct hash<alvo::ast::util::List<T>> {
-        std::size_t operator()(const alvo::ast::util::List<T>& list) const noexcept {
+        std::size_t operator()(
+            const alvo::ast::util::List<T>& list) const noexcept {
             size_t hash = 0;
             for (const T& v : list) {
                 alvo::util::hash_combine(hash, std::hash<T>()(v));
