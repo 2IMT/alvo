@@ -232,7 +232,7 @@ namespace alvo::parse {
             false, params, m_node_ctx.make_node<Type>(return_type));
     }
 
-    Type::Name Parser::parse_type_name() { 
+    Type::Name Parser::parse_type_name() {
         SectionGuard section_guard(this, __func__);
 
         List<Type> generic_params;
@@ -253,7 +253,7 @@ namespace alvo::parse {
                 return Type::Name(true, "", {});
             }
         }
-        
+
         return Type::Name(false, name, generic_params);
     }
 
@@ -440,7 +440,7 @@ namespace alvo::parse {
         return Expr::Literal::Struct::Field(false, name, expr);
     }
 
-    Expr::Name Parser::parse_expr_name() { 
+    Expr::Name Parser::parse_expr_name() {
         SectionGuard section_guard(this, __func__);
 
         List<Type> generic_params;
@@ -461,14 +461,15 @@ namespace alvo::parse {
                 return Expr::Name(true, "", {});
             }
         }
-        
+
         return Expr::Name(false, name, generic_params);
     }
 
     Expr::TypeMemberAccess Parser::parse_expr_type_member_access() {
         SectionGuard section_guard(this, __func__);
 
-        Expr::TypeMemberAccess invalid(true, Type(Invalid {}, false), Expr::Name(true, "", {}));
+        Expr::TypeMemberAccess invalid(
+            true, Type(Invalid {}, false), Expr::Name(true, "", {}));
 
         if (!expect(ColonColon)) {
             synchronize(EXPR_CTX_SYNC);
@@ -981,7 +982,7 @@ namespace alvo::parse {
         if (!expect(RBrace)) {
             synchronize(UDTYPE_CTX_SYNC);
         }
-        return Decl::DeclsBlock(true, generic_params, interface, decls);
+        return Decl::DeclsBlock(false, generic_params, interface, decls);
     }
 
     Decl::Struct Parser::parse_decl_struct() {
@@ -1192,8 +1193,7 @@ namespace alvo::parse {
 
         List<Decl> decls;
         while (!curr_is(Eof)) {
-            if (curr_is(Ident) ||
-                curr_is(KwExport)) {
+            if (curr_is(Ident) || curr_is(KwExport)) {
                 decls.push_back(*m_arena, parse_decl());
             } else {
                 synchronize({ Ident, KwExport });
@@ -1381,9 +1381,7 @@ namespace alvo::parse {
                     break;
                 }
                 if (accept(Dot)) {
-                    res.val = Expr::MemberAccess {
-                        res_lhs, parse_expr_name()
-                    };
+                    res.val = Expr::MemberAccess { res_lhs, parse_expr_name() };
                 } else {
                     Expr::Binop::Op op = parse_binop_op();
                     Ptr<Expr> res_rhs = m_node_ctx.make_node<Expr>(
