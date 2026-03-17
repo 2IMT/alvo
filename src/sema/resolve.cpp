@@ -125,13 +125,13 @@ namespace alvo::sema::resolve {
                 continue;
             }
             if (params.contains(ast_param.name)) {
-                // TODO: report error
+                err(diag::Err(diag::Err::DuplicateGenericParams {}));
                 continue;
             }
             Bounds bounds;
             for (const auto& interface : ast_param.interfaces) {
                 if (bounds.contains(interface)) {
-                    // TODO: report error
+                    err(diag::Err(diag::Err::DuplicateGenericBounds {}));
                     continue;
                 }
                 bounds.insert(interface);
@@ -145,7 +145,7 @@ namespace alvo::sema::resolve {
         ast::util::List<ast::Decl::GenericParam> ast_generic_params,
         ast::Func& func) {
         if (m_name_index->decls.has(name)) {
-            // TODO: report error
+            err(diag::Err(diag::Err::DuplicateFunctionName {}));
             return;
         }
 
@@ -201,12 +201,17 @@ namespace alvo::sema::resolve {
             return;
         }
 
+        if (m_name_index->user_defined_types.has(name)) {
+            err(diag::Err(diag::Err::TypeRedefinition { .name = name }));
+            return;
+        }
+
         GenericParams generic_params =
             create_generic_params(ast_generic_params);
         UserDefinedType::Struct res_struct;
         for (auto& field : struct_.fields) {
             if (res_struct.members.has(field.name)) {
-                // TODO: report error
+                err(diag::Err(diag::Err::DuplicateStructMemberName {}));
                 continue;
             }
             // clang-format off
@@ -240,6 +245,10 @@ namespace alvo::sema::resolve {
                 // clang-format on
             } else { // block is regular decls block
                 for (auto& elem : *decls_block_elements) {
+                    if (res_struct.members.has(elem.name)) {
+                        err(diag::Err(diag::Err::DuplicateStructMemberName {}));
+                        continue;
+                    }
                     // clang-format off
                     res_struct.members.put(
                         elem.name,
@@ -268,13 +277,19 @@ namespace alvo::sema::resolve {
         if (enum_.is_invalid) {
             return;
         }
+
+        if (m_name_index->user_defined_types.has(name)) {
+            err(diag::Err(diag::Err::TypeRedefinition { .name = name }));
+            return;
+        }
+
         UserDefinedType::Enum res_enum;
         for (const auto& element : enum_.elements) {
             if (element.is_invalid) {
                 continue;
             }
             if (res_enum.members.has(element.name)) {
-                // TODO: report error
+                err(diag::Err(diag::Err::DuplicateEnumMemberName {}));
                 continue;
             }
             res_enum.members.put(element.name, UserDefinedType::Enum::Member {
@@ -301,6 +316,10 @@ namespace alvo::sema::resolve {
                 // clang-format on
             } else {
                 for (auto& elem : *decls_block_elements) {
+                    if (res_enum.members.has(elem.name)) {
+                        err(diag::Err(diag::Err::DuplicateEnumMemberName {}));
+                        continue;
+                    }
                     // clang-format off
                     res_enum.members.put(
                         elem.name,
@@ -330,6 +349,12 @@ namespace alvo::sema::resolve {
         if (interface.is_invalid) {
             return;
         }
+
+        if (m_name_index->user_defined_types.has(name)) {
+            err(diag::Err(diag::Err::TypeRedefinition { .name = name }));
+            return;
+        }
+
         GenericParams generic_params =
             create_generic_params(ast_generic_params);
         UserDefinedType::Interface res_interface;
@@ -342,7 +367,7 @@ namespace alvo::sema::resolve {
             }
 
             if (res_interface.member_functions.has(member.name)) {
-                // TODO: report error
+                err(diag::Err(diag::Err::DuplicateInterfaceFunctionName {}));
                 continue;
             }
 
@@ -373,8 +398,6 @@ namespace alvo::sema::resolve {
         for (auto entry : m_name_index->user_defined_types) {
             for (auto& [t, impl] :
                 entry.element.unresolved_interface_implementations) {
-                ast::Type type = t;
-                resolve_ast_type(type);
                 std::optional<ast::Type::ResolvedUserDefinedType> interface =
                     std::nullopt;
                 std::visit(
@@ -399,7 +422,7 @@ namespace alvo::sema::resolve {
                             bool is_interface = std::holds_alternative<
                                 UserDefinedType::Interface>(found.val);
                             if (!is_interface) {
-                                // TODO: report error
+                                err(diag::Err(diag::Err::NotAnInterface {}));
                                 return;
                             }
                             ast::Id type_id =
@@ -416,10 +439,10 @@ namespace alvo::sema::resolve {
                             ALVO_UNREACHABLE();
                         },
                     },
-                    type.val);
+                    t.val);
 
                 if (!interface) {
-                    // TODO: report error
+                    err(diag::Err(diag::Err::NotAnInterface {}));
                     continue;
                 }
 
@@ -481,7 +504,7 @@ namespace alvo::sema::resolve {
                 std::find(used_param_names.begin(), used_param_names.end(),
                     param.name) != used_param_names.end();
             if (duplicate_param_found) {
-                // TODO: report error
+                err(diag::Err(diag::Err::DuplicateFuncParamName {}));
                 continue;
             }
             used_param_names.push_back(param.name);
@@ -521,7 +544,10 @@ namespace alvo::sema::resolve {
                                resolve_ast_type(*let.type);
                            }
                            resolve_ast_expr(*let.expr);
-                           m_scope_stack.put(let.name, let.name);
+                           if (!m_scope_stack.put(let.name, let.name)) {
+                               err(diag::Err(diag::Err::VariableRedefinition {
+                                   .name = let.name }));
+                           }
                        },
                        [&](ast::Stmt::If& if_) {
                            if (if_.is_invalid)
@@ -677,8 +703,8 @@ namespace alvo::sema::resolve {
                                     local_generic.id);
 
                                 if (entry.element.empty()) {
-                                    // member access for generic with no bounds
-                                    // TODO: report error
+                                    err(diag::Err(diag::Err::
+                                            MemberAccessOnGenericWithNoBounds {}));
                                     return;
                                 }
 
@@ -710,7 +736,7 @@ namespace alvo::sema::resolve {
                                 auto member_id = type.lookup_member_func(
                                     type_member_access.name.name);
                                 if (!member_id) {
-                                    // TODO: repot error
+                                    err(diag::Err(diag::Err::NoMemberFound {}));
                                     return;
                                 }
                                 expr.val = ast::Expr::ResolvedTypeMemberAccess(
@@ -843,7 +869,7 @@ namespace alvo::sema::resolve {
                         return;
                     }
 
-                    // TODO: report error
+                    err(diag::Err(diag::Err::UndeclaredType(name.name)));
                     type.val = ast::Invalid {};
                 },
                 [&](ast::Type::Ref& ref) {
@@ -952,7 +978,7 @@ namespace alvo::sema::resolve {
         GenericParams block_bounds =
             create_generic_params(block.generic_params);
         if (!check_decls_block_bounds(generic_params, block_bounds)) {
-            // TODO: report error
+            err(diag::Err(diag::Err::InvalidBounds {}));
             return std::nullopt;
         }
         for (auto& decl : block.decls) {
@@ -970,7 +996,7 @@ namespace alvo::sema::resolve {
                 decl.val);
 
             if (!func) {
-                // TODO: report error
+                err(diag::Err(diag::Err::NotAFunction {}));
                 continue;
             }
 
@@ -1032,8 +1058,7 @@ namespace alvo::sema::resolve {
                     continue;
                 }
                 if (interface_type_id.has_value()) {
-                    // Ambiguous reference
-                    // TODO: report error
+                    err(diag::Err(diag::Err::AmbiguousReference {}));
                     return std::nullopt;
                 }
 
@@ -1062,6 +1087,10 @@ namespace alvo::sema::resolve {
             res.members.put(member.name, member.func);
         }
         return res;
+    }
+
+    void NameResolver::err(const diag::Err& err) {
+        m_diag_emitter.err("TODO", tok::Pos(0, 0, 0), err);
     }
 
 }

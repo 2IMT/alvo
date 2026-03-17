@@ -20,13 +20,15 @@ namespace alvo::sema::resolve {
         class BaseIterator {
         public:
             struct Entry {
+                using ElementType = std::conditional_t<IsConst, const StoredType&, StoredType>;
+
                 ast::Id id;
                 std::string_view name;
-                std::conditional_t<IsConst, const StoredType&, StoredType&>
+                ElementType
                     element;
 
                 Entry(ast::Id id, std::string_view name,
-                    const StoredType& element) :
+                    ElementType element) :
                     id(id),
                     name(name),
                     element(element) { }
@@ -202,7 +204,7 @@ namespace alvo::sema::resolve {
             return true;
         }
 
-        bool has(std::string_view name) const {
+        bool has(std::string_view name) {
             for (auto& scope : m_scopes) {
                 if (scope.has(name)) {
                     return true;
@@ -211,7 +213,7 @@ namespace alvo::sema::resolve {
             return false;
         }
 
-        Entry get(std::string_view name) const {
+        Entry get(std::string_view name) {
             for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
                 auto& scope = *it;
                 if (scope.has(name)) {
@@ -221,7 +223,7 @@ namespace alvo::sema::resolve {
             throw std::out_of_range("name not found in scope stack");
         }
 
-        bool has_id(ast::Id id) const {
+        bool has_id(ast::Id id) {
             for (auto& scope : m_scopes) {
                 if (scope.has_id(id)) {
                     return true;
@@ -230,7 +232,7 @@ namespace alvo::sema::resolve {
             return false;
         }
 
-        Entry get_by_id(ast::Id id) const {
+        Entry get_by_id(ast::Id id) {
             for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
                 auto& scope = *it;
                 if (scope.has_id(id)) {
@@ -258,7 +260,7 @@ namespace alvo::sema::resolve {
                 m_elements.insert({ id, element });
             }
 
-            bool has(std::string_view name) const {
+            bool has(std::string_view name) {
                 return m_element_ids.contains(name);
             }
 
@@ -267,9 +269,9 @@ namespace alvo::sema::resolve {
                 return get_by_id(id);
             }
 
-            bool has_id(ast::Id id) const { return m_elements.contains(id); }
+            bool has_id(ast::Id id) { return m_elements.contains(id); }
 
-            Entry get_by_id(ast::Id id) const {
+            Entry get_by_id(ast::Id id) {
                 return Entry(id, m_elements.at(id));
             }
 
@@ -457,6 +459,8 @@ namespace alvo::sema::resolve {
         UserDefinedType::InterfaceImplementation
         create_interface_implementation(
             const std::vector<DeclsBlockElement>& members);
+
+        void err(const diag::Err& err);
     };
 
 }

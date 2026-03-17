@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <variant>
-#include <optional>
 #include <ostream>
 
 #include "tok.h"
@@ -49,40 +48,47 @@ namespace alvo::diag {
             tok::Tok tok;
         };
 
-        // From name resolution
-        struct DuplicatePackageNames { };
+        // From name resolver
+        struct DuplicateGenericParams { };
 
-        struct DuplicateModuleNames { };
+        struct DuplicateGenericBounds { };
 
-        struct DuplicateMemberFunctionNames { };
+        struct DuplicateFunctionName { };
 
-        struct DuplicateInterfaceFunctionNames { };
+        struct DuplicateStructMemberName { };
 
-        struct DuplicateDeclNames { };
+        struct DuplicateEnumMemberName { };
 
-        struct DuplicateImportNames { };
+        struct DuplicateInterfaceFunctionName { };
 
-        struct ImportAndDeclNameCollision { };
+        struct NotAnInterface { };
 
-        struct PathNotFound { };
+        struct DuplicateFuncParamName { };
 
-        struct ParentNotFound { };
+        struct MemberAccessOnGenericWithNoBounds { };
 
-        struct LocalRedefinition { };
+        struct NoMemberFound { };
 
-        struct GenericRedefinition { };
+        struct UndeclaredType {
+            std::string_view name;
 
-        struct RootImported { };
+            UndeclaredType(std::string_view name) :
+                name(name) { }
+        };
 
-        struct GlobUsedOnDecl { };
+        struct InvalidBounds { };
 
-        struct AccessUsedOnNonPath { };
+        struct NotAFunction { };
 
-        struct AccessIsNotAPathSegment { };
+        struct AmbiguousReference { };
 
-        struct GenericParamsAreNotAllowed { };
+        struct TypeRedefinition {
+            std::string_view name;
+        };
 
-        struct RootIsNotAllowed { };
+        struct VariableRedefinition {
+            std::string_view name;
+        };
 
         using Val = std::variant<None, UnexpectedCharacter,
             NonPrintableCharacterInCharacterLiteral,
@@ -90,13 +96,13 @@ namespace alvo::diag {
             InvalidIntegerPrefix, NoDigitsAfterIntegerPrefix,
             BytePostfixInFloatingPointLiteral, NegativeByteLiteral,
             UnexpectedCharacterInNumberLiteral, UnexpectedToken,
-            DuplicatePackageNames, DuplicateModuleNames,
-            DuplicateMemberFunctionNames, DuplicateInterfaceFunctionNames,
-            DuplicateDeclNames, DuplicateImportNames,
-            ImportAndDeclNameCollision, PathNotFound, ParentNotFound,
-            LocalRedefinition, GenericRedefinition, RootImported,
-            GlobUsedOnDecl, AccessUsedOnNonPath, AccessIsNotAPathSegment,
-            GenericParamsAreNotAllowed, RootIsNotAllowed>;
+            DuplicateGenericParams, DuplicateGenericBounds,
+            DuplicateFunctionName, DuplicateStructMemberName,
+            DuplicateEnumMemberName, DuplicateInterfaceFunctionName,
+            NotAnInterface, DuplicateFuncParamName,
+            MemberAccessOnGenericWithNoBounds, NoMemberFound, UndeclaredType,
+            InvalidBounds, NotAFunction, AmbiguousReference, TypeRedefinition,
+            VariableRedefinition>;
 
         Val val;
 
