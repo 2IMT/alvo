@@ -11,6 +11,7 @@
 #include <string_view>
 #include <optional>
 #include <cstddef>
+#include <cstdint>
 
 #include "ast/util.h"
 #include "ast/print.h"
@@ -30,9 +31,9 @@ namespace alvo::ast {
     struct Invalid { };
 
     struct Id {
-        uint64_t id;
+        std::uint64_t id;
 
-        Id(const uint64_t& id) :
+        Id(const std::uint64_t& id) :
             id(id) { }
     };
 

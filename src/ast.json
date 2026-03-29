@@ -3,7 +3,8 @@
         "variant",
         "string_view",
         "optional",
-        "cstddef"
+        "cstddef",
+        "cstdint"
     ],
     "project_includes": [
         "ast/util.h",
@@ -13,7 +14,7 @@
     "ast": {
         "Invalid": {},
         "Id": {
-            "id": "uint64_t"
+            "id": "std::uint64_t"
         },
         "Type": {
             "Unit": {},
