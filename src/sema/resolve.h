@@ -149,7 +149,16 @@ namespace alvo::sema::resolve {
     };
 
     using Bounds = std::unordered_set<ast::Type>;
-    using GenericParams = std::unordered_map<std::string_view, Bounds>;
+
+    struct GenericParam {
+        Bounds bounds;
+        std::optional<ast::Id> assigned_id;
+
+        GenericParam(const Bounds& bounds,
+            std::optional<ast::Id> assigned_id = std::nullopt);
+    };
+
+    using GenericParams = std::unordered_map<std::string_view, GenericParam>;
 
     class ScopedIdStack {
     public:
@@ -381,7 +390,7 @@ namespace alvo::sema::resolve {
         NameIndex* m_name_index;
         diag::DiagEmitter m_diag_emitter;
         ScopeStack<std::string_view, true> m_scope_stack;
-        ScopeStack<Bounds, false> m_generic_scope_stack;
+        ScopeStack<GenericParam, false> m_generic_scope_stack;
 
         void collect_declarations(ast::Module& module);
 
@@ -394,8 +403,8 @@ namespace alvo::sema::resolve {
             ast::util::List<ast::Decl::GenericParam> ast_generic_params,
             ast::Func& func);
 
-        bool check_decls_block_bounds(const GenericParams& type_params,
-            const GenericParams& block_bounds);
+        // bool check_decls_block_bounds(const GenericParams& type_params,
+        //     const GenericParams& block_bounds);
 
         void collect_struct(std::string_view name, bool is_export,
             ast::util::List<ast::Decl::GenericParam> ast_generic_params,

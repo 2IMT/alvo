@@ -5,6 +5,11 @@
 
 namespace alvo::sema::resolve {
 
+    GenericParam::GenericParam(
+        const Bounds& bounds, std::optional<ast::Id> assigned_id) :
+        bounds(bounds),
+        assigned_id(assigned_id) { }
+
     ScopedIdStack::ScopedIdStack() :
         m_frames() {
         m_frames.reserve(20);
@@ -91,7 +96,7 @@ namespace alvo::sema::resolve {
 
     void NameResolver::collect_decl(ast::Decl& decl) {
         std::visit(util::overload {
-                       [&](ast::Invalid&) {},
+                       [&](ast::Invalid&) { },
                        [&](ast::Func& func) {
                            collect_func(decl.name, decl.is_export,
                                decl.generic_params, func);
@@ -136,7 +141,7 @@ namespace alvo::sema::resolve {
                 }
                 bounds.insert(interface);
             }
-            params.insert({ ast_param.name, bounds });
+            params.insert({ ast_param.name, GenericParam(bounds) });
         }
         return params;
     }
@@ -173,26 +178,27 @@ namespace alvo::sema::resolve {
         // clang-format on
     }
 
-    bool NameResolver::check_decls_block_bounds(
-        const GenericParams& type_params, const GenericParams& block_bounds) {
-        if (type_params.size() != block_bounds.size()) {
-            return false;
-        }
-        for (const auto& type_param : type_params) {
-            if (!block_bounds.contains(type_param.first)) {
-                return false;
-            }
-
-            const auto& type_param_bounds = type_param.second;
-            const auto& block_bounds_bounds = block_bounds.at(type_param.first);
-            for (const auto& type_param_bound : type_param_bounds) {
-                if (!block_bounds_bounds.contains(type_param_bound)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+    // bool NameResolver::check_decls_block_bounds(
+    //     const GenericParams& type_params, const GenericParams& block_bounds)
+    //     { if (type_params.size() != block_bounds.size()) {
+    //         return false;
+    //     }
+    //     for (const auto& type_param : type_params) {
+    //         if (!block_bounds.contains(type_param.first)) {
+    //             return false;
+    //         }
+    //
+    //         const auto& type_param_bounds = type_param.second;
+    //         const auto& block_bounds_bounds =
+    //         block_bounds.at(type_param.first); for (const auto&
+    //         type_param_bound : type_param_bounds) {
+    //             if (!block_bounds_bounds.contains(type_param_bound)) {
+    //                 return false;
+    //             }
+    //         }
+    //     }
+    //     return true;
+    // }
 
     void NameResolver::collect_struct(std::string_view name, bool is_export,
         ast::util::List<ast::Decl::GenericParam> ast_generic_params,
@@ -402,17 +408,17 @@ namespace alvo::sema::resolve {
                     std::nullopt;
                 std::visit(
                     util::overload {
-                        [&](const ast::Invalid&) {},
-                        [&](const ast::Type::Unit&) {},
-                        [&](const ast::Type::String&) {},
-                        [&](const ast::Type::Char&) {},
-                        [&](const ast::Type::Int&) {},
-                        [&](const ast::Type::Byte&) {},
-                        [&](const ast::Type::Float&) {},
-                        [&](const ast::Type::Bool&) {},
-                        [&](const ast::Type::Array&) {},
-                        [&](const ast::Type::Tup&) {},
-                        [&](const ast::Type::Func&) {},
+                        [&](const ast::Invalid&) { },
+                        [&](const ast::Type::Unit&) { },
+                        [&](const ast::Type::String&) { },
+                        [&](const ast::Type::Char&) { },
+                        [&](const ast::Type::Int&) { },
+                        [&](const ast::Type::Byte&) { },
+                        [&](const ast::Type::Float&) { },
+                        [&](const ast::Type::Bool&) { },
+                        [&](const ast::Type::Array&) { },
+                        [&](const ast::Type::Tup&) { },
+                        [&](const ast::Type::Func&) { },
                         [&](const ast::Type::Name& name) {
                             if (name.is_invalid)
                                 return;
@@ -431,7 +437,7 @@ namespace alvo::sema::resolve {
                             interface = ast::Type::ResolvedUserDefinedType(
                                 type_id, name.generic_params);
                         },
-                        [&](const ast::Type::Ref&) {},
+                        [&](const ast::Type::Ref&) { },
                         [&](const ast::Type::LocalGeneric&) {
                             ALVO_UNREACHABLE();
                         },
@@ -535,7 +541,7 @@ namespace alvo::sema::resolve {
 
     void NameResolver::resolve_ast_stmt(ast::Stmt& stmt) {
         std::visit(util::overload {
-                       [&](ast::Invalid&) {},
+                       [&](ast::Invalid&) { },
                        [&](ast::Expr& expr) { resolve_ast_expr(expr); },
                        [&](ast::Stmt::Let& let) {
                            if (let.is_invalid)
@@ -607,15 +613,15 @@ namespace alvo::sema::resolve {
                            resolve_ast_expr(defer.expr);
                        },
                        [&](ast::Block& block) { resolve_ast_block(block); },
-                       [&](ast::Stmt::Continue&) {},
-                       [&](ast::Stmt::Break&) {},
+                       [&](ast::Stmt::Continue&) { },
+                       [&](ast::Stmt::Break&) { },
                    },
             stmt.val);
     }
 
     void NameResolver::resolve_ast_expr(ast::Expr& expr) {
         std::visit(
-            util::overload { [&](ast::Invalid&) {},
+            util::overload { [&](ast::Invalid&) { },
                 [&](ast::Expr::Literal& literal) {
                     resolve_ast_expr_literal(literal);
                 },
@@ -702,14 +708,15 @@ namespace alvo::sema::resolve {
                                 auto entry = m_generic_scope_stack.get_by_id(
                                     local_generic.id);
 
-                                if (entry.element.empty()) {
+                                if (entry.element.bounds.empty()) {
                                     err(diag::Err(diag::Err::
                                             MemberAccessOnGenericWithNoBounds {}));
                                     return;
                                 }
 
                                 std::vector<ast::Id> interface_ids =
-                                    extract_type_ids_from_bounds(entry.element);
+                                    extract_type_ids_from_bounds(
+                                        entry.element.bounds);
 
                                 auto handle = search_interface_members(
                                     type_member_access.name.name,
@@ -769,19 +776,19 @@ namespace alvo::sema::resolve {
 
     void NameResolver::resolve_ast_expr_literal(ast::Expr::Literal& literal) {
         std::visit(
-            util::overload { [&](ast::Invalid&) {},
-                [&](ast::Expr::Literal::Unit&) {},
-                [&](ast::Expr::Literal::Null&) {},
-                [&](ast::Expr::Literal::String&) {},
-                [&](ast::Expr::Literal::Character&) {},
-                [&](ast::Expr::Literal::Integer&) {},
-                [&](ast::Expr::Literal::Byte&) {},
-                [&](ast::Expr::Literal::Floating&) {},
-                [&](ast::Expr::Literal::Boolean&) {},
+            util::overload { [&](ast::Invalid&) { },
+                [&](ast::Expr::Literal::Unit&) { },
+                [&](ast::Expr::Literal::Null&) { },
+                [&](ast::Expr::Literal::String&) { },
+                [&](ast::Expr::Literal::Character&) { },
+                [&](ast::Expr::Literal::Integer&) { },
+                [&](ast::Expr::Literal::Byte&) { },
+                [&](ast::Expr::Literal::Floating&) { },
+                [&](ast::Expr::Literal::Boolean&) { },
                 [&](ast::Expr::Literal::Array& array) {
                     std::visit(
                         util::overload {
-                            [&](ast::Invalid&) {},
+                            [&](ast::Invalid&) { },
                             [&](ast::Expr::Literal::Array::Regular& regular) {
                                 for (auto& element : regular.elements) {
                                     resolve_ast_expr(element);
@@ -824,10 +831,10 @@ namespace alvo::sema::resolve {
 
     void NameResolver::resolve_ast_type(ast::Type& type) {
         std::visit(
-            util::overload { [&](ast::Invalid&) {}, [&](ast::Type::Unit&) {},
-                [&](ast::Type::String&) {}, [&](ast::Type::Char&) {},
-                [&](ast::Type::Int&) {}, [&](ast::Type::Byte&) {},
-                [&](ast::Type::Float&) {}, [&](ast::Type::Bool&) {},
+            util::overload { [&](ast::Invalid&) { }, [&](ast::Type::Unit&) { },
+                [&](ast::Type::String&) { }, [&](ast::Type::Char&) { },
+                [&](ast::Type::Int&) { }, [&](ast::Type::Byte&) { },
+                [&](ast::Type::Float&) { }, [&](ast::Type::Bool&) { },
                 [&](ast::Type::Array& array) {
                     if (array.is_invalid)
                         return;
@@ -887,13 +894,17 @@ namespace alvo::sema::resolve {
     void NameResolver::resolve_generic_params(GenericParams& generic_params) {
         for (auto param : generic_params) {
             Bounds resolved_bounds;
-            for (auto& bound : param.second) {
+            for (auto& bound : param.second.bounds) {
                 ast::Type tmp = bound;
                 resolve_ast_type(tmp);
                 resolved_bounds.insert(tmp);
             }
-            param.second = std::move(resolved_bounds);
+            param.second.bounds = std::move(resolved_bounds);
             m_generic_scope_stack.put(param.first, param.second);
+            // TODO: somehow put assigned id right away instead of looking it up
+            // and setting it
+            auto entry = m_generic_scope_stack.get(param.first);
+            entry.element.assigned_id = entry.id;
         }
     }
 
@@ -944,7 +955,7 @@ namespace alvo::sema::resolve {
 
     void NameResolver::resolve_enum(UserDefinedType::Enum& enum_) {
         for (auto entry : enum_.members) {
-            std::visit(util::overload { [&](std::string_view&) {},
+            std::visit(util::overload { [&](std::string_view&) { },
                            [&](UserDefinedType::MemberFunc& member_func) {
                                resolve_member_func(member_func);
                            } },
@@ -975,12 +986,13 @@ namespace alvo::sema::resolve {
             return std::nullopt;
         }
 
-        GenericParams block_bounds =
-            create_generic_params(block.generic_params);
-        if (!check_decls_block_bounds(generic_params, block_bounds)) {
-            err(diag::Err(diag::Err::InvalidBounds {}));
-            return std::nullopt;
-        }
+        // GenericParams block_bounds =
+        //     create_generic_params(block.generic_params);
+        // if (!check_decls_block_bounds(generic_params, block_bounds)) {
+        //     err(diag::Err(diag::Err::InvalidBounds {}));
+        //     return std::nullopt;
+        // }
+
         for (auto& decl : block.decls) {
             using OptFunc = std::optional<ast::Func>;
             OptFunc func = std::visit(
@@ -1013,7 +1025,7 @@ namespace alvo::sema::resolve {
                     .name = decl.name,
                     .is_export = decl.is_export,
                     .func = UserDefinedType::MemberFunc {
-                        .decls_block_bounds = block_bounds,
+                        .decls_block_bounds = {},
                         .generic_params = func_generic_params,
                         .func = *func,
                     }
