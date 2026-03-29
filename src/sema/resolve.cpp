@@ -764,7 +764,6 @@ namespace alvo::sema::resolve {
                 },
                 [&](ast::Expr::LocalVar&) { ALVO_UNREACHABLE(); },
                 [&](ast::Expr::ResolvedDecl&) { ALVO_UNREACHABLE(); },
-                [&](ast::Expr::ResolvedMemberAccess&) { ALVO_UNREACHABLE(); },
                 [&](ast::Expr::ResolvedTypeMemberAccess&) {
                     ALVO_UNREACHABLE();
                 },

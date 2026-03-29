@@ -423,18 +423,6 @@ namespace alvo::ast {
                 generic_params(generic_params) { }
         };
 
-        struct ResolvedMemberAccess {
-            util::Ptr<Expr> expr;
-            Id member_id;
-            util::List<Type> generic_params;
-
-            ResolvedMemberAccess(const util::Ptr<Expr>& expr,
-                const Id& member_id, const util::List<Type>& generic_params) :
-                expr(expr),
-                member_id(member_id),
-                generic_params(generic_params) { }
-        };
-
         struct ResolvedTypeMemberAccess {
             Type type;
             Id member_id;
@@ -462,8 +450,8 @@ namespace alvo::ast {
 
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
             Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess,
-            LocalVar, ResolvedDecl, ResolvedMemberAccess,
-            ResolvedTypeMemberAccess, ResolvedGenericMemberAccess>;
+            LocalVar, ResolvedDecl, ResolvedTypeMemberAccess,
+            ResolvedGenericMemberAccess>;
         Val val;
 
         Expr(const Val& val) :
@@ -861,8 +849,6 @@ namespace alvo::ast {
     bool operator==(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
     bool operator==(const Expr::LocalVar& l, const Expr::LocalVar& r);
     bool operator==(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
-    bool operator==(const Expr::ResolvedMemberAccess& l,
-        const Expr::ResolvedMemberAccess& r);
     bool operator==(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r);
     bool operator==(const Expr::ResolvedGenericMemberAccess& l,
@@ -970,8 +956,6 @@ namespace alvo::ast {
     bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
     bool operator!=(const Expr::LocalVar& l, const Expr::LocalVar& r);
     bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
-    bool operator!=(const Expr::ResolvedMemberAccess& l,
-        const Expr::ResolvedMemberAccess& r);
     bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r);
     bool operator!=(const Expr::ResolvedGenericMemberAccess& l,
@@ -1072,7 +1056,6 @@ namespace alvo::ast {
         void print_node(const Expr::MemberAccess& n);
         void print_node(const Expr::LocalVar& n);
         void print_node(const Expr::ResolvedDecl& n);
-        void print_node(const Expr::ResolvedMemberAccess& n);
         void print_node(const Expr::ResolvedTypeMemberAccess& n);
         void print_node(const Expr::ResolvedGenericMemberAccess& n);
         void print_node(const Block& n);
@@ -1563,15 +1546,6 @@ namespace alvo::ast {
     void Printer<Sink>::print_node(const Expr::ResolvedDecl& n) {
         node_begin("ResolvedDecl");
         field("decl_id", n.decl_id);
-        field("generic_params", n.generic_params);
-        node_end();
-    }
-
-    template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Expr::ResolvedMemberAccess& n) {
-        node_begin("ResolvedMemberAccess");
-        field("expr", n.expr);
-        field("member_id", n.member_id);
         field("generic_params", n.generic_params);
         node_end();
     }
@@ -2119,12 +2093,6 @@ namespace std {
     struct hash<alvo::ast::Expr::ResolvedDecl> {
         std::size_t operator()(
             const alvo::ast::Expr::ResolvedDecl& n) const noexcept;
-    };
-
-    template<>
-    struct hash<alvo::ast::Expr::ResolvedMemberAccess> {
-        std::size_t operator()(
-            const alvo::ast::Expr::ResolvedMemberAccess& n) const noexcept;
     };
 
     template<>

@@ -224,12 +224,6 @@ namespace alvo::ast {
         return l.decl_id == r.decl_id && l.generic_params == r.generic_params;
     }
 
-    bool operator==(const Expr::ResolvedMemberAccess& l,
-        const Expr::ResolvedMemberAccess& r) {
-        return l.expr == r.expr && l.member_id == r.member_id &&
-               l.generic_params == r.generic_params;
-    }
-
     bool operator==(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r) {
         return l.type == r.type && l.member_id == r.member_id &&
@@ -595,12 +589,6 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r) {
         return l.decl_id != r.decl_id && l.generic_params != r.generic_params;
-    }
-
-    bool operator!=(const Expr::ResolvedMemberAccess& l,
-        const Expr::ResolvedMemberAccess& r) {
-        return l.expr != r.expr && l.member_id != r.member_id &&
-               l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
@@ -1138,20 +1126,6 @@ namespace std {
         std::size_t generic_params_hash =
             std::hash<decltype(n.generic_params)>()(n.generic_params);
         std::size_t res = decl_id_hash;
-        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
-               (res >> 2);
-        return res;
-    }
-
-    std::size_t hash<alvo::ast::Expr::ResolvedMemberAccess>::operator()(
-        const alvo::ast::Expr::ResolvedMemberAccess& n) const noexcept {
-        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
-        std::size_t member_id_hash =
-            std::hash<decltype(n.member_id)>()(n.member_id);
-        std::size_t generic_params_hash =
-            std::hash<decltype(n.generic_params)>()(n.generic_params);
-        std::size_t res = expr_hash;
-        res ^= member_id_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
                (res >> 2);
         return res;
