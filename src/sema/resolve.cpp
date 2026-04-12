@@ -33,7 +33,7 @@ namespace alvo::sema::resolve {
 
     void ScopedIdStack::pop() { m_frames.pop_back(); }
 
-    std::optional<ast::Id> UserDefinedType::lookup_member_func(
+    std::optional<ast::Id> UserDefinedType::lookup_member(
         std::string_view name) {
         std::optional<ast::Id> res = std::nullopt;
         std::visit(
@@ -53,12 +53,7 @@ namespace alvo::sema::resolve {
                     if (!enum_.members.has(name)) {
                         return;
                     }
-                    auto& member = enum_.members.get(name);
-                    ast::Id id = enum_.members.get_id(name);
-                    if (!std::holds_alternative<MemberFunc>(member.val)) {
-                        return;
-                    }
-                    res = id;
+                    res = enum_.members.get_id(name);
                 },
                 [&](Interface& interface) {
                     if (!interface.member_functions.has(name)) {
@@ -222,13 +217,13 @@ namespace alvo::sema::resolve {
             }
             // clang-format off
             res_struct.members.put(
-                field.name, 
+                field.name,
                 UserDefinedType::Struct::Member {
                     .val = UserDefinedType::Struct::Member::Field {
-                        .type = field.type 
+                        .type = field.type
                     },
                     .is_export = field.is_export,
-                } 
+                }
             );
             // clang-format on
         }
@@ -244,9 +239,9 @@ namespace alvo::sema::resolve {
 
             if (decls_block.interface) { // block is interface implementation
                 // clang-format off
-                unresolved_interface_implementations.insert({ 
-                    *decls_block.interface, 
-                    create_interface_implementation(*decls_block_elements) 
+                unresolved_interface_implementations.insert({
+                    *decls_block.interface,
+                    create_interface_implementation(*decls_block_elements)
                 });
                 // clang-format on
             } else { // block is regular decls block
@@ -259,7 +254,7 @@ namespace alvo::sema::resolve {
                     res_struct.members.put(
                         elem.name,
                         UserDefinedType::Struct::Member {
-                            .val = elem.func, 
+                            .val = elem.func,
                             .is_export = elem.is_export,
                         }
                     );
@@ -315,9 +310,9 @@ namespace alvo::sema::resolve {
 
             if (decls_block.interface) { // block is interface implementation
                 // clang-format off
-                unresolved_interface_implementations.insert({ 
-                    *decls_block.interface, 
-                    create_interface_implementation(*decls_block_elements) 
+                unresolved_interface_implementations.insert({
+                    *decls_block.interface,
+                    create_interface_implementation(*decls_block_elements)
                 });
                 // clang-format on
             } else {
@@ -740,7 +735,7 @@ namespace alvo::sema::resolve {
                                     m_name_index->user_defined_types.get_by_id(
                                         user_defined_type.id);
 
-                                auto member_id = type.lookup_member_func(
+                                auto member_id = type.lookup_member(
                                     type_member_access.name.name);
                                 if (!member_id) {
                                     err(diag::Err(diag::Err::NoMemberFound {}));

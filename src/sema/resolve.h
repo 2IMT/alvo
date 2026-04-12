@@ -349,7 +349,7 @@ namespace alvo::sema::resolve {
             Storage<Member> member_functions;
         };
 
-        std::optional<ast::Id> lookup_member_func(std::string_view name);
+        std::optional<ast::Id> lookup_member(std::string_view name);
 
         using Val = std::variant<Struct, Enum, Interface>;
         GenericParams generic_params;
