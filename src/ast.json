@@ -54,8 +54,7 @@
                 "generic_params": "util::List<Type>"
             },
             "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Name, Ref, LocalGeneric, ResolvedUserDefinedType>",
-            "val": "Val",
-            "nullable": "bool"
+            "val": "Val"
         },
         "Expr": {
             "Literal": {

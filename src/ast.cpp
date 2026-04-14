@@ -16,9 +16,7 @@ namespace alvo::ast {
 
     bool operator==(const Id& l, const Id& r) { return l.id == r.id; }
 
-    bool operator==(const Type& l, const Type& r) {
-        return l.val == r.val && l.nullable == r.nullable;
-    }
+    bool operator==(const Type& l, const Type& r) { return l.val == r.val; }
 
     bool operator==([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r) {
@@ -383,9 +381,7 @@ namespace alvo::ast {
 
     bool operator!=(const Id& l, const Id& r) { return l.id != r.id; }
 
-    bool operator!=(const Type& l, const Type& r) {
-        return l.val != r.val && l.nullable != r.nullable;
-    }
+    bool operator!=(const Type& l, const Type& r) { return l.val != r.val; }
 
     bool operator!=([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r) {
@@ -759,12 +755,7 @@ namespace std {
 
     std::size_t hash<alvo::ast::Type>::operator()(
         const alvo::ast::Type& n) const noexcept {
-        std::size_t val_hash = std::hash<decltype(n.val)>()(n.val);
-        std::size_t nullable_hash =
-            std::hash<decltype(n.nullable)>()(n.nullable);
-        std::size_t res = val_hash;
-        res ^= nullable_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        return res;
+        return std::hash<decltype(n.val)>()(n.val);
     }
 
     std::size_t hash<alvo::ast::Type::Unit>::operator()(

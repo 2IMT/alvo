@@ -151,13 +151,9 @@ namespace alvo::parse {
             // Err
             synchronize({ Ident, KwRoot, KwSuper, LBracket, KwTup, KwFunc,
                 Question, Semicolon, Comma, RAngle, RParen, RBracket });
-            return Type(Invalid {}, false);
+            return Type(Invalid {});
         }
-        bool nullable = false;
-        if (accept(Question)) {
-            nullable = true;
-        }
-        return Type(val, nullable);
+        return Type(val);
     }
 
     Type::Array Parser::parse_type_array() {
@@ -203,7 +199,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         List<Type> params;
-        Type return_type(Type::Unit {}, false);
+        Type return_type(Type::Unit {});
         if (!expect(KwFunc)) {
             synchronize(TYPE_CTX_SYNC);
             return Type::Func(true, params, Ptr<Type>::null());
@@ -401,12 +397,12 @@ namespace alvo::parse {
         List<Expr::Literal::Struct::Field> fields;
         if (!expect(KwStruct)) {
             synchronize(EXPR_CTX_SYNC);
-            return Expr::Literal::Struct(true, Type(Invalid {}, false), fields);
+            return Expr::Literal::Struct(true, Type(Invalid {}), fields);
         }
         Type type = parse_type();
         if (!expect(LBrace)) {
             synchronize(EXPR_CTX_SYNC);
-            return Expr::Literal::Struct(true, Type(Invalid {}, false), fields);
+            return Expr::Literal::Struct(true, Type(Invalid {}), fields);
         }
         if (!curr_is(RBrace)) {
             fields.push_back(*m_arena, parse_expr_literal_struct_field());
@@ -469,7 +465,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         Expr::TypeMemberAccess invalid(
-            true, Type(Invalid {}, false), Expr::Name(true, "", {}));
+            true, Type(Invalid {}), Expr::Name(true, "", {}));
 
         if (!expect(ColonColon)) {
             synchronize(EXPR_CTX_SYNC);
@@ -814,7 +810,7 @@ namespace alvo::parse {
         SectionGuard section_guard(this, __func__);
 
         List<Func::Signature::Param> params;
-        Type ret(Type::Unit {}, false);
+        Type ret(Type::Unit {});
         bool is_self_func = false;
         if (!expect(KwFunc)) {
             synchronize(EXPR_CTX_SYNC);
@@ -860,12 +856,12 @@ namespace alvo::parse {
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             synchronize(EXPR_CTX_SYNC);
-            return Func::Signature::Param(true, "", Type(Invalid {}, false));
+            return Func::Signature::Param(true, "", Type(Invalid {}));
         }
         std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             synchronize(EXPR_CTX_SYNC);
-            return Func::Signature::Param(true, "", Type(Invalid {}, false));
+            return Func::Signature::Param(true, "", Type(Invalid {}));
         }
         Type type = parse_type();
         return Func::Signature::Param(false, name, type);
@@ -1027,14 +1023,12 @@ namespace alvo::parse {
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Struct::Field(
-                true, "", Type(Invalid {}, false), is_export);
+            return Decl::Struct::Field(true, "", Type(Invalid {}), is_export);
         }
         std::string_view name = (*tok_name).value;
         if (!expect(Colon)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Struct::Field(
-                true, "", Type(Invalid {}, false), is_export);
+            return Decl::Struct::Field(true, "", Type(Invalid {}), is_export);
         }
         Type type = parse_type();
         return Decl::Struct::Field(false, name, type, is_export);
@@ -1086,11 +1080,11 @@ namespace alvo::parse {
 
         if (!expect(KwType)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::TypeAlias(true, Type(Invalid {}, false));
+            return Decl::TypeAlias(true, Type(Invalid {}));
         }
         if (!expect(Eq)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::TypeAlias(true, Type(Invalid {}, false));
+            return Decl::TypeAlias(true, Type(Invalid {}));
         }
         Type type = parse_type();
         if (!expect(Semicolon)) {
@@ -1104,16 +1098,16 @@ namespace alvo::parse {
 
         if (!expect(KwConst)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Const(true, Type(Invalid {}, false), Expr(Invalid {}));
+            return Decl::Const(true, Type(Invalid {}), Expr(Invalid {}));
         }
         if (!expect(Colon)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Const(true, Type(Invalid {}, false), Expr(Invalid {}));
+            return Decl::Const(true, Type(Invalid {}), Expr(Invalid {}));
         }
         Type type = parse_type();
         if (!expect(Eq)) {
             synchronize(UDTYPE_CTX_SYNC);
-            return Decl::Const(true, Type(Invalid {}, false), Expr(Invalid {}));
+            return Decl::Const(true, Type(Invalid {}), Expr(Invalid {}));
         }
         Expr expr = parse_expr();
         if (!expect(Semicolon)) {
@@ -1147,8 +1141,8 @@ namespace alvo::parse {
     Decl::Interface::Member Parser::parse_decl_interface_member() {
         SectionGuard section_guard(this, __func__);
 
-        Func::Signature signature_invalid(true, false,
-            List<Func::Signature::Param>(), Type(Invalid {}, false));
+        Func::Signature signature_invalid(
+            true, false, List<Func::Signature::Param>(), Type(Invalid {}));
         List<Decl::GenericParam> generic_params;
         std::optional<tok::Tok> tok_name = expect_and_get(Ident);
         if (!tok_name) {

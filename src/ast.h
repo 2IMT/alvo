@@ -124,11 +124,9 @@ namespace alvo::ast {
             Bool, Array, Tup, Func, Name, Ref, LocalGeneric,
             ResolvedUserDefinedType>;
         Val val;
-        bool nullable;
 
-        Type(const Val& val, const bool& nullable) :
-            val(val),
-            nullable(nullable) { }
+        Type(const Val& val) :
+            val(val) { }
     };
 
     struct Expr {
@@ -1106,7 +1104,6 @@ namespace alvo::ast {
     void Printer<Sink>::print_node(const Type& n) {
         node_begin("Type");
         field("val", n.val);
-        field("nullable", n.nullable);
         node_end();
     }
 

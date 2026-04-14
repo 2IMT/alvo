@@ -724,8 +724,7 @@ namespace alvo::sema::resolve {
                                 expr.val = ast::Expr::ResolvedTypeMemberAccess(
                                     ast::Type(
                                         ast::Type::ResolvedUserDefinedType(
-                                            handle->interface_type_id, {}),
-                                        type_member_access.type.nullable),
+                                            handle->interface_type_id, {})),
                                     handle->member_id,
                                     type_member_access.name.generic_params);
                             },
@@ -742,9 +741,7 @@ namespace alvo::sema::resolve {
                                     return;
                                 }
                                 expr.val = ast::Expr::ResolvedTypeMemberAccess(
-                                    ast::Type(user_defined_type,
-                                        type_member_access.type.nullable),
-                                    *member_id,
+                                    ast::Type(user_defined_type), *member_id,
                                     type_member_access.name.generic_params);
                             },
                         },
