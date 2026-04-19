@@ -544,7 +544,7 @@ namespace alvo::sema::resolve {
                            if (let.type) {
                                resolve_ast_type(*let.type);
                            }
-                           resolve_ast_expr(*let.expr);
+                           resolve_ast_expr(let.expr);
                            if (!m_scope_stack.put(let.name, let.name)) {
                                err(diag::Err(diag::Err::VariableRedefinition {
                                    .name = let.name }));
