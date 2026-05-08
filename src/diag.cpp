@@ -118,6 +118,9 @@ namespace alvo::diag {
                 },
                 [this](const Err::VariableRedefinition& r) {
                     fmt::print(*m_os, "redefinition of variable `{}`", r.name);
+                },
+                [this](const Err::BadSwitchExprType&) {
+                    fmt::print(*m_os, "bad type of switch expression");
                 } },
             err.val);
         fmt::print("\n");

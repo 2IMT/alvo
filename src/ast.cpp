@@ -71,12 +71,8 @@ namespace alvo::ast {
                l.generic_params == r.generic_params;
     }
 
-    bool operator==(const Type::Ref& l, const Type::Ref& r) {
-        return l.is_invalid == r.is_invalid && l.type == r.type;
-    }
-
     bool operator==(const Type::LocalGeneric& l, const Type::LocalGeneric& r) {
-        return l.id == r.id;
+        return l.id == r.id && l.name == r.name;
     }
 
     bool operator==(const Type::ResolvedUserDefinedType& l,
@@ -166,6 +162,18 @@ namespace alvo::ast {
                l.expr == r.expr;
     }
 
+    bool operator==(const Expr::Literal::ResolvedStruct& l,
+        const Expr::Literal::ResolvedStruct& r) {
+        return l.type_id == r.type_id && l.generic_params == r.generic_params &&
+               l.fields == r.fields;
+    }
+
+    bool operator==(const Expr::Literal::ResolvedStruct::Field& l,
+        const Expr::Literal::ResolvedStruct::Field& r) {
+        return l.member_id == r.member_id && l.expr == r.expr &&
+               l.type == r.type;
+    }
+
     bool operator==(const Expr::Unop& l, const Expr::Unop& r) {
         return l.expr == r.expr && l.op == r.op;
     }
@@ -188,10 +196,6 @@ namespace alvo::ast {
 
     bool operator==(const Expr::TryCast& l, const Expr::TryCast& r) {
         return l.expr == r.expr && l.type == r.type;
-    }
-
-    bool operator==(const Expr::Ref& l, const Expr::Ref& r) {
-        return l.is_invalid == r.is_invalid && l.expr == r.expr;
     }
 
     bool operator==(const Expr::Builtin& l, const Expr::Builtin& r) {
@@ -436,12 +440,8 @@ namespace alvo::ast {
                l.generic_params != r.generic_params;
     }
 
-    bool operator!=(const Type::Ref& l, const Type::Ref& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type;
-    }
-
     bool operator!=(const Type::LocalGeneric& l, const Type::LocalGeneric& r) {
-        return l.id != r.id;
+        return l.id != r.id && l.name != r.name;
     }
 
     bool operator!=(const Type::ResolvedUserDefinedType& l,
@@ -531,6 +531,18 @@ namespace alvo::ast {
                l.expr != r.expr;
     }
 
+    bool operator!=(const Expr::Literal::ResolvedStruct& l,
+        const Expr::Literal::ResolvedStruct& r) {
+        return l.type_id != r.type_id && l.generic_params != r.generic_params &&
+               l.fields != r.fields;
+    }
+
+    bool operator!=(const Expr::Literal::ResolvedStruct::Field& l,
+        const Expr::Literal::ResolvedStruct::Field& r) {
+        return l.member_id != r.member_id && l.expr != r.expr &&
+               l.type != r.type;
+    }
+
     bool operator!=(const Expr::Unop& l, const Expr::Unop& r) {
         return l.expr != r.expr && l.op != r.op;
     }
@@ -553,10 +565,6 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::TryCast& l, const Expr::TryCast& r) {
         return l.expr != r.expr && l.type != r.type;
-    }
-
-    bool operator!=(const Expr::Ref& l, const Expr::Ref& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr;
     }
 
     bool operator!=(const Expr::Builtin& l, const Expr::Builtin& r) {
@@ -841,19 +849,13 @@ namespace std {
         return res;
     }
 
-    std::size_t hash<alvo::ast::Type::Ref>::operator()(
-        const alvo::ast::Type::Ref& n) const noexcept {
-        std::size_t is_invalid_hash =
-            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
-        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
-        std::size_t res = is_invalid_hash;
-        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        return res;
-    }
-
     std::size_t hash<alvo::ast::Type::LocalGeneric>::operator()(
         const alvo::ast::Type::LocalGeneric& n) const noexcept {
-        return std::hash<decltype(n.id)>()(n.id);
+        std::size_t id_hash = std::hash<decltype(n.id)>()(n.id);
+        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
+        std::size_t res = id_hash;
+        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
     }
 
     std::size_t hash<alvo::ast::Type::ResolvedUserDefinedType>::operator()(
@@ -979,6 +981,33 @@ namespace std {
         return res;
     }
 
+    std::size_t hash<alvo::ast::Expr::Literal::ResolvedStruct>::operator()(
+        const alvo::ast::Expr::Literal::ResolvedStruct& n) const noexcept {
+        std::size_t type_id_hash = std::hash<decltype(n.type_id)>()(n.type_id);
+        std::size_t generic_params_hash =
+            std::hash<decltype(n.generic_params)>()(n.generic_params);
+        std::size_t fields_hash = std::hash<decltype(n.fields)>()(n.fields);
+        std::size_t res = type_id_hash;
+        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
+               (res >> 2);
+        res ^= fields_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
+    std::size_t
+    hash<alvo::ast::Expr::Literal::ResolvedStruct::Field>::operator()(
+        const alvo::ast::Expr::Literal::ResolvedStruct::Field& n)
+        const noexcept {
+        std::size_t member_id_hash =
+            std::hash<decltype(n.member_id)>()(n.member_id);
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
+        std::size_t res = member_id_hash;
+        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
+    }
+
     std::size_t hash<alvo::ast::Expr::Unop>::operator()(
         const alvo::ast::Expr::Unop& n) const noexcept {
         std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
@@ -1042,16 +1071,6 @@ namespace std {
         std::size_t type_hash = std::hash<decltype(n.type)>()(n.type);
         std::size_t res = expr_hash;
         res ^= type_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        return res;
-    }
-
-    std::size_t hash<alvo::ast::Expr::Ref>::operator()(
-        const alvo::ast::Expr::Ref& n) const noexcept {
-        std::size_t is_invalid_hash =
-            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
-        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
-        std::size_t res = is_invalid_hash;
-        res ^= expr_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         return res;
     }
 

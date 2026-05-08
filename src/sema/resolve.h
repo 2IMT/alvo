@@ -10,6 +10,7 @@
 
 #include "../ast.h"
 #include "../diag.h"
+#include "../mem.h"
 
 namespace alvo::sema::resolve {
 
@@ -158,7 +159,10 @@ namespace alvo::sema::resolve {
             std::optional<ast::Id> assigned_id = std::nullopt);
     };
 
-    using GenericParams = std::unordered_map<std::string_view, GenericParam>;
+    struct GenericParams {
+        std::unordered_map<std::string_view, GenericParam> params;
+        std::vector<std::string_view> order;
+    };
 
     class ScopedIdStack {
     public:
@@ -369,7 +373,7 @@ namespace alvo::sema::resolve {
 
     class NameResolver {
     public:
-        NameResolver(NameIndex& name_index);
+        NameResolver(NameIndex& name_index, mem::Arena& arena);
 
         void set_diag_sink(diag::DiagSink& sink);
 
@@ -387,6 +391,8 @@ namespace alvo::sema::resolve {
             UserDefinedType::MemberFunc func;
         };
 
+        mem::Arena* m_arena;
+        ast::util::NodeCtx m_node_ctx;
         NameIndex* m_name_index;
         diag::DiagEmitter m_diag_emitter;
         ScopeStack<std::string_view, true> m_scope_stack;

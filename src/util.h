@@ -38,7 +38,7 @@ namespace alvo::util {
 
 #  define ALVO_UNREACHABLE()
 
-#  define ALVO_NOT_IMPLEMENTED()
+#  define ALVO_NOT_IMPLEMENTED() ::alvo::util::abort()
 
 #  define ALVO_ASSERT(cond_)
 

@@ -259,6 +259,12 @@ namespace alvo::ast::util {
             m_size++;
         }
 
+        void clear() {
+            m_head = nullptr;
+            m_tail = nullptr;
+            m_size = 0;
+        }
+
         std::size_t size() const { return m_size; }
 
         bool empty() const { return m_size == 0; }

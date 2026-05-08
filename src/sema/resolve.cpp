@@ -67,7 +67,9 @@ namespace alvo::sema::resolve {
         return res;
     }
 
-    NameResolver::NameResolver(NameIndex& name_index) :
+    NameResolver::NameResolver(NameIndex& name_index, mem::Arena& arena) :
+        m_arena(&arena),
+        m_node_ctx(arena),
         m_name_index(&name_index),
         m_diag_emitter(),
         m_scope_stack(),
@@ -124,7 +126,7 @@ namespace alvo::sema::resolve {
             if (ast_param.is_invalid) {
                 continue;
             }
-            if (params.contains(ast_param.name)) {
+            if (params.params.contains(ast_param.name)) {
                 err(diag::Err(diag::Err::DuplicateGenericParams {}));
                 continue;
             }
@@ -136,7 +138,8 @@ namespace alvo::sema::resolve {
                 }
                 bounds.insert(interface);
             }
-            params.insert({ ast_param.name, GenericParam(bounds) });
+            params.params.insert({ ast_param.name, GenericParam(bounds) });
+            params.order.push_back(ast_param.name);
         }
         return params;
     }
@@ -432,7 +435,6 @@ namespace alvo::sema::resolve {
                             interface = ast::Type::ResolvedUserDefinedType(
                                 type_id, name.generic_params);
                         },
-                        [&](const ast::Type::Ref&) { },
                         [&](const ast::Type::LocalGeneric&) {
                             ALVO_UNREACHABLE();
                         },
@@ -643,11 +645,6 @@ namespace alvo::sema::resolve {
                     resolve_ast_expr(*try_cast.expr);
                     resolve_ast_type(try_cast.type);
                 },
-                [&](ast::Expr::Ref& ref) {
-                    if (ref.is_invalid)
-                        return;
-                    resolve_ast_expr(*ref.expr);
-                },
                 [&](ast::Expr::Builtin& builtin) {
                     if (builtin.is_invalid)
                         return;
@@ -698,7 +695,6 @@ namespace alvo::sema::resolve {
                             [&](ast::Type::Tup&) { ALVO_NOT_IMPLEMENTED(); },
                             [&](ast::Type::Func&) { ALVO_NOT_IMPLEMENTED(); },
                             [&](ast::Type::Name&) { ALVO_UNREACHABLE(); },
-                            [&](ast::Type::Ref&) { ALVO_NOT_IMPLEMENTED(); },
                             [&](ast::Type::LocalGeneric& local_generic) {
                                 auto entry = m_generic_scope_stack.get_by_id(
                                     local_generic.id);
@@ -798,21 +794,129 @@ namespace alvo::sema::resolve {
                         array.val);
                 },
                 [&](ast::Expr::Literal::Tup& tup) {
-                    if (tup.is_invalid)
+                    if (tup.is_invalid) {
+                        literal.val = ast::Invalid {};
                         return;
+                    }
                     for (auto& expr : tup.exprs) {
                         resolve_ast_expr(expr);
                     }
                 },
                 [&](ast::Expr::Literal::Struct& struct_) {
-                    if (struct_.is_invalid)
+                    if (struct_.is_invalid) {
+                        literal.val = ast::Invalid {};
                         return;
-                    resolve_ast_type(struct_.type);
-                    for (auto& field : struct_.fields) {
-                        if (field.is_invalid)
-                            continue;
-                        resolve_ast_expr(*field.expr);
                     }
+
+                    resolve_ast_type(struct_.type);
+
+                    if (std::holds_alternative<ast::Invalid>(
+                            struct_.type.val)) {
+                        literal.val = ast::Invalid {};
+                        return;
+                    }
+
+                    if (auto udtype =
+                            std::get_if<ast::Type::ResolvedUserDefinedType>(
+                                &struct_.type.val)) {
+                        // struct_.type is user defined type
+                        //
+                        ALVO_ASSERT(m_name_index->user_defined_types.has_id(
+                            udtype->id));
+                        auto& type = m_name_index->user_defined_types.get_by_id(
+                            udtype->id);
+                        if (auto udtype_struct =
+                                std::get_if<UserDefinedType::Struct>(
+                                    &type.val)) {
+                            // struct_.type is struct
+
+                            using Field =
+                                UserDefinedType::Struct::Member::Field;
+
+                            struct FieldWithId {
+                                ast::Id id;
+                                Field* field;
+                            };
+
+                            std::unordered_map<std::string_view, FieldWithId>
+                                fields;
+                            for (auto member : udtype_struct->members) {
+                                // TODO: check struct fields
+                                if (auto field = std::get_if<Field>(
+                                        &member.element.val)) {
+                                    fields.insert(
+                                        { member.name, { member.id, field } });
+                                }
+                            }
+
+                            struct PopulatedField {
+                                ast::util::Ptr<ast::Expr> expr;
+                                ast::Type type;
+                            };
+
+                            std::unordered_map<ast::Id, PopulatedField>
+                                populated_fields;
+                            for (auto& field : struct_.fields) {
+                                if (!fields.contains(field.name)) {
+                                    err(diag::Err(
+                                        diag::Err::NoSuchFieldInStruct(
+                                            field.name)));
+                                    literal.val = ast::Invalid {};
+                                    return;
+                                }
+
+                                auto& field_with_id = fields.at(field.name);
+                                if (populated_fields.contains(
+                                        field_with_id.id)) {
+                                    err(diag::Err(diag::Err::
+                                            DuplicateStructFieldInitialization(
+                                                field.name)));
+                                    literal.val = ast::Invalid {};
+                                    return;
+                                }
+                                ast::util::Ptr<ast::Expr> expr = field.expr;
+                                resolve_ast_expr(*expr);
+                                populated_fields.insert({ field_with_id.id,
+                                    { expr, field_with_id.field->type } });
+                            }
+
+                            if (populated_fields.size() < fields.size()) {
+                                err(diag::Err(diag::Err::
+                                        IncompleteStructInitialization()));
+                                literal.val = ast::Invalid {};
+                                return;
+                            }
+
+                            using ResolvedStruct =
+                                ast::Expr::Literal::ResolvedStruct;
+                            using ResolvedField = ResolvedStruct::Field;
+
+                            ast::util::List<ResolvedField> resolved_fields;
+                            for (auto& [id, field] : populated_fields) {
+                                resolved_fields.push_back(*m_arena,
+                                    ResolvedField(id, field.expr, field.type));
+                            }
+
+                            literal.val = ResolvedStruct(udtype->id,
+                                udtype->generic_params, resolved_fields);
+                        } else {
+                            // struct_.type is not struct
+
+                            err(diag::Err(
+                                diag::Err::NonStructInStructLiteral {}));
+                            literal.val = ast::Invalid {};
+                            return;
+                        }
+                    } else {
+                        // is not user defined type
+
+                        err(diag::Err(diag::Err::NonStructInStructLiteral {}));
+                        literal.val = ast::Invalid {};
+                        return;
+                    }
+                },
+                [&](ast::Expr::Literal::ResolvedStruct&) {
+                    ALVO_UNREACHABLE();
                 },
                 [&](ast::util::Ptr<ast::Func> func) {
                     resolve_ast_func(*func);
@@ -856,7 +960,7 @@ namespace alvo::sema::resolve {
 
                     if (m_generic_scope_stack.has(name.name)) {
                         auto entry = m_generic_scope_stack.get(name.name);
-                        type.val = ast::Type::LocalGeneric(entry.id);
+                        type.val = ast::Type::LocalGeneric(entry.id, name.name);
                         return;
                     }
 
@@ -870,11 +974,6 @@ namespace alvo::sema::resolve {
                     err(diag::Err(diag::Err::UndeclaredType(name.name)));
                     type.val = ast::Invalid {};
                 },
-                [&](ast::Type::Ref& ref) {
-                    if (ref.is_invalid)
-                        return;
-                    resolve_ast_type(*ref.type);
-                },
                 [&](ast::Type::LocalGeneric&) { ALVO_UNREACHABLE(); },
                 [&](ast::Type::ResolvedUserDefinedType&) {
                     ALVO_UNREACHABLE();
@@ -883,7 +982,7 @@ namespace alvo::sema::resolve {
     }
 
     void NameResolver::resolve_generic_params(GenericParams& generic_params) {
-        for (auto param : generic_params) {
+        for (auto param : generic_params.params) {
             Bounds resolved_bounds;
             for (auto& bound : param.second.bounds) {
                 ast::Type tmp = bound;

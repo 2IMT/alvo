@@ -52,8 +52,6 @@ namespace alvo::parse {
 
         ast::Type::Name parse_type_name();
 
-        ast::Type::Ref parse_type_ref();
-
         ast::Expr parse_expr();
 
         ast::Expr::Literal parse_expr_literal();
@@ -69,8 +67,6 @@ namespace alvo::parse {
         ast::Expr::Name parse_expr_name();
 
         ast::Expr::TypeMemberAccess parse_expr_type_member_access();
-
-        ast::Expr::Ref parse_expr_ref();
 
         ast::Expr::Builtin parse_expr_builtin();
 

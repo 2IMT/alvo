@@ -33,18 +33,15 @@
         "name": "std::string_view",
         "generic_params": "util::List<Type>"
       },
-      "Ref": {
-        "is_invalid": "bool",
-        "type": "util::Ptr<Type>"
-      },
       "LocalGeneric": {
-        "id": "Id"
+        "id": "Id",
+        "name": "std::string_view"
       },
       "ResolvedUserDefinedType": {
         "id": "Id",
         "generic_params": "util::List<Type>"
       },
-      "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Name, Ref, LocalGeneric, ResolvedUserDefinedType>",
+      "@Val": "std::variant<Invalid, Unit, String, Char, Int, Byte, Float, Bool, Array, Tup, Func, Name, LocalGeneric, ResolvedUserDefinedType>",
       "val": "Val"
     },
     "Expr": {
@@ -97,7 +94,17 @@
           "type": "Type",
           "fields": "util::List<Field>"
         },
-        "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, Struct, util::Ptr<Func>>",
+        "ResolvedStruct": {
+          "Field": {
+            "member_id": "Id",
+            "expr": "util::Ptr<Expr>",
+            "type": "Type"
+          },
+          "type_id": "Id",
+          "generic_params": "util::List<Type>",
+          "fields": "util::List<Field>"
+        },
+        "@Val": "std::variant<Invalid, Unit, Null, String, Character, Integer, Byte, Floating, Boolean, Array, Tup, Struct, ResolvedStruct, util::Ptr<Func>>",
         "val": "Val"
       },
       "Unop": {
@@ -158,10 +165,6 @@
         "expr": "util::Ptr<Expr>",
         "type": "Type"
       },
-      "Ref": {
-        "is_invalid": "bool",
-        "expr": "util::Ptr<Expr>"
-      },
       "Builtin": {
         "is_invalid": "bool",
         "name": "std::string_view",
@@ -199,7 +202,7 @@
         "name": "std::string_view",
         "generic_params": "util::List<Type>"
       },
-      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Ref, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, ResolvedDecl, ResolvedTypeMemberAccess, ResolvedGenericMemberAccess>",
+      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, ResolvedDecl, ResolvedTypeMemberAccess, ResolvedGenericMemberAccess>",
       "val": "Val"
     },
     "Block": {
@@ -211,7 +214,7 @@
         "is_invalid": "bool",
         "name": "std::string_view",
         "type": "std::optional<Type>",
-        "expr": "std::optional<Expr>"
+        "expr": "Expr"
       },
       "If": {
         "Elif": {

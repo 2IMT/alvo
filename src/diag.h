@@ -4,6 +4,7 @@
 #include <variant>
 #include <ostream>
 
+#include "ast.h"
 #include "tok.h"
 
 namespace alvo::diag {
@@ -90,6 +91,40 @@ namespace alvo::diag {
             std::string_view name;
         };
 
+        struct NonStructInStructLiteral { };
+
+        struct NoSuchFieldInStruct {
+            std::string_view field;
+        };
+
+        struct DuplicateStructFieldInitialization {
+            std::string_view field;
+        };
+
+        struct IncompleteStructInitialization { };
+
+        // From typechecker
+
+        struct BadSwitchExprType { };
+
+        struct CantInferTypeOfNullLiteral { };
+
+        struct CantInferTypeOfArrayLiteral { };
+
+        struct Expected {
+            std::string_view expected;
+        };
+
+        struct ExpectedType {
+            ast::Type type;
+        };
+
+        struct CantBeNull { };
+
+        struct TupleLiteralArgumentCountMismatch { };
+
+        struct BadUnaryExpressionType { };
+
         using Val = std::variant<None, UnexpectedCharacter,
             NonPrintableCharacterInCharacterLiteral,
             NonPrintableCharacterInStringLiteral, UnterminatedString,
@@ -102,7 +137,11 @@ namespace alvo::diag {
             NotAnInterface, DuplicateFuncParamName,
             MemberAccessOnGenericWithNoBounds, NoMemberFound, UndeclaredType,
             InvalidBounds, NotAFunction, AmbiguousReference, TypeRedefinition,
-            VariableRedefinition>;
+            VariableRedefinition, NonStructInStructLiteral, NoSuchFieldInStruct,
+            DuplicateStructFieldInitialization, IncompleteStructInitialization,
+            BadSwitchExprType, CantInferTypeOfNullLiteral,
+            CantInferTypeOfArrayLiteral, Expected, ExpectedType, CantBeNull,
+            TupleLiteralArgumentCountMismatch, BadUnaryExpressionType>;
 
         Val val;
 

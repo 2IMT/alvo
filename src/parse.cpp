@@ -51,7 +51,6 @@ namespace alvo::parse {
         DashRAngle,
         KwElse,
         KwElif,
-        KwRef,
         KwBuiltin,
     };
 
@@ -145,8 +144,6 @@ namespace alvo::parse {
             val = parse_type_func();
         } else if (curr_is(Ident)) {
             val = parse_type_name();
-        } else if (curr_is(KwRef)) {
-            val = parse_type_ref();
         } else {
             // Err
             synchronize({ Ident, KwRoot, KwSuper, LBracket, KwTup, KwFunc,
@@ -251,28 +248,6 @@ namespace alvo::parse {
         }
 
         return Type::Name(false, name, generic_params);
-    }
-
-    Type::Ref Parser::parse_type_ref() {
-        SectionGuard section_guard(this, __func__);
-
-        if (!expect(KwRef)) {
-            synchronize(TYPE_CTX_SYNC);
-            return Type::Ref(true, Ptr<Type>::null());
-        }
-
-        if (!expect(LParen)) {
-            synchronize(TYPE_CTX_SYNC);
-            return Type::Ref(true, Ptr<Type>::null());
-        }
-
-        Ptr<Type> type = m_node_ctx.make_node<Type>(parse_type());
-
-        if (!expect(RParen)) {
-            synchronize(TYPE_CTX_SYNC);
-        }
-
-        return Type::Ref(false, type);
     }
 
     Expr Parser::parse_expr() {
@@ -484,28 +459,6 @@ namespace alvo::parse {
         return Expr::TypeMemberAccess(false, type, name);
     }
 
-    Expr::Ref Parser::parse_expr_ref() {
-        SectionGuard section_guard(this, __func__);
-
-        if (!expect(KwRef)) {
-            synchronize(EXPR_CTX_SYNC);
-            return Expr::Ref(true, Ptr<Expr>::null());
-        }
-
-        if (!expect(LParen)) {
-            synchronize(EXPR_CTX_SYNC);
-            return Expr::Ref(true, Ptr<Expr>::null());
-        }
-
-        Ptr<Expr> expr = m_node_ctx.make_node<Expr>(parse_expr());
-
-        if (!expect(RParen)) {
-            synchronize(EXPR_CTX_SYNC);
-        }
-
-        return Expr::Ref(false, expr);
-    }
-
     Expr::Builtin Parser::parse_expr_builtin() {
         SectionGuard section_guard(this, __func__);
 
@@ -628,20 +581,20 @@ namespace alvo::parse {
 
         std::string_view name;
         std::optional<Type> type = std::nullopt;
-        std::optional<Expr> expr = std::nullopt;
         if (!expect(KwLet)) {
             synchronize(STMT_CTX_SYNC);
-            return Stmt::Let(true, name, type, expr);
+            return Stmt::Let(true, name, type, Expr(Invalid {}));
         }
         std::optional<tok::Tok> name_tok = expect_and_get(Ident);
         if (!name_tok) {
             synchronize(STMT_CTX_SYNC);
-            return Stmt::Let(true, name, type, expr);
+            return Stmt::Let(true, name, type, Expr(Invalid {}));
         }
         name = (*name_tok).value;
         if (accept(Colon)) {
             type = parse_type();
         }
+        Expr expr(Invalid {});
         if (accept(Eq)) {
             expr = parse_expr();
         }
@@ -1307,8 +1260,6 @@ namespace alvo::parse {
                    curr_is(LBracket) || curr_is(KwTup) || curr_is(KwStruct) ||
                    curr_is(KwFunc)) {
             lhs.val = parse_expr_literal();
-        } else if (curr_is(KwRef)) {
-            lhs.val = parse_expr_ref();
         } else if (curr_is(KwBuiltin)) {
             lhs.val = parse_expr_builtin();
         } else if (curr_is(ColonColon)) {
