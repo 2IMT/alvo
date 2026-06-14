@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <optional>
+#include <utility>
 
 #include "resolve.h"
 #include "../ast.h"
@@ -10,6 +11,25 @@
 #include "../ast/util.h"
 
 namespace alvo::sema::typecheck {
+
+    struct Value {
+        ast::Type type;
+        bool is_assignable;
+
+        Value(const ast::Type& type, bool is_assignable) :
+            type(type),
+            is_assignable(is_assignable) { }
+
+        Value(const ast::Type& type) :
+            type(type),
+            is_assignable(false) { }
+
+        Value(ast::Type&& type) :
+            type(type),
+            is_assignable(false) { }
+
+        operator ast::Type() { return type; }
+    };
 
     class Typechecker {
     public:
@@ -51,61 +71,56 @@ namespace alvo::sema::typecheck {
 
         void typecheck_ast_stmt_defer(ast::Stmt::Defer& defer);
 
-        ast::Type typecheck_ast_expr(ast::Expr& expr,
+        Value typecheck_ast_expr(ast::Expr& expr,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_literal(ast::Expr::Literal& lit,
+        Value typecheck_ast_expr_literal(ast::Expr::Literal& lit,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_literal_array(
-            ast::Expr::Literal::Array& array,
+        Value typecheck_ast_expr_literal_array(ast::Expr::Literal::Array& array,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_literal_tup(ast::Expr::Literal::Tup& tup,
+        Value typecheck_ast_expr_literal_tup(ast::Expr::Literal::Tup& tup,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_literal_resolved_struct(
+        Value typecheck_ast_expr_literal_resolved_struct(
             ast::Expr::Literal::ResolvedStruct& struct_,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_unop(ast::Expr::Unop& unop,
+        Value typecheck_ast_expr_unop(ast::Expr::Unop& unop,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_binop(ast::Expr::Binop& binop,
+        Value typecheck_ast_expr_binop(ast::Expr::Binop& binop,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_index(ast::Expr::Index& index,
+        Value typecheck_ast_expr_index(ast::Expr::Index& index,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_call(ast::Expr::Call& call,
+        Value typecheck_ast_expr_call(ast::Expr::Call& call,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_cast(ast::Expr::Cast& cast,
+        Value typecheck_ast_expr_cast(ast::Expr::Cast& cast,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_try_cast(ast::Expr::TryCast& try_cast,
+        Value typecheck_ast_expr_try_cast(ast::Expr::TryCast& try_cast,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_builtin(ast::Expr::Builtin& builtin,
+        Value typecheck_ast_expr_builtin(ast::Expr::Builtin& builtin,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_member_access(
-            ast::Expr::MemberAccess& member_access,
+        std::pair<Value, ast::Expr::ResolvedMemberAccess>
+        typecheck_ast_expr_member_access(ast::Expr::MemberAccess& member_access,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_local_var(ast::Expr::LocalVar& local_var,
+        Value typecheck_ast_expr_local_var(ast::Expr::LocalVar& local_var,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_resolved_decl(
+        Value typecheck_ast_expr_resolved_decl(
             ast::Expr::ResolvedDecl& resolved_decl,
             std::optional<ast::Type> expected_type = std::nullopt);
 
-        ast::Type typecheck_ast_expr_resolved_type_member_access(
-            ast::Expr::ResolvedTypeMemberAccess& resolved_decl,
-            std::optional<ast::Type> expected_type = std::nullopt);
-
-        ast::Type typecheck_ast_expr_resolved_generic_member_access(
-            ast::Expr::ResolvedGenericMemberAccess& resolved_decl,
+        Value typecheck_ast_expr_resolved_type_member_access(
+            ast::Expr::ResolvedTypeMemberAccess& resolved_type_member_access,
             std::optional<ast::Type> expected_type = std::nullopt);
 
     private:
@@ -113,7 +128,7 @@ namespace alvo::sema::typecheck {
         mem::Arena* m_arena;
         ast::util::NodeCtx m_node_ctx;
         diag::DiagEmitter m_diag_emitter;
-        resolve::ScopeStack<ast::Type, false> m_scope_stack;
+        resolve::ScopeStack<ast::Type, true> m_scope_stack;
         resolve::ScopeStack<resolve::GenericParam, false> m_generic_scope_stack;
 
         void put_generic_params(const resolve::GenericParams& generic_params);
@@ -126,6 +141,18 @@ namespace alvo::sema::typecheck {
 
         std::optional<ast::Id> instantiate_type(
             ast::Id id, const ast::util::List<ast::Type> generic_params);
+
+        std::optional<ast::Id> instantiate_member(ast::Id type_id,
+            ast::Id member_id, const ast::util::List<ast::Type> generic_params);
+
+        std::optional<ast::Id> instantiate_named_member(ast::Id type_id,
+            std::string_view member_name,
+            const ast::util::List<ast::Type> generic_params);
+
+        std::optional<ast::Id> instantiate_decl(
+            ast::Id decl_id, const ast::util::List<ast::Type> generic_params);
+
+        ast::Type::Func decl_func_to_type_func(const ast::Func& func);
     };
 
 }

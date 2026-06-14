@@ -103,6 +103,10 @@ namespace alvo::diag {
 
         struct IncompleteStructInitialization { };
 
+        struct UndeclaredIdentifier {
+            std::string_view name;
+        };
+
         // From typechecker
 
         struct BadSwitchExprType { };
@@ -125,6 +129,32 @@ namespace alvo::diag {
 
         struct BadUnaryExpressionType { };
 
+        struct AttemptedToIndexNonArray { };
+
+        struct NonIntegerIndex { };
+
+        struct IncompatibleTypesInBinaryExpression { };
+
+        struct ExpressionNotAssignable { };
+
+        struct BadTypeForBinaryExpression { };
+
+        struct AttemptedToCallNonFunction { };
+
+        struct IncorrectNumberOfArgumentsForFunctionCall { };
+
+        struct BadCastType { };
+
+        struct BadCastExprType { };
+
+        struct BadTypeMemberAccessType { };
+
+        struct NotAllPathsReturn { };
+
+        struct UnexpectedReturnType { };
+
+        struct MemberAccessOnNonStruct { };
+
         using Val = std::variant<None, UnexpectedCharacter,
             NonPrintableCharacterInCharacterLiteral,
             NonPrintableCharacterInStringLiteral, UnterminatedString,
@@ -139,9 +169,15 @@ namespace alvo::diag {
             InvalidBounds, NotAFunction, AmbiguousReference, TypeRedefinition,
             VariableRedefinition, NonStructInStructLiteral, NoSuchFieldInStruct,
             DuplicateStructFieldInitialization, IncompleteStructInitialization,
-            BadSwitchExprType, CantInferTypeOfNullLiteral,
+            UndeclaredIdentifier, BadSwitchExprType, CantInferTypeOfNullLiteral,
             CantInferTypeOfArrayLiteral, Expected, ExpectedType, CantBeNull,
-            TupleLiteralArgumentCountMismatch, BadUnaryExpressionType>;
+            TupleLiteralArgumentCountMismatch, BadUnaryExpressionType,
+            AttemptedToIndexNonArray, NonIntegerIndex,
+            IncompatibleTypesInBinaryExpression, ExpressionNotAssignable,
+            BadTypeForBinaryExpression, AttemptedToCallNonFunction,
+            IncorrectNumberOfArgumentsForFunctionCall, BadCastType,
+            BadCastExprType, BadTypeMemberAccessType, NotAllPathsReturn,
+            UnexpectedReturnType, MemberAccessOnNonStruct>;
 
         Val val;
 

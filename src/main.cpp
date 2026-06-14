@@ -14,6 +14,7 @@
 #include "mem.h"
 #include "args.h"
 #include "sema/resolve.h"
+#include "sema/typecheck.h"
 
 class Handler {
 public:
@@ -92,6 +93,7 @@ void eat_all_tokens(alvo::lex::Lexer& lexer) {
 }
 
 int main(int argc, char** argv) {
+
     using namespace alvo;
     using args::Args;
     using args::ArgsResult;
@@ -151,10 +153,15 @@ int main(int argc, char** argv) {
     using namespace sema;
 
     resolve::NameIndex name_index;
-    resolve::NameResolver name_resolver(name_index);
+    resolve::NameResolver name_resolver(name_index, node_arena);
     name_resolver.set_diag_sink(diag_sink);
 
     name_resolver.resolve(module);
+
+    typecheck::Typechecker typechecker(name_index, node_arena);
+    typechecker.set_diag_sink(diag_sink);
+
+    typechecker.typecheck();
 
     if (args->show_allocs) {
         std::size_t alloced = node_arena.get_total_allocated();

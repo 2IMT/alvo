@@ -443,23 +443,20 @@ namespace alvo::ast {
                 generic_params(generic_params) { }
         };
 
-        struct ResolvedGenericMemberAccess {
-            Id generic_id;
-            std::string_view name;
-            util::List<Type> generic_params;
+        struct ResolvedMemberAccess {
+            util::Ptr<Expr> expr;
+            Id member_id;
 
-            ResolvedGenericMemberAccess(const Id& generic_id,
-                const std::string_view& name,
-                const util::List<Type>& generic_params) :
-                generic_id(generic_id),
-                name(name),
-                generic_params(generic_params) { }
+            ResolvedMemberAccess(
+                const util::Ptr<Expr>& expr, const Id& member_id) :
+                expr(expr),
+                member_id(member_id) { }
         };
 
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
             Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess,
             LocalVar, ResolvedDecl, ResolvedTypeMemberAccess,
-            ResolvedGenericMemberAccess>;
+            ResolvedMemberAccess>;
         Val val;
 
         Expr(const Val& val) :
@@ -860,8 +857,8 @@ namespace alvo::ast {
     bool operator==(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
     bool operator==(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r);
-    bool operator==(const Expr::ResolvedGenericMemberAccess& l,
-        const Expr::ResolvedGenericMemberAccess& r);
+    bool operator==(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r);
     bool operator==(const Block& l, const Block& r);
     bool operator==(const Stmt& l, const Stmt& r);
     bool operator==(const Stmt::Let& l, const Stmt::Let& r);
@@ -969,8 +966,8 @@ namespace alvo::ast {
     bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
     bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r);
-    bool operator!=(const Expr::ResolvedGenericMemberAccess& l,
-        const Expr::ResolvedGenericMemberAccess& r);
+    bool operator!=(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r);
     bool operator!=(const Block& l, const Block& r);
     bool operator!=(const Stmt& l, const Stmt& r);
     bool operator!=(const Stmt::Let& l, const Stmt::Let& r);
@@ -1068,7 +1065,7 @@ namespace alvo::ast {
         void print_node(const Expr::LocalVar& n);
         void print_node(const Expr::ResolvedDecl& n);
         void print_node(const Expr::ResolvedTypeMemberAccess& n);
-        void print_node(const Expr::ResolvedGenericMemberAccess& n);
+        void print_node(const Expr::ResolvedMemberAccess& n);
         void print_node(const Block& n);
         void print_node(const Stmt& n);
         void print_node(const Stmt::Let& n);
@@ -1574,11 +1571,10 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
-    void Printer<Sink>::print_node(const Expr::ResolvedGenericMemberAccess& n) {
-        node_begin("ResolvedGenericMemberAccess");
-        field("generic_id", n.generic_id);
-        field("name", n.name);
-        field("generic_params", n.generic_params);
+    void Printer<Sink>::print_node(const Expr::ResolvedMemberAccess& n) {
+        node_begin("ResolvedMemberAccess");
+        field("expr", n.expr);
+        field("member_id", n.member_id);
         node_end();
     }
 
@@ -1831,6 +1827,488 @@ namespace alvo::ast {
         field("decls", n.decls);
         node_end();
     }
+
+    template<>
+    struct util::Clone<alvo::ast::Invalid> {
+        alvo::ast::Invalid operator()(
+            const alvo::ast::Invalid& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Id> {
+        alvo::ast::Id operator()(const alvo::ast::Id& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type> {
+        alvo::ast::Type operator()(const alvo::ast::Type& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Unit> {
+        alvo::ast::Type::Unit operator()(
+            const alvo::ast::Type::Unit& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::String> {
+        alvo::ast::Type::String operator()(
+            const alvo::ast::Type::String& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Char> {
+        alvo::ast::Type::Char operator()(
+            const alvo::ast::Type::Char& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Int> {
+        alvo::ast::Type::Int operator()(
+            const alvo::ast::Type::Int& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Byte> {
+        alvo::ast::Type::Byte operator()(
+            const alvo::ast::Type::Byte& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Float> {
+        alvo::ast::Type::Float operator()(
+            const alvo::ast::Type::Float& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Bool> {
+        alvo::ast::Type::Bool operator()(
+            const alvo::ast::Type::Bool& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Array> {
+        alvo::ast::Type::Array operator()(
+            const alvo::ast::Type::Array& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Tup> {
+        alvo::ast::Type::Tup operator()(
+            const alvo::ast::Type::Tup& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Func> {
+        alvo::ast::Type::Func operator()(
+            const alvo::ast::Type::Func& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::Name> {
+        alvo::ast::Type::Name operator()(
+            const alvo::ast::Type::Name& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::LocalGeneric> {
+        alvo::ast::Type::LocalGeneric operator()(
+            const alvo::ast::Type::LocalGeneric& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Type::ResolvedUserDefinedType> {
+        alvo::ast::Type::ResolvedUserDefinedType operator()(
+            const alvo::ast::Type::ResolvedUserDefinedType& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr> {
+        alvo::ast::Expr operator()(const alvo::ast::Expr& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal> {
+        alvo::ast::Expr::Literal operator()(
+            const alvo::ast::Expr::Literal& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Unit> {
+        alvo::ast::Expr::Literal::Unit operator()(
+            const alvo::ast::Expr::Literal::Unit& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Null> {
+        alvo::ast::Expr::Literal::Null operator()(
+            const alvo::ast::Expr::Literal::Null& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::String> {
+        alvo::ast::Expr::Literal::String operator()(
+            const alvo::ast::Expr::Literal::String& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Character> {
+        alvo::ast::Expr::Literal::Character operator()(
+            const alvo::ast::Expr::Literal::Character& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Integer> {
+        alvo::ast::Expr::Literal::Integer operator()(
+            const alvo::ast::Expr::Literal::Integer& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Byte> {
+        alvo::ast::Expr::Literal::Byte operator()(
+            const alvo::ast::Expr::Literal::Byte& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Floating> {
+        alvo::ast::Expr::Literal::Floating operator()(
+            const alvo::ast::Expr::Literal::Floating& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Boolean> {
+        alvo::ast::Expr::Literal::Boolean operator()(
+            const alvo::ast::Expr::Literal::Boolean& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Array> {
+        alvo::ast::Expr::Literal::Array operator()(
+            const alvo::ast::Expr::Literal::Array& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Array::Regular> {
+        alvo::ast::Expr::Literal::Array::Regular operator()(
+            const alvo::ast::Expr::Literal::Array::Regular& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Array::DefaultNTimes> {
+        alvo::ast::Expr::Literal::Array::DefaultNTimes operator()(
+            const alvo::ast::Expr::Literal::Array::DefaultNTimes& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Array::ExprNTimes> {
+        alvo::ast::Expr::Literal::Array::ExprNTimes operator()(
+            const alvo::ast::Expr::Literal::Array::ExprNTimes& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Tup> {
+        alvo::ast::Expr::Literal::Tup operator()(
+            const alvo::ast::Expr::Literal::Tup& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Struct> {
+        alvo::ast::Expr::Literal::Struct operator()(
+            const alvo::ast::Expr::Literal::Struct& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::Struct::Field> {
+        alvo::ast::Expr::Literal::Struct::Field operator()(
+            const alvo::ast::Expr::Literal::Struct::Field& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::ResolvedStruct> {
+        alvo::ast::Expr::Literal::ResolvedStruct operator()(
+            const alvo::ast::Expr::Literal::ResolvedStruct& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Literal::ResolvedStruct::Field> {
+        alvo::ast::Expr::Literal::ResolvedStruct::Field operator()(
+            const alvo::ast::Expr::Literal::ResolvedStruct::Field& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Unop> {
+        alvo::ast::Expr::Unop operator()(
+            const alvo::ast::Expr::Unop& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Unop::Op> {
+        alvo::ast::Expr::Unop::Op operator()(
+            const alvo::ast::Expr::Unop::Op& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Binop> {
+        alvo::ast::Expr::Binop operator()(
+            const alvo::ast::Expr::Binop& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Binop::Op> {
+        alvo::ast::Expr::Binop::Op operator()(
+            const alvo::ast::Expr::Binop::Op& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Index> {
+        alvo::ast::Expr::Index operator()(
+            const alvo::ast::Expr::Index& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Call> {
+        alvo::ast::Expr::Call operator()(
+            const alvo::ast::Expr::Call& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Cast> {
+        alvo::ast::Expr::Cast operator()(
+            const alvo::ast::Expr::Cast& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::TryCast> {
+        alvo::ast::Expr::TryCast operator()(
+            const alvo::ast::Expr::TryCast& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Builtin> {
+        alvo::ast::Expr::Builtin operator()(
+            const alvo::ast::Expr::Builtin& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::Name> {
+        alvo::ast::Expr::Name operator()(
+            const alvo::ast::Expr::Name& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::TypeMemberAccess> {
+        alvo::ast::Expr::TypeMemberAccess operator()(
+            const alvo::ast::Expr::TypeMemberAccess& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::MemberAccess> {
+        alvo::ast::Expr::MemberAccess operator()(
+            const alvo::ast::Expr::MemberAccess& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::LocalVar> {
+        alvo::ast::Expr::LocalVar operator()(
+            const alvo::ast::Expr::LocalVar& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::ResolvedDecl> {
+        alvo::ast::Expr::ResolvedDecl operator()(
+            const alvo::ast::Expr::ResolvedDecl& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::ResolvedTypeMemberAccess> {
+        alvo::ast::Expr::ResolvedTypeMemberAccess operator()(
+            const alvo::ast::Expr::ResolvedTypeMemberAccess& n,
+            mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Expr::ResolvedMemberAccess> {
+        alvo::ast::Expr::ResolvedMemberAccess operator()(
+            const alvo::ast::Expr::ResolvedMemberAccess& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Block> {
+        alvo::ast::Block operator()(
+            const alvo::ast::Block& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt> {
+        alvo::ast::Stmt operator()(const alvo::ast::Stmt& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Let> {
+        alvo::ast::Stmt::Let operator()(
+            const alvo::ast::Stmt::Let& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::If> {
+        alvo::ast::Stmt::If operator()(
+            const alvo::ast::Stmt::If& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::If::Elif> {
+        alvo::ast::Stmt::If::Elif operator()(
+            const alvo::ast::Stmt::If::Elif& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Switch> {
+        alvo::ast::Stmt::Switch operator()(
+            const alvo::ast::Stmt::Switch& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Switch::Case> {
+        alvo::ast::Stmt::Switch::Case operator()(
+            const alvo::ast::Stmt::Switch::Case& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Loop> {
+        alvo::ast::Stmt::Loop operator()(
+            const alvo::ast::Stmt::Loop& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::For> {
+        alvo::ast::Stmt::For operator()(
+            const alvo::ast::Stmt::For& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::While> {
+        alvo::ast::Stmt::While operator()(
+            const alvo::ast::Stmt::While& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Return> {
+        alvo::ast::Stmt::Return operator()(
+            const alvo::ast::Stmt::Return& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Defer> {
+        alvo::ast::Stmt::Defer operator()(
+            const alvo::ast::Stmt::Defer& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Continue> {
+        alvo::ast::Stmt::Continue operator()(
+            const alvo::ast::Stmt::Continue& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Break> {
+        alvo::ast::Stmt::Break operator()(
+            const alvo::ast::Stmt::Break& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Func> {
+        alvo::ast::Func operator()(const alvo::ast::Func& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Func::Signature> {
+        alvo::ast::Func::Signature operator()(
+            const alvo::ast::Func::Signature& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Func::Signature::Param> {
+        alvo::ast::Func::Signature::Param operator()(
+            const alvo::ast::Func::Signature::Param& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl> {
+        alvo::ast::Decl operator()(const alvo::ast::Decl& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::GenericParam> {
+        alvo::ast::Decl::GenericParam operator()(
+            const alvo::ast::Decl::GenericParam& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::DeclsBlock> {
+        alvo::ast::Decl::DeclsBlock operator()(
+            const alvo::ast::Decl::DeclsBlock& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Struct> {
+        alvo::ast::Decl::Struct operator()(
+            const alvo::ast::Decl::Struct& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Struct::Field> {
+        alvo::ast::Decl::Struct::Field operator()(
+            const alvo::ast::Decl::Struct::Field& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Enum> {
+        alvo::ast::Decl::Enum operator()(
+            const alvo::ast::Decl::Enum& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Enum::Element> {
+        alvo::ast::Decl::Enum::Element operator()(
+            const alvo::ast::Decl::Enum::Element& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::TypeAlias> {
+        alvo::ast::Decl::TypeAlias operator()(
+            const alvo::ast::Decl::TypeAlias& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Const> {
+        alvo::ast::Decl::Const operator()(
+            const alvo::ast::Decl::Const& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Interface> {
+        alvo::ast::Decl::Interface operator()(
+            const alvo::ast::Decl::Interface& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Decl::Interface::Member> {
+        alvo::ast::Decl::Interface::Member operator()(
+            const alvo::ast::Decl::Interface::Member& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Module> {
+        alvo::ast::Module operator()(
+            const alvo::ast::Module& n, mem::Arena& arena);
+    };
 
 }
 
@@ -2119,10 +2597,9 @@ namespace std {
     };
 
     template<>
-    struct hash<alvo::ast::Expr::ResolvedGenericMemberAccess> {
+    struct hash<alvo::ast::Expr::ResolvedMemberAccess> {
         std::size_t operator()(
-            const alvo::ast::Expr::ResolvedGenericMemberAccess& n)
-            const noexcept;
+            const alvo::ast::Expr::ResolvedMemberAccess& n) const noexcept;
     };
 
     template<>

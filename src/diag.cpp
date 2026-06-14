@@ -119,9 +119,87 @@ namespace alvo::diag {
                 [this](const Err::VariableRedefinition& r) {
                     fmt::print(*m_os, "redefinition of variable `{}`", r.name);
                 },
+                [this](const Err::NonStructInStructLiteral&) {
+                    fmt::print(*m_os, "non-struct in struct literal");
+                },
+                [this](const Err::NoSuchFieldInStruct&) {
+                    fmt::print(*m_os, "no such field in struct");
+                },
+                [this](const Err::DuplicateStructFieldInitialization&) {
+                    fmt::print(*m_os, "duplicate struct field initialization");
+                },
+                [this](const Err::IncompleteStructInitialization&) {
+                    fmt::print(*m_os, "incomplete struct initialization");
+                },
+                [this](const Err::UndeclaredIdentifier& u) {
+                    fmt::print(*m_os, "undeclared identifier `{}`", u.name);
+                },
                 [this](const Err::BadSwitchExprType&) {
                     fmt::print(*m_os, "bad type of switch expression");
-                } },
+                },
+                [this](const Err::CantInferTypeOfNullLiteral&) {
+                    fmt::print(*m_os, "can't infer type of null literal");
+                },
+                [this](const Err::CantInferTypeOfArrayLiteral&) {
+                    fmt::print(*m_os, "can't infer type of array literal");
+                },
+                [this](const Err::Expected& expected) {
+                    fmt::print(*m_os, "expected `{}`", expected.expected);
+                },
+                [this](const Err::ExpectedType&) {
+                    fmt::print(*m_os, "expected type `{}`", "type");
+                },
+                [this](const Err::CantBeNull&) {
+                    fmt::print(*m_os, "expr can't be null");
+                },
+                [this](const Err::TupleLiteralArgumentCountMismatch&) {
+                    fmt::print(*m_os, "tuple literal argument count mismatch");
+                },
+                [this](const Err::BadUnaryExpressionType&) {
+                    fmt::print(*m_os, "bad unary expression type");
+                },
+                [this](const Err::AttemptedToIndexNonArray&) {
+                    fmt::print(*m_os, "attempted to index non array");
+                },
+                [this](const Err::NonIntegerIndex&) {
+                    fmt::print(*m_os, "non integer index");
+                },
+                [this](const Err::IncompatibleTypesInBinaryExpression&) {
+                    fmt::print(
+                        *m_os, "incompatible types in binary expression");
+                },
+                [this](const Err::ExpressionNotAssignable&) {
+                    fmt::print(*m_os, "expression not assignable");
+                },
+                [this](const Err::BadTypeForBinaryExpression&) {
+                    fmt::print(*m_os, "bad type for binary expression");
+                },
+                [this](const Err::AttemptedToCallNonFunction&) {
+                    fmt::print(*m_os, "attempted to call non-function");
+                },
+                [this](const Err::IncorrectNumberOfArgumentsForFunctionCall&) {
+                    fmt::print(*m_os,
+                        "incorrect number of argument for function call");
+                },
+                [this](const Err::BadCastType&) {
+                    fmt::print(*m_os, "bad cast type");
+                },
+                [this](const Err::BadCastExprType&) {
+                    fmt::print(*m_os, "bad cast expression type");
+                },
+                [this](const Err::BadTypeMemberAccessType&) {
+                    fmt::print(*m_os, "bad type member access type");
+                },
+                [this](const Err::NotAllPathsReturn&) {
+                    fmt::print(*m_os, "not all paths return a value");
+                },
+                [this](const Err::UnexpectedReturnType&) {
+                    fmt::print(*m_os, "unexpected return type");
+                },
+                [this](const Err::MemberAccessOnNonStruct&) {
+                    fmt::print(*m_os, "member access on non-struct");
+                },
+            },
             err.val);
         fmt::print("\n");
     }

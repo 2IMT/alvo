@@ -232,10 +232,9 @@ namespace alvo::ast {
                l.generic_params == r.generic_params;
     }
 
-    bool operator==(const Expr::ResolvedGenericMemberAccess& l,
-        const Expr::ResolvedGenericMemberAccess& r) {
-        return l.generic_id == r.generic_id && l.name == r.name &&
-               l.generic_params == r.generic_params;
+    bool operator==(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r) {
+        return l.expr == r.expr && l.member_id == r.member_id;
     }
 
     bool operator==(const Block& l, const Block& r) {
@@ -380,7 +379,7 @@ namespace alvo::ast {
 
     bool operator!=(
         [[maybe_unused]] const Invalid& l, [[maybe_unused]] const Invalid& r) {
-        return true;
+        return false;
     }
 
     bool operator!=(const Id& l, const Id& r) { return l.id != r.id; }
@@ -389,64 +388,64 @@ namespace alvo::ast {
 
     bool operator!=([[maybe_unused]] const Type::Unit& l,
         [[maybe_unused]] const Type::Unit& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Type::String& l,
         [[maybe_unused]] const Type::String& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Type::Char& l,
         [[maybe_unused]] const Type::Char& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Type::Int& l,
         [[maybe_unused]] const Type::Int& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Type::Byte& l,
         [[maybe_unused]] const Type::Byte& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Type::Float& l,
         [[maybe_unused]] const Type::Float& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Type::Bool& l,
         [[maybe_unused]] const Type::Bool& r) {
-        return true;
+        return false;
     }
 
     bool operator!=(const Type::Array& l, const Type::Array& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type;
+        return l.is_invalid != r.is_invalid || l.type != r.type;
     }
 
     bool operator!=(const Type::Tup& l, const Type::Tup& r) {
-        return l.is_invalid != r.is_invalid && l.types != r.types;
+        return l.is_invalid != r.is_invalid || l.types != r.types;
     }
 
     bool operator!=(const Type::Func& l, const Type::Func& r) {
-        return l.is_invalid != r.is_invalid && l.params != r.params &&
+        return l.is_invalid != r.is_invalid || l.params != r.params ||
                l.return_type != r.return_type;
     }
 
     bool operator!=(const Type::Name& l, const Type::Name& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
                l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Type::LocalGeneric& l, const Type::LocalGeneric& r) {
-        return l.id != r.id && l.name != r.name;
+        return l.id != r.id || l.name != r.name;
     }
 
     bool operator!=(const Type::ResolvedUserDefinedType& l,
         const Type::ResolvedUserDefinedType& r) {
-        return l.id != r.id && l.generic_params != r.generic_params;
+        return l.id != r.id || l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Expr& l, const Expr& r) { return l.val != r.val; }
@@ -457,12 +456,12 @@ namespace alvo::ast {
 
     bool operator!=([[maybe_unused]] const Expr::Literal::Unit& l,
         [[maybe_unused]] const Expr::Literal::Unit& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Expr::Literal::Null& l,
         [[maybe_unused]] const Expr::Literal::Null& r) {
-        return true;
+        return false;
     }
 
     bool operator!=(
@@ -512,79 +511,79 @@ namespace alvo::ast {
 
     bool operator!=(const Expr::Literal::Array::ExprNTimes& l,
         const Expr::Literal::Array::ExprNTimes& r) {
-        return l.expr != r.expr && l.times != r.times;
+        return l.expr != r.expr || l.times != r.times;
     }
 
     bool operator!=(const Expr::Literal::Tup& l, const Expr::Literal::Tup& r) {
-        return l.is_invalid != r.is_invalid && l.exprs != r.exprs;
+        return l.is_invalid != r.is_invalid || l.exprs != r.exprs;
     }
 
     bool operator!=(
         const Expr::Literal::Struct& l, const Expr::Literal::Struct& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type &&
+        return l.is_invalid != r.is_invalid || l.type != r.type ||
                l.fields != r.fields;
     }
 
     bool operator!=(const Expr::Literal::Struct::Field& l,
         const Expr::Literal::Struct::Field& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
                l.expr != r.expr;
     }
 
     bool operator!=(const Expr::Literal::ResolvedStruct& l,
         const Expr::Literal::ResolvedStruct& r) {
-        return l.type_id != r.type_id && l.generic_params != r.generic_params &&
+        return l.type_id != r.type_id || l.generic_params != r.generic_params ||
                l.fields != r.fields;
     }
 
     bool operator!=(const Expr::Literal::ResolvedStruct::Field& l,
         const Expr::Literal::ResolvedStruct::Field& r) {
-        return l.member_id != r.member_id && l.expr != r.expr &&
+        return l.member_id != r.member_id || l.expr != r.expr ||
                l.type != r.type;
     }
 
     bool operator!=(const Expr::Unop& l, const Expr::Unop& r) {
-        return l.expr != r.expr && l.op != r.op;
+        return l.expr != r.expr || l.op != r.op;
     }
 
     bool operator!=(const Expr::Binop& l, const Expr::Binop& r) {
-        return l.lhs != r.lhs && l.rhs != r.rhs && l.op != r.op;
+        return l.lhs != r.lhs || l.rhs != r.rhs || l.op != r.op;
     }
 
     bool operator!=(const Expr::Index& l, const Expr::Index& r) {
-        return l.expr != r.expr && l.index != r.index;
+        return l.expr != r.expr || l.index != r.index;
     }
 
     bool operator!=(const Expr::Call& l, const Expr::Call& r) {
-        return l.expr != r.expr && l.args != r.args;
+        return l.expr != r.expr || l.args != r.args;
     }
 
     bool operator!=(const Expr::Cast& l, const Expr::Cast& r) {
-        return l.expr != r.expr && l.type != r.type;
+        return l.expr != r.expr || l.type != r.type;
     }
 
     bool operator!=(const Expr::TryCast& l, const Expr::TryCast& r) {
-        return l.expr != r.expr && l.type != r.type;
+        return l.expr != r.expr || l.type != r.type;
     }
 
     bool operator!=(const Expr::Builtin& l, const Expr::Builtin& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
-               l.generic_params != r.generic_params && l.args != r.args;
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
+               l.generic_params != r.generic_params || l.args != r.args;
     }
 
     bool operator!=(const Expr::Name& l, const Expr::Name& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
                l.generic_params != r.generic_params;
     }
 
     bool operator!=(
         const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type &&
+        return l.is_invalid != r.is_invalid || l.type != r.type ||
                l.name != r.name;
     }
 
     bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r) {
-        return l.expr != r.expr && l.name != r.name;
+        return l.expr != r.expr || l.name != r.name;
     }
 
     bool operator!=(const Expr::LocalVar& l, const Expr::LocalVar& r) {
@@ -592,159 +591,792 @@ namespace alvo::ast {
     }
 
     bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r) {
-        return l.decl_id != r.decl_id && l.generic_params != r.generic_params;
+        return l.decl_id != r.decl_id || l.generic_params != r.generic_params;
     }
 
     bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r) {
-        return l.type != r.type && l.member_id != r.member_id &&
+        return l.type != r.type || l.member_id != r.member_id ||
                l.generic_params != r.generic_params;
     }
 
-    bool operator!=(const Expr::ResolvedGenericMemberAccess& l,
-        const Expr::ResolvedGenericMemberAccess& r) {
-        return l.generic_id != r.generic_id && l.name != r.name &&
-               l.generic_params != r.generic_params;
+    bool operator!=(const Expr::ResolvedMemberAccess& l,
+        const Expr::ResolvedMemberAccess& r) {
+        return l.expr != r.expr || l.member_id != r.member_id;
     }
 
     bool operator!=(const Block& l, const Block& r) {
-        return l.is_invalid != r.is_invalid && l.stmts != r.stmts;
+        return l.is_invalid != r.is_invalid || l.stmts != r.stmts;
     }
 
     bool operator!=(const Stmt& l, const Stmt& r) { return l.val != r.val; }
 
     bool operator!=(const Stmt::Let& l, const Stmt::Let& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
-               l.type != r.type && l.expr != r.expr;
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
+               l.type != r.type || l.expr != r.expr;
     }
 
     bool operator!=(const Stmt::If& l, const Stmt::If& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr &&
-               l.main != r.main && l.elifs != r.elifs && l.else_ != r.else_;
+        return l.is_invalid != r.is_invalid || l.expr != r.expr ||
+               l.main != r.main || l.elifs != r.elifs || l.else_ != r.else_;
     }
 
     bool operator!=(const Stmt::If::Elif& l, const Stmt::If::Elif& r) {
-        return l.expr != r.expr && l.block != r.block;
+        return l.expr != r.expr || l.block != r.block;
     }
 
     bool operator!=(const Stmt::Switch& l, const Stmt::Switch& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr &&
+        return l.is_invalid != r.is_invalid || l.expr != r.expr ||
                l.cases != r.cases;
     }
 
     bool operator!=(const Stmt::Switch::Case& l, const Stmt::Switch::Case& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr &&
+        return l.is_invalid != r.is_invalid || l.expr != r.expr ||
                l.block != r.block;
     }
 
     bool operator!=(const Stmt::Loop& l, const Stmt::Loop& r) {
-        return l.is_invalid != r.is_invalid && l.block != r.block;
+        return l.is_invalid != r.is_invalid || l.block != r.block;
     }
 
     bool operator!=(const Stmt::For& l, const Stmt::For& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
-               l.expr != r.expr && l.block != r.block;
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
+               l.expr != r.expr || l.block != r.block;
     }
 
     bool operator!=(const Stmt::While& l, const Stmt::While& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr &&
+        return l.is_invalid != r.is_invalid || l.expr != r.expr ||
                l.block != r.block;
     }
 
     bool operator!=(const Stmt::Return& l, const Stmt::Return& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr;
+        return l.is_invalid != r.is_invalid || l.expr != r.expr;
     }
 
     bool operator!=(const Stmt::Defer& l, const Stmt::Defer& r) {
-        return l.is_invalid != r.is_invalid && l.expr != r.expr;
+        return l.is_invalid != r.is_invalid || l.expr != r.expr;
     }
 
     bool operator!=([[maybe_unused]] const Stmt::Continue& l,
         [[maybe_unused]] const Stmt::Continue& r) {
-        return true;
+        return false;
     }
 
     bool operator!=([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r) {
-        return true;
+        return false;
     }
 
     bool operator!=(const Func& l, const Func& r) {
-        return l.is_invalid != r.is_invalid && l.signature != r.signature &&
+        return l.is_invalid != r.is_invalid || l.signature != r.signature ||
                l.block != r.block;
     }
 
     bool operator!=(const Func::Signature& l, const Func::Signature& r) {
-        return l.is_invalid != r.is_invalid &&
-               l.is_self_func != r.is_self_func && l.params != r.params &&
+        return l.is_invalid != r.is_invalid ||
+               l.is_self_func != r.is_self_func || l.params != r.params ||
                l.ret != r.ret;
     }
 
     bool operator!=(
         const Func::Signature::Param& l, const Func::Signature::Param& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
                l.type != r.type;
     }
 
     bool operator!=(const Decl& l, const Decl& r) {
-        return l.is_export != r.is_export && l.name != r.name &&
-               l.generic_params != r.generic_params && l.val != r.val;
+        return l.is_export != r.is_export || l.name != r.name ||
+               l.generic_params != r.generic_params || l.val != r.val;
     }
 
     bool operator!=(const Decl::GenericParam& l, const Decl::GenericParam& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
                l.interfaces != r.interfaces;
     }
 
     bool operator!=(const Decl::DeclsBlock& l, const Decl::DeclsBlock& r) {
-        return l.is_invalid != r.is_invalid &&
-               l.generic_params != r.generic_params &&
-               l.interface != r.interface && l.decls != r.decls;
+        return l.is_invalid != r.is_invalid ||
+               l.generic_params != r.generic_params ||
+               l.interface != r.interface || l.decls != r.decls;
     }
 
     bool operator!=(const Decl::Struct& l, const Decl::Struct& r) {
-        return l.is_invalid != r.is_invalid && l.fields != r.fields &&
+        return l.is_invalid != r.is_invalid || l.fields != r.fields ||
                l.decls_blocks != r.decls_blocks;
     }
 
     bool operator!=(
         const Decl::Struct::Field& l, const Decl::Struct::Field& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
-               l.type != r.type && l.is_export != r.is_export;
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
+               l.type != r.type || l.is_export != r.is_export;
     }
 
     bool operator!=(const Decl::Enum& l, const Decl::Enum& r) {
-        return l.is_invalid != r.is_invalid && l.elements != r.elements &&
+        return l.is_invalid != r.is_invalid || l.elements != r.elements ||
                l.decls_blocks != r.decls_blocks;
     }
 
     bool operator!=(
         const Decl::Enum::Element& l, const Decl::Enum::Element& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name;
+        return l.is_invalid != r.is_invalid || l.name != r.name;
     }
 
     bool operator!=(const Decl::TypeAlias& l, const Decl::TypeAlias& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type;
+        return l.is_invalid != r.is_invalid || l.type != r.type;
     }
 
     bool operator!=(const Decl::Const& l, const Decl::Const& r) {
-        return l.is_invalid != r.is_invalid && l.type != r.type &&
+        return l.is_invalid != r.is_invalid || l.type != r.type ||
                l.expr != r.expr;
     }
 
     bool operator!=(const Decl::Interface& l, const Decl::Interface& r) {
-        return l.is_invalid != r.is_invalid && l.members != r.members;
+        return l.is_invalid != r.is_invalid || l.members != r.members;
     }
 
     bool operator!=(
         const Decl::Interface::Member& l, const Decl::Interface::Member& r) {
-        return l.is_invalid != r.is_invalid && l.name != r.name &&
-               l.generic_params != r.generic_params &&
+        return l.is_invalid != r.is_invalid || l.name != r.name ||
+               l.generic_params != r.generic_params ||
                l.signature != r.signature;
     }
 
     bool operator!=(const Module& l, const Module& r) {
         return l.decls != r.decls;
+    }
+
+    alvo::ast::Invalid util::Clone<alvo::ast::Invalid>::operator()(
+        [[maybe_unused]] const alvo::ast::Invalid& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Invalid(
+
+        );
+    }
+
+    alvo::ast::Id util::Clone<alvo::ast::Id>::operator()(
+        const alvo::ast::Id& n, mem::Arena& arena) {
+        return alvo::ast::Id(util::Clone<decltype(n.id)>()(n.id, arena));
+    }
+
+    alvo::ast::Type util::Clone<alvo::ast::Type>::operator()(
+        const alvo::ast::Type& n, mem::Arena& arena) {
+        return alvo::ast::Type(util::Clone<decltype(n.val)>()(n.val, arena));
+    }
+
+    alvo::ast::Type::Unit util::Clone<alvo::ast::Type::Unit>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Unit& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::Unit(
+
+        );
+    }
+
+    alvo::ast::Type::String util::Clone<alvo::ast::Type::String>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::String& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::String(
+
+        );
+    }
+
+    alvo::ast::Type::Char util::Clone<alvo::ast::Type::Char>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Char& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::Char(
+
+        );
+    }
+
+    alvo::ast::Type::Int util::Clone<alvo::ast::Type::Int>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Int& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::Int(
+
+        );
+    }
+
+    alvo::ast::Type::Byte util::Clone<alvo::ast::Type::Byte>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Byte& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::Byte(
+
+        );
+    }
+
+    alvo::ast::Type::Float util::Clone<alvo::ast::Type::Float>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Float& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::Float(
+
+        );
+    }
+
+    alvo::ast::Type::Bool util::Clone<alvo::ast::Type::Bool>::operator()(
+        [[maybe_unused]] const alvo::ast::Type::Bool& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Type::Bool(
+
+        );
+    }
+
+    alvo::ast::Type::Array util::Clone<alvo::ast::Type::Array>::operator()(
+        const alvo::ast::Type::Array& n, mem::Arena& arena) {
+        return alvo::ast::Type::Array(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena));
+    }
+
+    alvo::ast::Type::Tup util::Clone<alvo::ast::Type::Tup>::operator()(
+        const alvo::ast::Type::Tup& n, mem::Arena& arena) {
+        return alvo::ast::Type::Tup(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.types)>()(n.types, arena));
+    }
+
+    alvo::ast::Type::Func util::Clone<alvo::ast::Type::Func>::operator()(
+        const alvo::ast::Type::Func& n, mem::Arena& arena) {
+        return alvo::ast::Type::Func(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.params)>()(n.params, arena),
+            util::Clone<decltype(n.return_type)>()(n.return_type, arena));
+    }
+
+    alvo::ast::Type::Name util::Clone<alvo::ast::Type::Name>::operator()(
+        const alvo::ast::Type::Name& n, mem::Arena& arena) {
+        return alvo::ast::Type::Name(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena));
+    }
+
+    alvo::ast::Type::LocalGeneric
+    util::Clone<alvo::ast::Type::LocalGeneric>::operator()(
+        const alvo::ast::Type::LocalGeneric& n, mem::Arena& arena) {
+        return alvo::ast::Type::LocalGeneric(
+            util::Clone<decltype(n.id)>()(n.id, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena));
+    }
+
+    alvo::ast::Type::ResolvedUserDefinedType
+    util::Clone<alvo::ast::Type::ResolvedUserDefinedType>::operator()(
+        const alvo::ast::Type::ResolvedUserDefinedType& n, mem::Arena& arena) {
+        return alvo::ast::Type::ResolvedUserDefinedType(
+            util::Clone<decltype(n.id)>()(n.id, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena));
+    }
+
+    alvo::ast::Expr util::Clone<alvo::ast::Expr>::operator()(
+        const alvo::ast::Expr& n, mem::Arena& arena) {
+        return alvo::ast::Expr(util::Clone<decltype(n.val)>()(n.val, arena));
+    }
+
+    alvo::ast::Expr::Literal util::Clone<alvo::ast::Expr::Literal>::operator()(
+        const alvo::ast::Expr::Literal& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal(
+            util::Clone<decltype(n.val)>()(n.val, arena));
+    }
+
+    alvo::ast::Expr::Literal::Unit
+    util::Clone<alvo::ast::Expr::Literal::Unit>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Literal::Unit& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Unit(
+
+        );
+    }
+
+    alvo::ast::Expr::Literal::Null
+    util::Clone<alvo::ast::Expr::Literal::Null>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Literal::Null& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Null(
+
+        );
+    }
+
+    alvo::ast::Expr::Literal::String
+    util::Clone<alvo::ast::Expr::Literal::String>::operator()(
+        const alvo::ast::Expr::Literal::String& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::String(
+            util::Clone<decltype(n.value)>()(n.value, arena));
+    }
+
+    alvo::ast::Expr::Literal::Character
+    util::Clone<alvo::ast::Expr::Literal::Character>::operator()(
+        const alvo::ast::Expr::Literal::Character& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Character(
+            util::Clone<decltype(n.value)>()(n.value, arena));
+    }
+
+    alvo::ast::Expr::Literal::Integer
+    util::Clone<alvo::ast::Expr::Literal::Integer>::operator()(
+        const alvo::ast::Expr::Literal::Integer& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Integer(
+            util::Clone<decltype(n.value)>()(n.value, arena));
+    }
+
+    alvo::ast::Expr::Literal::Byte
+    util::Clone<alvo::ast::Expr::Literal::Byte>::operator()(
+        const alvo::ast::Expr::Literal::Byte& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Byte(
+            util::Clone<decltype(n.value)>()(n.value, arena));
+    }
+
+    alvo::ast::Expr::Literal::Floating
+    util::Clone<alvo::ast::Expr::Literal::Floating>::operator()(
+        const alvo::ast::Expr::Literal::Floating& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Floating(
+            util::Clone<decltype(n.value)>()(n.value, arena));
+    }
+
+    alvo::ast::Expr::Literal::Boolean
+    util::Clone<alvo::ast::Expr::Literal::Boolean>::operator()(
+        const alvo::ast::Expr::Literal::Boolean& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Boolean(
+            util::Clone<decltype(n.value)>()(n.value, arena));
+    }
+
+    alvo::ast::Expr::Literal::Array
+    util::Clone<alvo::ast::Expr::Literal::Array>::operator()(
+        const alvo::ast::Expr::Literal::Array& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Array(
+            util::Clone<decltype(n.val)>()(n.val, arena));
+    }
+
+    alvo::ast::Expr::Literal::Array::Regular
+    util::Clone<alvo::ast::Expr::Literal::Array::Regular>::operator()(
+        const alvo::ast::Expr::Literal::Array::Regular& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Array::Regular(
+            util::Clone<decltype(n.elements)>()(n.elements, arena));
+    }
+
+    alvo::ast::Expr::Literal::Array::DefaultNTimes
+    util::Clone<alvo::ast::Expr::Literal::Array::DefaultNTimes>::operator()(
+        const alvo::ast::Expr::Literal::Array::DefaultNTimes& n,
+        mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Array::DefaultNTimes(
+            util::Clone<decltype(n.times)>()(n.times, arena));
+    }
+
+    alvo::ast::Expr::Literal::Array::ExprNTimes
+    util::Clone<alvo::ast::Expr::Literal::Array::ExprNTimes>::operator()(
+        const alvo::ast::Expr::Literal::Array::ExprNTimes& n,
+        mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Array::ExprNTimes(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.times)>()(n.times, arena));
+    }
+
+    alvo::ast::Expr::Literal::Tup
+    util::Clone<alvo::ast::Expr::Literal::Tup>::operator()(
+        const alvo::ast::Expr::Literal::Tup& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Tup(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.exprs)>()(n.exprs, arena));
+    }
+
+    alvo::ast::Expr::Literal::Struct
+    util::Clone<alvo::ast::Expr::Literal::Struct>::operator()(
+        const alvo::ast::Expr::Literal::Struct& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Struct(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena),
+            util::Clone<decltype(n.fields)>()(n.fields, arena));
+    }
+
+    alvo::ast::Expr::Literal::Struct::Field
+    util::Clone<alvo::ast::Expr::Literal::Struct::Field>::operator()(
+        const alvo::ast::Expr::Literal::Struct::Field& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::Struct::Field(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena));
+    }
+
+    alvo::ast::Expr::Literal::ResolvedStruct
+    util::Clone<alvo::ast::Expr::Literal::ResolvedStruct>::operator()(
+        const alvo::ast::Expr::Literal::ResolvedStruct& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::ResolvedStruct(
+            util::Clone<decltype(n.type_id)>()(n.type_id, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena),
+            util::Clone<decltype(n.fields)>()(n.fields, arena));
+    }
+
+    alvo::ast::Expr::Literal::ResolvedStruct::Field
+    util::Clone<alvo::ast::Expr::Literal::ResolvedStruct::Field>::operator()(
+        const alvo::ast::Expr::Literal::ResolvedStruct::Field& n,
+        mem::Arena& arena) {
+        return alvo::ast::Expr::Literal::ResolvedStruct::Field(
+            util::Clone<decltype(n.member_id)>()(n.member_id, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena));
+    }
+
+    alvo::ast::Expr::Unop util::Clone<alvo::ast::Expr::Unop>::operator()(
+        const alvo::ast::Expr::Unop& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Unop(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.op)>()(n.op, arena));
+    }
+
+    alvo::ast::Expr::Unop::Op
+    util::Clone<alvo::ast::Expr::Unop::Op>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Unop::Op& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Expr::Unop::Op(
+
+        );
+    }
+
+    alvo::ast::Expr::Binop util::Clone<alvo::ast::Expr::Binop>::operator()(
+        const alvo::ast::Expr::Binop& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Binop(
+            util::Clone<decltype(n.lhs)>()(n.lhs, arena),
+            util::Clone<decltype(n.rhs)>()(n.rhs, arena),
+            util::Clone<decltype(n.op)>()(n.op, arena));
+    }
+
+    alvo::ast::Expr::Binop::Op
+    util::Clone<alvo::ast::Expr::Binop::Op>::operator()(
+        [[maybe_unused]] const alvo::ast::Expr::Binop::Op& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Expr::Binop::Op(
+
+        );
+    }
+
+    alvo::ast::Expr::Index util::Clone<alvo::ast::Expr::Index>::operator()(
+        const alvo::ast::Expr::Index& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Index(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.index)>()(n.index, arena));
+    }
+
+    alvo::ast::Expr::Call util::Clone<alvo::ast::Expr::Call>::operator()(
+        const alvo::ast::Expr::Call& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Call(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.args)>()(n.args, arena));
+    }
+
+    alvo::ast::Expr::Cast util::Clone<alvo::ast::Expr::Cast>::operator()(
+        const alvo::ast::Expr::Cast& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Cast(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena));
+    }
+
+    alvo::ast::Expr::TryCast util::Clone<alvo::ast::Expr::TryCast>::operator()(
+        const alvo::ast::Expr::TryCast& n, mem::Arena& arena) {
+        return alvo::ast::Expr::TryCast(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena));
+    }
+
+    alvo::ast::Expr::Builtin util::Clone<alvo::ast::Expr::Builtin>::operator()(
+        const alvo::ast::Expr::Builtin& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Builtin(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena),
+            util::Clone<decltype(n.args)>()(n.args, arena));
+    }
+
+    alvo::ast::Expr::Name util::Clone<alvo::ast::Expr::Name>::operator()(
+        const alvo::ast::Expr::Name& n, mem::Arena& arena) {
+        return alvo::ast::Expr::Name(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena));
+    }
+
+    alvo::ast::Expr::TypeMemberAccess
+    util::Clone<alvo::ast::Expr::TypeMemberAccess>::operator()(
+        const alvo::ast::Expr::TypeMemberAccess& n, mem::Arena& arena) {
+        return alvo::ast::Expr::TypeMemberAccess(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena));
+    }
+
+    alvo::ast::Expr::MemberAccess
+    util::Clone<alvo::ast::Expr::MemberAccess>::operator()(
+        const alvo::ast::Expr::MemberAccess& n, mem::Arena& arena) {
+        return alvo::ast::Expr::MemberAccess(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena));
+    }
+
+    alvo::ast::Expr::LocalVar
+    util::Clone<alvo::ast::Expr::LocalVar>::operator()(
+        const alvo::ast::Expr::LocalVar& n, mem::Arena& arena) {
+        return alvo::ast::Expr::LocalVar(
+            util::Clone<decltype(n.id)>()(n.id, arena));
+    }
+
+    alvo::ast::Expr::ResolvedDecl
+    util::Clone<alvo::ast::Expr::ResolvedDecl>::operator()(
+        const alvo::ast::Expr::ResolvedDecl& n, mem::Arena& arena) {
+        return alvo::ast::Expr::ResolvedDecl(
+            util::Clone<decltype(n.decl_id)>()(n.decl_id, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena));
+    }
+
+    alvo::ast::Expr::ResolvedTypeMemberAccess
+    util::Clone<alvo::ast::Expr::ResolvedTypeMemberAccess>::operator()(
+        const alvo::ast::Expr::ResolvedTypeMemberAccess& n, mem::Arena& arena) {
+        return alvo::ast::Expr::ResolvedTypeMemberAccess(
+            util::Clone<decltype(n.type)>()(n.type, arena),
+            util::Clone<decltype(n.member_id)>()(n.member_id, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena));
+    }
+
+    alvo::ast::Expr::ResolvedMemberAccess
+    util::Clone<alvo::ast::Expr::ResolvedMemberAccess>::operator()(
+        const alvo::ast::Expr::ResolvedMemberAccess& n, mem::Arena& arena) {
+        return alvo::ast::Expr::ResolvedMemberAccess(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.member_id)>()(n.member_id, arena));
+    }
+
+    alvo::ast::Block util::Clone<alvo::ast::Block>::operator()(
+        const alvo::ast::Block& n, mem::Arena& arena) {
+        return alvo::ast::Block(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.stmts)>()(n.stmts, arena));
+    }
+
+    alvo::ast::Stmt util::Clone<alvo::ast::Stmt>::operator()(
+        const alvo::ast::Stmt& n, mem::Arena& arena) {
+        return alvo::ast::Stmt(util::Clone<decltype(n.val)>()(n.val, arena));
+    }
+
+    alvo::ast::Stmt::Let util::Clone<alvo::ast::Stmt::Let>::operator()(
+        const alvo::ast::Stmt::Let& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Let(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena));
+    }
+
+    alvo::ast::Stmt::If util::Clone<alvo::ast::Stmt::If>::operator()(
+        const alvo::ast::Stmt::If& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::If(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.main)>()(n.main, arena),
+            util::Clone<decltype(n.elifs)>()(n.elifs, arena),
+            util::Clone<decltype(n.else_)>()(n.else_, arena));
+    }
+
+    alvo::ast::Stmt::If::Elif
+    util::Clone<alvo::ast::Stmt::If::Elif>::operator()(
+        const alvo::ast::Stmt::If::Elif& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::If::Elif(
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.block)>()(n.block, arena));
+    }
+
+    alvo::ast::Stmt::Switch util::Clone<alvo::ast::Stmt::Switch>::operator()(
+        const alvo::ast::Stmt::Switch& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Switch(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.cases)>()(n.cases, arena));
+    }
+
+    alvo::ast::Stmt::Switch::Case
+    util::Clone<alvo::ast::Stmt::Switch::Case>::operator()(
+        const alvo::ast::Stmt::Switch::Case& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Switch::Case(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.block)>()(n.block, arena));
+    }
+
+    alvo::ast::Stmt::Loop util::Clone<alvo::ast::Stmt::Loop>::operator()(
+        const alvo::ast::Stmt::Loop& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Loop(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.block)>()(n.block, arena));
+    }
+
+    alvo::ast::Stmt::For util::Clone<alvo::ast::Stmt::For>::operator()(
+        const alvo::ast::Stmt::For& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::For(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.block)>()(n.block, arena));
+    }
+
+    alvo::ast::Stmt::While util::Clone<alvo::ast::Stmt::While>::operator()(
+        const alvo::ast::Stmt::While& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::While(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena),
+            util::Clone<decltype(n.block)>()(n.block, arena));
+    }
+
+    alvo::ast::Stmt::Return util::Clone<alvo::ast::Stmt::Return>::operator()(
+        const alvo::ast::Stmt::Return& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Return(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena));
+    }
+
+    alvo::ast::Stmt::Defer util::Clone<alvo::ast::Stmt::Defer>::operator()(
+        const alvo::ast::Stmt::Defer& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Defer(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena));
+    }
+
+    alvo::ast::Stmt::Continue
+    util::Clone<alvo::ast::Stmt::Continue>::operator()(
+        [[maybe_unused]] const alvo::ast::Stmt::Continue& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Stmt::Continue(
+
+        );
+    }
+
+    alvo::ast::Stmt::Break util::Clone<alvo::ast::Stmt::Break>::operator()(
+        [[maybe_unused]] const alvo::ast::Stmt::Break& n,
+        [[maybe_unused]] mem::Arena& arena) {
+        return alvo::ast::Stmt::Break(
+
+        );
+    }
+
+    alvo::ast::Func util::Clone<alvo::ast::Func>::operator()(
+        const alvo::ast::Func& n, mem::Arena& arena) {
+        return alvo::ast::Func(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.signature)>()(n.signature, arena),
+            util::Clone<decltype(n.block)>()(n.block, arena));
+    }
+
+    alvo::ast::Func::Signature
+    util::Clone<alvo::ast::Func::Signature>::operator()(
+        const alvo::ast::Func::Signature& n, mem::Arena& arena) {
+        return alvo::ast::Func::Signature(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.is_self_func)>()(n.is_self_func, arena),
+            util::Clone<decltype(n.params)>()(n.params, arena),
+            util::Clone<decltype(n.ret)>()(n.ret, arena));
+    }
+
+    alvo::ast::Func::Signature::Param
+    util::Clone<alvo::ast::Func::Signature::Param>::operator()(
+        const alvo::ast::Func::Signature::Param& n, mem::Arena& arena) {
+        return alvo::ast::Func::Signature::Param(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena));
+    }
+
+    alvo::ast::Decl util::Clone<alvo::ast::Decl>::operator()(
+        const alvo::ast::Decl& n, mem::Arena& arena) {
+        return alvo::ast::Decl(
+            util::Clone<decltype(n.is_export)>()(n.is_export, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena),
+            util::Clone<decltype(n.val)>()(n.val, arena));
+    }
+
+    alvo::ast::Decl::GenericParam
+    util::Clone<alvo::ast::Decl::GenericParam>::operator()(
+        const alvo::ast::Decl::GenericParam& n, mem::Arena& arena) {
+        return alvo::ast::Decl::GenericParam(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.interfaces)>()(n.interfaces, arena));
+    }
+
+    alvo::ast::Decl::DeclsBlock
+    util::Clone<alvo::ast::Decl::DeclsBlock>::operator()(
+        const alvo::ast::Decl::DeclsBlock& n, mem::Arena& arena) {
+        return alvo::ast::Decl::DeclsBlock(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena),
+            util::Clone<decltype(n.interface)>()(n.interface, arena),
+            util::Clone<decltype(n.decls)>()(n.decls, arena));
+    }
+
+    alvo::ast::Decl::Struct util::Clone<alvo::ast::Decl::Struct>::operator()(
+        const alvo::ast::Decl::Struct& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Struct(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.fields)>()(n.fields, arena),
+            util::Clone<decltype(n.decls_blocks)>()(n.decls_blocks, arena));
+    }
+
+    alvo::ast::Decl::Struct::Field
+    util::Clone<alvo::ast::Decl::Struct::Field>::operator()(
+        const alvo::ast::Decl::Struct::Field& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Struct::Field(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena),
+            util::Clone<decltype(n.is_export)>()(n.is_export, arena));
+    }
+
+    alvo::ast::Decl::Enum util::Clone<alvo::ast::Decl::Enum>::operator()(
+        const alvo::ast::Decl::Enum& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Enum(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.elements)>()(n.elements, arena),
+            util::Clone<decltype(n.decls_blocks)>()(n.decls_blocks, arena));
+    }
+
+    alvo::ast::Decl::Enum::Element
+    util::Clone<alvo::ast::Decl::Enum::Element>::operator()(
+        const alvo::ast::Decl::Enum::Element& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Enum::Element(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena));
+    }
+
+    alvo::ast::Decl::TypeAlias
+    util::Clone<alvo::ast::Decl::TypeAlias>::operator()(
+        const alvo::ast::Decl::TypeAlias& n, mem::Arena& arena) {
+        return alvo::ast::Decl::TypeAlias(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena));
+    }
+
+    alvo::ast::Decl::Const util::Clone<alvo::ast::Decl::Const>::operator()(
+        const alvo::ast::Decl::Const& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Const(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.type)>()(n.type, arena),
+            util::Clone<decltype(n.expr)>()(n.expr, arena));
+    }
+
+    alvo::ast::Decl::Interface
+    util::Clone<alvo::ast::Decl::Interface>::operator()(
+        const alvo::ast::Decl::Interface& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Interface(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.members)>()(n.members, arena));
+    }
+
+    alvo::ast::Decl::Interface::Member
+    util::Clone<alvo::ast::Decl::Interface::Member>::operator()(
+        const alvo::ast::Decl::Interface::Member& n, mem::Arena& arena) {
+        return alvo::ast::Decl::Interface::Member(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.name)>()(n.name, arena),
+            util::Clone<decltype(n.generic_params)>()(n.generic_params, arena),
+            util::Clone<decltype(n.signature)>()(n.signature, arena));
+    }
+
+    alvo::ast::Module util::Clone<alvo::ast::Module>::operator()(
+        const alvo::ast::Module& n, mem::Arena& arena) {
+        return alvo::ast::Module(
+            util::Clone<decltype(n.decls)>()(n.decls, arena));
     }
 
 }
@@ -1155,17 +1787,13 @@ namespace std {
         return res;
     }
 
-    std::size_t hash<alvo::ast::Expr::ResolvedGenericMemberAccess>::operator()(
-        const alvo::ast::Expr::ResolvedGenericMemberAccess& n) const noexcept {
-        std::size_t generic_id_hash =
-            std::hash<decltype(n.generic_id)>()(n.generic_id);
-        std::size_t name_hash = std::hash<decltype(n.name)>()(n.name);
-        std::size_t generic_params_hash =
-            std::hash<decltype(n.generic_params)>()(n.generic_params);
-        std::size_t res = generic_id_hash;
-        res ^= name_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
-        res ^= generic_params_hash + 0x9e3779b97f4a7c15ull + (res << 6) +
-               (res >> 2);
+    std::size_t hash<alvo::ast::Expr::ResolvedMemberAccess>::operator()(
+        const alvo::ast::Expr::ResolvedMemberAccess& n) const noexcept {
+        std::size_t expr_hash = std::hash<decltype(n.expr)>()(n.expr);
+        std::size_t member_id_hash =
+            std::hash<decltype(n.member_id)>()(n.member_id);
+        std::size_t res = expr_hash;
+        res ^= member_id_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
         return res;
     }
 

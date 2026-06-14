@@ -22,7 +22,7 @@ namespace alvo::sema::resolve {
         public:
             struct Entry {
                 using ElementType =
-                    std::conditional_t<IsConst, const StoredType&, StoredType>;
+                    std::conditional_t<IsConst, const StoredType&, StoredType&>;
 
                 ast::Id id;
                 std::string_view name;

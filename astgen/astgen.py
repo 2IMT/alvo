@@ -232,13 +232,19 @@ class Generator:
             self.out.write("return ")
 
             if len(node.fields) == 0:
-                self.out.write("true")
+                if not_equal:
+                    self.out.write("false")
+                else:
+                    self.out.write("true")
             else:
                 for i in range(0, len(node.fields)):
                     field = node.fields[i]
                     self.out.write(f"l.{field.name} {op} r.{field.name}")
                     if i < len(node.fields) - 1:
-                        self.out.write(" && ")
+                        if not_equal:
+                            self.out.write(" || ")
+                        else:
+                            self.out.write(" && ")
 
             self.out.write(";\n")
 
@@ -455,6 +461,55 @@ class Generator:
         for info in node_infos:
             self._gen_hash_function_def(info)
 
+    def _gen_clone_fwd(self, info: _PrinterNodeInfo):
+        self.out.write("template<>\n")
+        self.out.write(f"struct util::Clone<{info.type}> {{\n")
+        self.out.write(
+            f"{info.type} operator()(const {info.type}& n, mem::Arena& arena);\n"
+        )
+        self.out.write("};\n")
+
+    def _gen_clone_def(self, info: _PrinterNodeInfo):
+        attr = ""
+        if len(info.fields) == 0:
+            attr = "[[maybe_unused]] "
+
+        self.out.write(
+            f"{info.type} util::Clone<{info.type}>::operator()({attr}const {info.type}& n, {attr}mem::Arena& arena) {{\n"
+        )
+        self.out.write(f"return {info.type}(\n");
+        first = True
+        for field in info.fields:
+            if first:
+                first = False
+            else:
+                self.out.write(",\n")
+
+            self.out.write(
+                f"util::Clone<decltype(n.{field})>()(n.{field}, arena)"
+            )
+        self.out.write("\n")
+        self.out.write(");\n")
+        self.out.write("}\n")
+
+    def _gen_clone_fwds(self):
+        node_infos: List[Generator._PrinterNodeInfo] = []
+        typename_stack = [self.schema.namespace]
+        for node in self.schema.ast:
+            Generator._get_node_infos(node, node_infos, typename_stack)
+
+        for info in node_infos:
+            self._gen_clone_fwd(info)
+
+    def _gen_clone_defs(self):
+        node_infos: List[Generator._PrinterNodeInfo] = []
+        typename_stack = [self.schema.namespace]
+        for node in self.schema.ast:
+            Generator._get_node_infos(node, node_infos, typename_stack)
+
+        for info in node_infos:
+            self._gen_clone_def(info)
+
     def _gen_header(self):
         self._gen_heading()
 
@@ -489,6 +544,8 @@ class Generator:
 
         self._gen_printer()
 
+        self._gen_clone_fwds()
+
         self.indent -= 1
         self.out.write("\n}\n\n")
 
@@ -512,6 +569,8 @@ class Generator:
         # Definitions for inequality operator
         for node in self.schema.ast:
             self._gen_equality_decl(node, True)
+
+        self._gen_clone_defs()
 
         self.indent -= 1
         self.out.write("\n}\n")

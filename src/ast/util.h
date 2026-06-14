@@ -5,6 +5,11 @@
 #include <cstddef>
 #include <vector>
 #include <functional>
+#include <cstdint>
+#include <string_view>
+#include <optional>
+#include <variant>
+#include <type_traits>
 
 #include "../mem.h"
 #include "../util.h"
@@ -336,6 +341,81 @@ namespace alvo::ast::util {
 
     private:
         mem::Arena* m_arena;
+    };
+
+    template<typename T>
+    struct Clone {
+        T operator()(
+            [[maybe_unused]] const T& obj, [[maybe_unused]] mem::Arena& arena) {
+            static_assert(false, "`Clone` is not specialized for this type");
+        }
+    };
+
+    template<typename T>
+    struct Clone<std::optional<T>> {
+        std::optional<T> operator()(
+            const std::optional<T>& obj, mem::Arena& arena) {
+            if (obj.has_value()) {
+                return std::optional<T>(Clone<T>()(*obj, arena));
+            } else {
+                return std::nullopt;
+            }
+        }
+    };
+
+    template<typename... Args>
+    struct Clone<std::variant<Args...>> {
+        std::variant<Args...> operator()(
+            const std::variant<Args...>& obj, mem::Arena& arena) {
+            return std::visit(
+                [&](const auto& value) -> std::variant<Args...> {
+                    using T = std::decay_t<decltype(value)>;
+                    return Clone<T>()(value, arena);
+                },
+                obj);
+        }
+    };
+
+    template<typename T>
+    struct Clone<Ptr<T>> {
+        Ptr<T> operator()(const Ptr<T>& ptr, mem::Arena& arena) {
+            void* new_ptr = arena.alloc(sizeof(T), alignof(T));
+            return Ptr<T>(new (new_ptr) T(Clone<T>()(*ptr.get_ptr(), arena)));
+        }
+    };
+
+    template<typename T>
+    struct Clone<List<T>> {
+        List<T> operator()(const List<T>& list, mem::Arena& arena) {
+            List<T> new_list;
+            for (const T& elem : list) {
+                new_list.push_back(arena, Clone<T>()(elem, arena));
+            }
+            return new_list;
+        }
+    };
+
+    template<>
+    struct Clone<std::uint64_t> {
+        std::uint64_t operator()(
+            const std::uint64_t& val, [[maybe_unused]] mem::Arena& arena) {
+            return val;
+        }
+    };
+
+    template<>
+    struct Clone<bool> {
+        bool operator()(const bool& val, [[maybe_unused]] mem::Arena& arena) {
+            return val;
+        }
+    };
+
+    template<>
+    struct Clone<std::string_view> {
+        std::string_view operator()(
+            const std::string_view& val, [[maybe_unused]] mem::Arena& arena) {
+            return val;
+        }
     };
 
 }

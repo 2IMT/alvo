@@ -197,12 +197,11 @@
         "member_id": "Id",
         "generic_params": "util::List<Type>"
       },
-      "ResolvedGenericMemberAccess": {
-        "generic_id": "Id",
-        "name": "std::string_view",
-        "generic_params": "util::List<Type>"
+      "ResolvedMemberAccess": {
+        "expr": "util::Ptr<Expr>",
+        "member_id": "Id"
       },
-      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, ResolvedDecl, ResolvedTypeMemberAccess, ResolvedGenericMemberAccess>",
+      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, ResolvedDecl, ResolvedTypeMemberAccess,  ResolvedMemberAccess>",
       "val": "Val"
     },
     "Block": {

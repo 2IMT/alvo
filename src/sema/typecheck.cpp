@@ -1,6 +1,7 @@
 #include "typecheck.h"
 
 #include <variant>
+#include <unordered_set>
 
 #include "../util.h"
 
@@ -58,15 +59,51 @@ namespace alvo::sema::typecheck {
         m_generic_scope_stack.pop();
     }
 
-    ast::Type Typechecker::typecheck_ast_func(
-        ast::Func& func, std::optional<ast::Type> expected_type) {
-        // TODO: handle expected type
+    ast::Type Typechecker::typecheck_ast_func(ast::Func& func,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        if (func.is_invalid) {
+            return TYPE_INVALID;
+        }
+
+        if (func.signature.is_invalid) {
+            return TYPE_INVALID;
+        }
+
+        m_scope_stack.push();
+        for (auto& param : func.signature.params) {
+            if (param.is_invalid)
+                return TYPE_INVALID;
+            m_scope_stack.put(param.name, param.type);
+        }
+
+        auto block_ret = typecheck_ast_block(func.block, func.signature.ret);
+
+        if (!block_ret) {
+            err(diag::Err::NotAllPathsReturn {});
+            return TYPE_INVALID;
+        }
+
+        if (type_is_invalid(*block_ret)) {
+            return TYPE_INVALID;
+        }
+
+        if (*block_ret != func.signature.ret) {
+            err(diag::Err::UnexpectedReturnType {});
+            return TYPE_INVALID;
+        }
+
+        m_scope_stack.pop();
+
+        // TODO: Return function type
+        return TYPE_INVALID;
     }
 
     std::optional<ast::Type> Typechecker::typecheck_ast_block(
         ast::Block& block, ast::Type expected_return_type) {
         if (block.is_invalid)
-            return std::nullopt;
+            return TYPE_INVALID;
+
+        m_scope_stack.push();
 
         std::optional<ast::Type> returned;
         for (auto& stmt : block.stmts) {
@@ -75,6 +112,10 @@ namespace alvo::sema::typecheck {
                 returned = stmt_returned;
             }
         }
+
+        m_scope_stack.pop();
+
+        return returned;
     }
 
     std::optional<ast::Type> Typechecker::typecheck_ast_stmt(
@@ -107,8 +148,9 @@ namespace alvo::sema::typecheck {
                     if (return_.expr) {
                         returned = typecheck_ast_expr(
                             *return_.expr, expected_return_type);
+                    } else {
+                        returned = ast::Type(ast::Type::Unit());
                     }
-                    returned = ast::Type(ast::Type::Unit());
                 },
                 [&](ast::Stmt::Defer& defer) {
                     typecheck_ast_stmt_defer(defer);
@@ -138,6 +180,8 @@ namespace alvo::sema::typecheck {
         }
 
         let.type = expr_type;
+
+        m_scope_stack.put(let.name, expr_type);
     }
 
     std::optional<ast::Type> Typechecker::typecheck_ast_stmt_if(
@@ -219,7 +263,7 @@ namespace alvo::sema::typecheck {
                     }
                 },
             },
-            expr_type.val);
+            expr_type.type.val);
 
         if (expr_type_is_invalid) {
             return std::nullopt;
@@ -235,9 +279,9 @@ namespace alvo::sema::typecheck {
                 return std::nullopt;
             if (case_.expr) {
                 auto case_type = typecheck_ast_expr(*case_.expr, expr_type);
-                if (type_is_invalid(case_type))
+                if (type_is_invalid(case_type.type))
                     continue;
-                if (case_type != expr_type) {
+                if (case_type.type != expr_type.type) {
                     err_expected_type(expr_type);
                     continue;
                 }
@@ -262,8 +306,12 @@ namespace alvo::sema::typecheck {
         m_scope_stack.push();
 
         auto iterable_type = typecheck_ast_expr(for_.expr);
+        if (type_is_invalid(iterable_type.type)) {
+            return;
+        }
         ast::Type element_type = TYPE_INVALID;
-        if (auto array = std::get_if<ast::Type::Array>(&iterable_type.val)) {
+        if (auto array =
+                std::get_if<ast::Type::Array>(&iterable_type.type.val)) {
             if (array->is_invalid)
                 return;
             element_type = *array->type;
@@ -299,11 +347,10 @@ namespace alvo::sema::typecheck {
         ALVO_NOT_IMPLEMENTED();
     }
 
-    ast::Type Typechecker::typecheck_ast_expr(
+    Value Typechecker::typecheck_ast_expr(
         ast::Expr& expr, std::optional<ast::Type> expected_type) {
         return std::visit(
-            util::overload {
-                [&](ast::Invalid&) { return TYPE_INVALID; },
+            util::overload { [&](ast::Invalid&) { return Value(TYPE_INVALID); },
                 [&](ast::Expr::Literal& lit) {
                     return typecheck_ast_expr_literal(lit, expected_type);
                 },
@@ -330,15 +377,17 @@ namespace alvo::sema::typecheck {
                 },
                 [&](ast::Expr::Name&) {
                     ALVO_UNREACHABLE();
-                    return TYPE_INVALID;
+                    return Value(TYPE_INVALID);
                 },
                 [&](ast::Expr::TypeMemberAccess&) {
                     ALVO_UNREACHABLE();
-                    return TYPE_INVALID;
+                    return Value(TYPE_INVALID);
                 },
                 [&](ast::Expr::MemberAccess& member_access) {
-                    return typecheck_ast_expr_member_access(
+                    auto res = typecheck_ast_expr_member_access(
                         member_access, expected_type);
+                    expr.val = res.second;
+                    return res.first;
                 },
                 [&](ast::Expr::LocalVar& local_var) {
                     return typecheck_ast_expr_local_var(
@@ -353,27 +402,25 @@ namespace alvo::sema::typecheck {
                     return typecheck_ast_expr_resolved_type_member_access(
                         resolved_type_member_access, expected_type);
                 },
-                [&](ast::Expr::ResolvedGenericMemberAccess&
-                        resolved_generic_member_access) {
-                    return typecheck_ast_expr_resolved_generic_member_access(
-                        resolved_generic_member_access, expected_type);
-                },
-            },
+                [&](ast::Expr::ResolvedMemberAccess&) {
+                    ALVO_UNREACHABLE();
+                    return Value(TYPE_INVALID);
+                } },
             expr.val);
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_literal(
+    Value Typechecker::typecheck_ast_expr_literal(
         ast::Expr::Literal& lit, std::optional<ast::Type> expected_type) {
         return std::visit(
             util::overload {
-                [&](ast::Invalid&) { return TYPE_INVALID; },
+                [&](ast::Invalid&) { return Value(TYPE_INVALID); },
                 [&](ast::Expr::Literal::Unit&) {
-                    return ast::Type(ast::Type::Unit {});
+                    return Value(ast::Type(ast::Type::Unit {}));
                 },
                 [&](ast::Expr::Literal::Null&) {
                     if (!expected_type) {
                         err(diag::Err::CantInferTypeOfNullLiteral {});
-                        return TYPE_INVALID;
+                        return Value(TYPE_INVALID);
                     }
 
                     auto udtype =
@@ -381,7 +428,7 @@ namespace alvo::sema::typecheck {
                             &expected_type->val);
                     if (!udtype) {
                         err(diag::Err::CantBeNull {});
-                        return TYPE_INVALID;
+                        return Value(TYPE_INVALID);
                     }
                     ALVO_ASSERT(m_index->user_defined_types.has_id(udtype->id));
                     auto& type =
@@ -391,28 +438,28 @@ namespace alvo::sema::typecheck {
                         !std::holds_alternative<UserDefinedType::Interface>(
                             type.val)) {
                         err(diag::Err::CantBeNull {});
-                        return TYPE_INVALID;
+                        return Value(TYPE_INVALID);
                     }
 
-                    return *expected_type;
+                    return Value(*expected_type);
                 },
                 [&](ast::Expr::Literal::String&) {
-                    return ast::Type(ast::Type::String {});
+                    return Value(ast::Type(ast::Type::String {}));
                 },
                 [&](ast::Expr::Literal::Character&) {
-                    return ast::Type(ast::Type::Char {});
+                    return Value(ast::Type(ast::Type::Char {}));
                 },
                 [&](ast::Expr::Literal::Integer&) {
-                    return ast::Type(ast::Type::Int {});
+                    return Value(ast::Type(ast::Type::Int {}));
                 },
                 [&](ast::Expr::Literal::Byte&) {
-                    return ast::Type(ast::Type::Byte {});
+                    return Value(ast::Type(ast::Type::Byte {}));
                 },
                 [&](ast::Expr::Literal::Floating&) {
-                    return ast::Type(ast::Type::Float {});
+                    return Value(ast::Type(ast::Type::Float {}));
                 },
                 [&](ast::Expr::Literal::Boolean&) {
-                    return ast::Type(ast::Type::Bool {});
+                    return Value(ast::Type(ast::Type::Bool {}));
                 },
                 [&](ast::Expr::Literal::Array& array) {
                     return typecheck_ast_expr_literal_array(
@@ -423,20 +470,20 @@ namespace alvo::sema::typecheck {
                 },
                 [&](ast::Expr::Literal::Struct&) {
                     ALVO_UNREACHABLE();
-                    return TYPE_INVALID;
+                    return Value(TYPE_INVALID);
                 },
                 [&](ast::Expr::Literal::ResolvedStruct& resolved_struct) {
                     return typecheck_ast_expr_literal_resolved_struct(
                         resolved_struct, expected_type);
                 },
                 [&](ast::util::Ptr<ast::Func>& func) {
-                    return typecheck_ast_func(*func, expected_type);
+                    return Value(typecheck_ast_func(*func, expected_type));
                 },
             },
             lit.val);
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_literal_array(
+    Value Typechecker::typecheck_ast_expr_literal_array(
         ast::Expr::Literal::Array& array,
         std::optional<ast::Type> expected_type) {
         std::optional<ast::Type> contained_type = std::nullopt;
@@ -492,7 +539,7 @@ namespace alvo::sema::typecheck {
                     auto times_type =
                         typecheck_ast_expr(*default_n_times.times);
                     if (!std::holds_alternative<ast::Type::Int>(
-                            times_type.val)) {
+                            times_type.type.val)) {
                         err_expected("int");
                         return TYPE_INVALID;
                     }
@@ -510,7 +557,7 @@ namespace alvo::sema::typecheck {
 
                     auto times_type = typecheck_ast_expr(*expr_n_times.times);
                     if (!std::holds_alternative<ast::Type::Int>(
-                            times_type.val)) {
+                            times_type.type.val)) {
                         err_expected("int");
                         return TYPE_INVALID;
                     }
@@ -522,7 +569,7 @@ namespace alvo::sema::typecheck {
             array.val);
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_literal_tup(
+    Value Typechecker::typecheck_ast_expr_literal_tup(
         ast::Expr::Literal::Tup& tup, std::optional<ast::Type> expected_type) {
         if (tup.is_invalid)
             return TYPE_INVALID;
@@ -575,7 +622,7 @@ namespace alvo::sema::typecheck {
         return ast::Type(ast::Type::Tup(false, tuple_types));
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_literal_resolved_struct(
+    Value Typechecker::typecheck_ast_expr_literal_resolved_struct(
         ast::Expr::Literal::ResolvedStruct& struct_,
         [[maybe_unused]] std::optional<ast::Type> expected_type) {
 
@@ -604,8 +651,8 @@ namespace alvo::sema::typecheck {
             ast::Type::ResolvedUserDefinedType(struct_.type_id, {}));
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_unop(
-        ast::Expr::Unop& unop, std::optional<ast::Type> expected_type) {
+    Value Typechecker::typecheck_ast_expr_unop(ast::Expr::Unop& unop,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
         using enum ast::Expr::Unop::Op;
 
         if (unop.op == Invalid)
@@ -643,7 +690,7 @@ namespace alvo::sema::typecheck {
                                bad_type = true;
                            },
                        },
-                expr_type.val);
+                expr_type.type.val);
             if (bad_type) {
                 err(diag::Err::BadUnaryExpressionType {});
                 return TYPE_INVALID;
@@ -654,9 +701,10 @@ namespace alvo::sema::typecheck {
         if (unop.op == BinaryNot) {
             auto expr_type = typecheck_ast_expr(*unop.expr);
             bool bad_type;
-            if (std::holds_alternative<ast::Type::Int>(expr_type.val)) {
+            if (std::holds_alternative<ast::Type::Int>(expr_type.type.val)) {
                 bad_type = false;
-            } else if (std::holds_alternative<ast::Type::Byte>(expr_type.val)) {
+            } else if (std::holds_alternative<ast::Type::Byte>(
+                           expr_type.type.val)) {
                 bad_type = false;
             } else {
                 bad_type = true;
@@ -672,107 +720,404 @@ namespace alvo::sema::typecheck {
         return TYPE_INVALID;
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_binop(
-        ast::Expr::Binop& binop, std::optional<ast::Type> expected_type) {
+    Value Typechecker::typecheck_ast_expr_binop(ast::Expr::Binop& binop,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        auto l_type = typecheck_ast_expr(*binop.lhs);
+        auto r_type = typecheck_ast_expr(*binop.rhs);
+
+        if (type_is_invalid(l_type.type))
+            return TYPE_INVALID;
+        if (type_is_invalid(r_type.type))
+            return TYPE_INVALID;
+
+        if (r_type.type != l_type.type) {
+            err(diag::Err::IncompatibleTypesInBinaryExpression {});
+            return TYPE_INVALID;
+        }
+
         switch (binop.op) {
         case ast::Expr::Binop::Op::Invalid:
-            break;
+            return Value(TYPE_INVALID);
         case ast::Expr::Binop::Op::Assign:
-            break;
         case ast::Expr::Binop::Op::PlusAssign:
-            break;
         case ast::Expr::Binop::Op::MinusAssign:
-            break;
         case ast::Expr::Binop::Op::MultiplyAssign:
-            break;
         case ast::Expr::Binop::Op::DivideAssign:
-            break;
         case ast::Expr::Binop::Op::BinaryAndAssign:
-            break;
         case ast::Expr::Binop::Op::BinaryOrAssign:
-            break;
         case ast::Expr::Binop::Op::BinaryXorAssign:
-            break;
         case ast::Expr::Binop::Op::ModAssign:
-            break;
         case ast::Expr::Binop::Op::ShiftLeftAssign:
-            break;
-        case ast::Expr::Binop::Op::ShiftRightAssign:
-            break;
+        case ast::Expr::Binop::Op::ShiftRightAssign: {
+            std::unordered_set<ast::Type> allowed_types;
+            switch (binop.op) {
+            case ast::Expr::Binop::Op::Assign:
+                allowed_types = {};
+                break;
+
+            case ast::Expr::Binop::Op::PlusAssign:
+            case ast::Expr::Binop::Op::MinusAssign:
+            case ast::Expr::Binop::Op::MultiplyAssign:
+            case ast::Expr::Binop::Op::DivideAssign:
+                allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                break;
+
+            case ast::Expr::Binop::Op::BinaryAndAssign:
+            case ast::Expr::Binop::Op::BinaryOrAssign:
+            case ast::Expr::Binop::Op::BinaryXorAssign:
+            case ast::Expr::Binop::Op::ModAssign:
+            case ast::Expr::Binop::Op::ShiftLeftAssign:
+            case ast::Expr::Binop::Op::ShiftRightAssign:
+                allowed_types = { TYPE_INT, TYPE_BYTE };
+                break;
+
+            default:
+                ALVO_UNREACHABLE();
+            }
+
+            if (!l_type.is_assignable) {
+                err(diag::Err::ExpressionNotAssignable {});
+                return TYPE_INVALID;
+            }
+
+            if (!allowed_types.empty() &&
+                !allowed_types.contains(l_type.type)) {
+                err(diag::Err::BadTypeForBinaryExpression {});
+                return TYPE_INVALID;
+            }
+
+            return Value(l_type.type);
+        } break;
         case ast::Expr::Binop::Op::Or:
-            break;
         case ast::Expr::Binop::Op::And:
-            break;
         case ast::Expr::Binop::Op::BinaryOr:
-            break;
         case ast::Expr::Binop::Op::BinaryXor:
-            break;
         case ast::Expr::Binop::Op::BinaryAnd:
-            break;
         case ast::Expr::Binop::Op::Equal:
-            break;
         case ast::Expr::Binop::Op::NotEqual:
-            break;
         case ast::Expr::Binop::Op::Less:
-            break;
         case ast::Expr::Binop::Op::LessEqual:
-            break;
         case ast::Expr::Binop::Op::Greater:
-            break;
         case ast::Expr::Binop::Op::GreaterEqual:
-            break;
         case ast::Expr::Binop::Op::ShiftLeft:
-            break;
         case ast::Expr::Binop::Op::ShiftRight:
-            break;
         case ast::Expr::Binop::Op::Plus:
-            break;
         case ast::Expr::Binop::Op::Minus:
-            break;
         case ast::Expr::Binop::Op::Multiply:
-            break;
         case ast::Expr::Binop::Op::Divide:
-            break;
-        case ast::Expr::Binop::Op::Mod:
-            break;
+        case ast::Expr::Binop::Op::Mod: {
+            std::unordered_set<ast::Type> allowed_types;
+            switch (binop.op) {
+            case ast::Expr::Binop::Op::Or:
+            case ast::Expr::Binop::Op::And:
+                allowed_types = { TYPE_BOOL };
+                break;
+
+            case ast::Expr::Binop::Op::BinaryOr:
+            case ast::Expr::Binop::Op::BinaryXor:
+            case ast::Expr::Binop::Op::BinaryAnd:
+                allowed_types = { TYPE_INT, TYPE_BYTE };
+                break;
+
+            case ast::Expr::Binop::Op::Equal:
+            case ast::Expr::Binop::Op::NotEqual:
+                allowed_types = {};
+                break;
+
+            case ast::Expr::Binop::Op::Less:
+            case ast::Expr::Binop::Op::LessEqual:
+            case ast::Expr::Binop::Op::Greater:
+            case ast::Expr::Binop::Op::GreaterEqual:
+                allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                break;
+
+            case ast::Expr::Binop::Op::ShiftLeft:
+            case ast::Expr::Binop::Op::ShiftRight:
+                allowed_types = { TYPE_INT, TYPE_BYTE };
+                break;
+
+            case ast::Expr::Binop::Op::Plus:
+            case ast::Expr::Binop::Op::Minus:
+            case ast::Expr::Binop::Op::Multiply:
+            case ast::Expr::Binop::Op::Divide:
+                allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                break;
+
+            case ast::Expr::Binop::Op::Mod:
+                allowed_types = { TYPE_INT, TYPE_BYTE };
+                break;
+
+            default:
+                ALVO_UNREACHABLE();
+            }
+
+            if (!allowed_types.empty() &&
+                !allowed_types.contains(l_type.type)) {
+                err(diag::Err::BadTypeForBinaryExpression {});
+                return TYPE_INVALID;
+            }
+
+            return Value(l_type.type);
+        } break;
         }
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_index(
-        ast::Expr::Index& index, std::optional<ast::Type> expected_type) { }
+    Value Typechecker::typecheck_ast_expr_index(ast::Expr::Index& index,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        auto expr_type = typecheck_ast_expr(*index.expr);
+        auto index_type = typecheck_ast_expr(*index.index, TYPE_INT);
 
-    ast::Type Typechecker::typecheck_ast_expr_call(
-        ast::Expr::Call& call, std::optional<ast::Type> expected_type) { }
+        if (index_type.type != TYPE_INT) {
+            err(diag::Err::NonIntegerIndex {});
+            return Value(TYPE_INVALID);
+        }
 
-    ast::Type Typechecker::typecheck_ast_expr_cast(
-        ast::Expr::Cast& cast, std::optional<ast::Type> expected_type) { }
-
-    ast::Type Typechecker::typecheck_ast_expr_try_cast(
-        ast::Expr::TryCast& try_cast, std::optional<ast::Type> expected_type) {
+        if (auto array = std::get_if<ast::Type::Array>(&expr_type.type.val)) {
+            return Value(*array->type, true);
+        } else {
+            err(diag::Err::AttemptedToIndexNonArray {});
+            return Value(TYPE_INVALID);
+        }
     }
 
-    ast::Type Typechecker::typecheck_ast_expr_builtin(
-        ast::Expr::Builtin& builtin, std::optional<ast::Type> expected_type) { }
+    Value Typechecker::typecheck_ast_expr_call(ast::Expr::Call& call,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        auto expr_type = typecheck_ast_expr(*call.expr);
+        if (type_is_invalid(expr_type.type)) {
+            return TYPE_INVALID;
+        }
 
-    ast::Type Typechecker::typecheck_ast_expr_member_access(
+        if (auto func = std::get_if<ast::Type::Func>(&expr_type.type.val)) {
+            if (func->params.size() != call.args.size()) {
+                err(diag::Err::IncorrectNumberOfArgumentsForFunctionCall {});
+                return TYPE_INVALID;
+            }
+
+            auto param_iter = func->params.begin();
+            auto arg_iter = call.args.begin();
+            while (param_iter != func->params.end()) {
+                auto& param_type = *param_iter;
+                auto& arg_expr = *arg_iter;
+
+                auto arg_type = typecheck_ast_expr(arg_expr, param_type);
+                if (type_is_invalid(arg_type.type)) {
+                    return TYPE_INVALID;
+                }
+
+                if (arg_type.type != param_type) {
+                    err_expected_type(param_type);
+                    return TYPE_INVALID;
+                }
+
+                param_iter++;
+                arg_iter++;
+            }
+
+            return *func->return_type;
+        } else {
+            err(diag::Err::AttemptedToCallNonFunction {});
+            return TYPE_INVALID;
+        }
+    }
+
+    Value Typechecker::typecheck_ast_expr_cast(ast::Expr::Cast& cast,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        if (type_is_invalid(cast.type)) {
+            return TYPE_INVALID;
+        }
+
+        auto expr_type = typecheck_ast_expr(*cast.expr);
+        if (type_is_invalid(expr_type.type)) {
+            return TYPE_INVALID;
+        }
+
+        std::unordered_set<ast::Type> allowed_types;
+        bool bad_type = false;
+
+        std::visit(
+            util::overload {
+                [&](ast::Invalid&) { },
+                [&](ast::Type::Unit&) { allowed_types = {}; },
+                [&](ast::Type::String&) { bad_type = true; },
+                [&](ast::Type::Char&) { bad_type = true; },
+                [&](ast::Type::Int&) {
+                    allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                },
+                [&](ast::Type::Byte&) {
+                    allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                },
+                [&](ast::Type::Float&) {
+                    allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                },
+                [&](ast::Type::Bool&) { bad_type = true; },
+                [&](ast::Type::Array&) { bad_type = true; },
+                [&](ast::Type::Tup&) { bad_type = true; },
+                [&](ast::Type::Func&) { bad_type = true; },
+                [&](ast::Type::Name&) { ALVO_UNREACHABLE(); },
+                [&](ast::Type::LocalGeneric&) { bad_type = true; },
+                [&](ast::Type::ResolvedUserDefinedType&) { bad_type = true; },
+            },
+            cast.type.val);
+
+        if (bad_type) {
+            err(diag::Err::BadCastType {});
+            return TYPE_INVALID;
+        }
+
+        if (!allowed_types.empty() && !allowed_types.contains(expr_type.type)) {
+            err(diag::Err::BadCastExprType {});
+            return TYPE_INVALID;
+        }
+
+        return cast.type;
+    }
+
+    Value Typechecker::typecheck_ast_expr_try_cast(
+        [[maybe_unused]] ast::Expr::TryCast& try_cast,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        ALVO_NOT_IMPLEMENTED();
+        return TYPE_INVALID;
+    }
+
+    Value Typechecker::typecheck_ast_expr_builtin(
+        [[maybe_unused]] ast::Expr::Builtin& builtin,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        ALVO_NOT_IMPLEMENTED();
+        return TYPE_INVALID;
+    }
+
+    std::pair<Value, ast::Expr::ResolvedMemberAccess>
+    Typechecker::typecheck_ast_expr_member_access(
         ast::Expr::MemberAccess& member_access,
-        std::optional<ast::Type> expected_type) { }
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        static const std::pair<Value, ast::Expr::ResolvedMemberAccess>
+            INVALID = { TYPE_INVALID, { nullptr, 0 } };
 
-    ast::Type Typechecker::typecheck_ast_expr_local_var(
+        auto expr_type = typecheck_ast_expr(*member_access.expr);
+        if (member_access.name.is_invalid) {
+            return INVALID;
+        }
+
+        if (auto udtype = std::get_if<ast::Type::ResolvedUserDefinedType>(
+                &expr_type.type.val)) {
+            auto& udtype_val =
+                m_index->user_defined_types.get_by_id(udtype->id);
+            if (auto struct_ =
+                    std::get_if<UserDefinedType::Struct>(&udtype_val.val)) {
+                if (!struct_->members.has(member_access.name.name)) {
+                    err(diag::Err::NoMemberFound {});
+                    return INVALID;
+                }
+                auto& member = struct_->members.get(member_access.name.name);
+                auto id = struct_->members.get_id(member_access.name.name);
+                if (auto field =
+                        std::get_if<UserDefinedType::Struct::Member::Field>(
+                            &member.val)) {
+                    return { field->type, ast::Expr::ResolvedMemberAccess(
+                                              member_access.expr, id) };
+                } else {
+                    err(diag::Err::NoMemberFound {});
+                    return INVALID;
+                }
+            } else {
+                err(diag::Err::MemberAccessOnNonStruct {});
+                return INVALID;
+            }
+        } else {
+            err(diag::Err::MemberAccessOnNonStruct {});
+            return INVALID;
+        }
+    }
+
+    Value Typechecker::typecheck_ast_expr_local_var(
         ast::Expr::LocalVar& local_var,
-        std::optional<ast::Type> expected_type) { }
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        auto entry = m_scope_stack.get_by_id(local_var.id);
+        return Value(entry.element, true);
+    }
 
-    ast::Type Typechecker::typecheck_ast_expr_resolved_decl(
+    Value Typechecker::typecheck_ast_expr_resolved_decl(
         ast::Expr::ResolvedDecl& resolved_decl,
-        std::optional<ast::Type> expected_type) { }
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        ast::Id decl_id = resolved_decl.decl_id;
+        if (!resolved_decl.generic_params.empty()) {
+            auto new_id =
+                instantiate_decl(decl_id, resolved_decl.generic_params);
+            if (!new_id) {
+                return TYPE_INVALID;
+            }
+            decl_id = *new_id;
+        }
+        ALVO_ASSERT(m_index->decls.has_id(decl_id));
+        auto& decl = m_index->decls.get_by_id(decl_id);
+        return std::visit(
+            util::overload {
+                [&](Decl::Func& func) {
+                    return Value(ast::Type(decl_func_to_type_func(func.func)));
+                },
+            },
+            decl.val);
+    }
 
-    ast::Type Typechecker::typecheck_ast_expr_resolved_type_member_access(
-        ast::Expr::ResolvedTypeMemberAccess& resolved_decl,
-        std::optional<ast::Type> expected_type) { }
+    Value Typechecker::typecheck_ast_expr_resolved_type_member_access(
+        ast::Expr::ResolvedTypeMemberAccess& resolved_type_member_access,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        bool invalid_type = false;
+        bool bad_type = false;
+        std::optional<ast::Type::ResolvedUserDefinedType> udtype = std::nullopt;
+        std::visit(
+            util::overload {
+                [&](ast::Invalid&) { invalid_type = true; },
+                [&](ast::Type::Unit&) { bad_type = true; },
+                [&](ast::Type::String&) { bad_type = true; },
+                [&](ast::Type::Char&) { bad_type = true; },
+                [&](ast::Type::Int&) { bad_type = true; },
+                [&](ast::Type::Byte&) { bad_type = true; },
+                [&](ast::Type::Float&) { bad_type = true; },
+                [&](ast::Type::Bool&) { bad_type = true; },
+                [&](ast::Type::Array&) { bad_type = true; },
+                [&](ast::Type::Tup&) { bad_type = true; },
+                [&](ast::Type::Func&) { bad_type = true; },
+                [&](ast::Type::Name&) { ALVO_UNREACHABLE(); },
+                [&](ast::Type::LocalGeneric&) { bad_type = true; },
+                [&](ast::Type::ResolvedUserDefinedType& resolved_udtype) {
+                    udtype = resolved_udtype;
+                },
+            },
+            resolved_type_member_access.type.val);
+        ALVO_ASSERT(m_index->user_defined_types.has_id(udtype->id));
 
-    ast::Type Typechecker::typecheck_ast_expr_resolved_generic_member_access(
-        ast::Expr::ResolvedGenericMemberAccess& resolved_decl,
-        std::optional<ast::Type> expected_type) { }
+        if (invalid_type) {
+            return TYPE_INVALID;
+        }
+        if (bad_type) {
+            err(diag::Err::BadTypeMemberAccessType {});
+            return TYPE_INVALID;
+        }
+
+        ALVO_ASSERT(udtype.has_value());
+
+        ast::Id type_id = udtype->id;
+        if (!udtype->generic_params.empty()) {
+            auto new_id = instantiate_type(type_id, udtype->generic_params);
+            if (!new_id) {
+                return TYPE_INVALID;
+            }
+            type_id = *new_id;
+        }
+
+        ALVO_ASSERT(m_index->user_defined_types.has_id(type_id));
+        auto& udtype_val = m_index->user_defined_types.get_by_id(type_id);
+
+        std::visit(util::overload {
+                       [&](UserDefinedType::Struct& struct_) { },
+                       [&](UserDefinedType::Enum& enum_) { },
+                       [&](UserDefinedType::Interface& interface_) { },
+                   },
+            udtype_val.val);
+
+        if (!resolved_type_member_access.generic_params.empty()) { }
+    }
 
     void Typechecker::put_generic_params(
         const resolve::GenericParams& generic_params) {
@@ -793,10 +1138,49 @@ namespace alvo::sema::typecheck {
         err(diag::Err::ExpectedType(expected));
     }
 
-    std::optional<ast::Id> Typechecker::instantiate_type(
-        ast::Id id, const ast::util::List<ast::Type> generic_params) {
+    std::optional<ast::Id> Typechecker::instantiate_type(ast::Id id,
+        [[maybe_unused]] const ast::util::List<ast::Type> generic_params) {
         ALVO_ASSERT(m_index->user_defined_types.has_id(id));
-        auto& udtype = m_index->user_defined_types.get_by_id(id);
-        udtype.generic_params;
+        [[maybe_unused]] auto& udtype =
+            m_index->user_defined_types.get_by_id(id);
+        ALVO_NOT_IMPLEMENTED();
+        return std::nullopt;
+    }
+
+    std::optional<ast::Id> Typechecker::instantiate_member(ast::Id type_id,
+        [[maybe_unused]] ast::Id member_id,
+        [[maybe_unused]] const ast::util::List<ast::Type> generic_params) {
+        ALVO_ASSERT(m_index->user_defined_types.has_id(type_id));
+        [[maybe_unused]] auto& udtype =
+            m_index->user_defined_types.get_by_id(type_id);
+        ALVO_NOT_IMPLEMENTED();
+        return std::nullopt;
+    }
+
+    std::optional<ast::Id> Typechecker::instantiate_named_member(
+        ast::Id type_id, [[maybe_unused]] std::string_view member_name,
+        [[maybe_unused]] const ast::util::List<ast::Type> generic_params) {
+        ALVO_ASSERT(m_index->user_defined_types.has_id(type_id));
+        [[maybe_unused]] auto& udtype =
+            m_index->user_defined_types.get_by_id(type_id);
+        ALVO_NOT_IMPLEMENTED();
+        return std::nullopt;
+    }
+
+    std::optional<ast::Id> Typechecker::instantiate_decl(ast::Id decl_id,
+        [[maybe_unused]] const ast::util::List<ast::Type> generic_params) {
+        ALVO_ASSERT(m_index->decls.has_id(decl_id));
+        [[maybe_unused]] auto& decl = m_index->decls.get_by_id(decl_id);
+        ALVO_NOT_IMPLEMENTED();
+        return std::nullopt;
+    }
+
+    ast::Type::Func Typechecker::decl_func_to_type_func(const ast::Func& func) {
+        ast::util::List<ast::Type> params;
+        for (const auto& param : func.signature.params) {
+            params.push_back(*m_arena, param.type);
+        }
+        return ast::Type::Func(
+            false, params, m_node_ctx.make_node<ast::Type>(func.signature.ret));
     }
 }

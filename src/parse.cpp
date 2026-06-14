@@ -422,16 +422,18 @@ namespace alvo::parse {
             return Expr::Name(true, "", {});
         }
         std::string_view name = tok_name->value;
-        if (accept(LAngle)) {
-            generic_params.push_back(*m_arena, parse_type());
-            while (accept(Comma)) {
-                generic_params.push_back(*m_arena, parse_type());
-            }
-            if (!expect(RAngle)) {
-                synchronize(TYPE_CTX_SYNC);
-                return Expr::Name(true, "", {});
-            }
-        }
+
+        // TODO: disambiguate generic params from operator `<`
+        // if (accept(LAngle)) {
+        //     generic_params.push_back(*m_arena, parse_type());
+        //     while (accept(Comma)) {
+        //         generic_params.push_back(*m_arena, parse_type());
+        //     }
+        //     if (!expect(RAngle)) {
+        //         synchronize(TYPE_CTX_SYNC);
+        //         return Expr::Name(true, "", {});
+        //     }
+        // }
 
         return Expr::Name(false, name, generic_params);
     }

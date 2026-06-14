@@ -456,15 +456,15 @@ namespace alvo::sema::resolve {
     }
 
     void NameResolver::resolve_declarations() {
+        for (auto entry : m_name_index->user_defined_types) {
+            resolve_user_defined_type(entry.element);
+        }
+
         for (auto entry : m_name_index->decls) {
             std::visit(util::overload { [&](Decl::Func& func) {
                 resolve_func(func);
             } },
                 entry.element.val);
-        }
-
-        for (auto entry : m_name_index->user_defined_types) {
-            resolve_user_defined_type(entry.element);
         }
     }
 
@@ -668,6 +668,10 @@ namespace alvo::sema::resolve {
                         ast::Id id = m_name_index->decls.get_id(name.name);
                         expr.val =
                             ast::Expr::ResolvedDecl(id, name.generic_params);
+                    } else {
+                        err(diag::Err(diag::Err::UndeclaredIdentifier {
+                            .name = name.name }));
+                        expr.val = ast::Invalid {};
                     }
                 },
                 [&](ast::Expr::TypeMemberAccess& type_member_access) {
@@ -755,9 +759,7 @@ namespace alvo::sema::resolve {
                 [&](ast::Expr::ResolvedTypeMemberAccess&) {
                     ALVO_UNREACHABLE();
                 },
-                [&](ast::Expr::ResolvedGenericMemberAccess&) {
-                    ALVO_UNREACHABLE();
-                } },
+                [&](ast::Expr::ResolvedMemberAccess&) { ALVO_UNREACHABLE(); } },
             expr.val);
     }
 
@@ -835,7 +837,7 @@ namespace alvo::sema::resolve {
 
                             struct FieldWithId {
                                 ast::Id id;
-                                Field* field;
+                                Field field;
                             };
 
                             std::unordered_map<std::string_view, FieldWithId>
@@ -845,7 +847,7 @@ namespace alvo::sema::resolve {
                                 if (auto field = std::get_if<Field>(
                                         &member.element.val)) {
                                     fields.insert(
-                                        { member.name, { member.id, field } });
+                                        { member.name, { member.id, *field } });
                                 }
                             }
 
@@ -877,7 +879,7 @@ namespace alvo::sema::resolve {
                                 ast::util::Ptr<ast::Expr> expr = field.expr;
                                 resolve_ast_expr(*expr);
                                 populated_fields.insert({ field_with_id.id,
-                                    { expr, field_with_id.field->type } });
+                                    { expr, field_with_id.field.type } });
                             }
 
                             if (populated_fields.size() < fields.size()) {
