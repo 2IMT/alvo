@@ -1072,7 +1072,7 @@ namespace alvo::sema::resolve {
 
     std::optional<std::vector<NameResolver::DeclsBlockElement>>
     NameResolver::get_decls_block_elements(const ast::Decl::DeclsBlock& block,
-        const GenericParams& generic_params) {
+        [[maybe_unused]] const GenericParams& generic_params) {
         std::vector<NameResolver::DeclsBlockElement> res;
         if (block.is_invalid) {
             return std::nullopt;
