@@ -566,9 +566,21 @@ namespace alvo::parse {
         } else if (curr_is(LBrace)) {
             val = parse_block();
         } else if (accept(KwContinue)) {
-            val = Stmt::Continue {};
+            if (!expect(Semicolon)) {
+                synchronize(STMT_CTX_SYNC);
+                val = Invalid {};
+            } else {
+                val = Stmt::Continue {};
+            }
         } else if (accept(KwBreak)) {
-            val = Stmt::Break {};
+            if (!expect(Semicolon)) {
+                synchronize(STMT_CTX_SYNC);
+                val = Invalid {};
+            } else {
+                val = Stmt::Break {};
+            }
+        } else if (curr_is(KwPrint)) {
+            val = parse_stmt_print();
         } else {
             val = parse_expr();
             if (!expect(Semicolon)) {
@@ -751,6 +763,36 @@ namespace alvo::parse {
             synchronize(STMT_CTX_SYNC);
         }
         return Stmt::Defer(false, expr);
+    }
+
+    ast::Stmt::Print Parser::parse_stmt_print() {
+        SectionGuard section_guard(this, __func__);
+
+        List<Expr> exprs;
+        if (!expect(KwPrint)) {
+            synchronize(STMT_CTX_SYNC);
+            return Stmt::Print(true, exprs);
+        }
+
+        if (!expect(LParen)) {
+            synchronize(STMT_CTX_SYNC);
+            return Stmt::Print(true, exprs);
+        }
+
+        exprs.push_back(*m_arena, parse_expr());
+        while (accept(Comma)) {
+            if (curr_is(RParen)) {
+                break;
+            }
+            exprs.push_back(*m_arena, parse_expr());
+        }
+        if (!expect(RParen)) {
+            synchronize(STMT_CTX_SYNC);
+        }
+        if (!expect(Semicolon)) {
+            synchronize(STMT_CTX_SYNC);
+        }
+        return Stmt::Print(false, exprs);
     }
 
     Func Parser::parse_func() {

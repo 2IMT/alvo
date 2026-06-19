@@ -202,6 +202,8 @@ namespace alvo::diag {
 
         virtual void err(
             std::string_view file, tok::Pos pos, const Err& err) = 0;
+
+        virtual bool is_err() const = 0;
     };
 
     class OstreamSink : public DiagSink {
@@ -213,6 +215,8 @@ namespace alvo::diag {
 
         void err(
             std::string_view filename, tok::Pos pos, const Err& err) override;
+
+        bool is_err() const override;
 
     private:
         std::ostream* m_os;

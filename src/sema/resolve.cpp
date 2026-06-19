@@ -478,13 +478,13 @@ namespace alvo::sema::resolve {
     }
 
     void NameResolver::resolve_ast_func(ast::Func& func) {
-        m_scope_stack.push();
+        m_arg_stack.push();
 
         resolve_ast_func_signature(func.signature, true);
 
         resolve_ast_block(func.block);
 
-        m_scope_stack.pop();
+        m_arg_stack.pop();
     }
 
     void NameResolver::resolve_ast_func_signature(
@@ -493,7 +493,7 @@ namespace alvo::sema::resolve {
             return;
 
         if (signature.is_self_func && put_params_to_stack) {
-            m_scope_stack.put("self", "self");
+            m_arg_stack.put("self", "self");
         }
 
         std::vector<std::string_view> used_param_names;
@@ -516,7 +516,7 @@ namespace alvo::sema::resolve {
 
             if (put_params_to_stack) {
                 // no duplicate names guaranteed
-                m_scope_stack.put(param.name, param.name);
+                m_arg_stack.put(param.name, param.name);
             }
         }
 
@@ -556,6 +556,7 @@ namespace alvo::sema::resolve {
                            if (if_.is_invalid)
                                return;
                            resolve_ast_expr(if_.expr);
+                           resolve_ast_block(if_.main);
                            for (auto& elif : if_.elifs) {
                                resolve_ast_expr(elif.expr);
                                resolve_ast_block(elif.block);
@@ -612,6 +613,13 @@ namespace alvo::sema::resolve {
                        [&](ast::Block& block) { resolve_ast_block(block); },
                        [&](ast::Stmt::Continue&) { },
                        [&](ast::Stmt::Break&) { },
+                       [&](ast::Stmt::Print& print) {
+                           if (print.is_invalid)
+                               return;
+                           for (auto& expr : print.exprs) {
+                               resolve_ast_expr(expr);
+                           }
+                       },
                    },
             stmt.val);
     }
@@ -664,6 +672,8 @@ namespace alvo::sema::resolve {
                     if (m_scope_stack.has(name.name)) {
                         auto entry = m_scope_stack.get(name.name);
                         expr.val = ast::Expr::LocalVar(entry.id);
+                    } else if (m_arg_stack.has(name.name)) {
+                        expr.val = ast::Expr::FuncArg(name.name);
                     } else if (m_name_index->decls.has(name.name)) {
                         ast::Id id = m_name_index->decls.get_id(name.name);
                         expr.val =
@@ -755,6 +765,7 @@ namespace alvo::sema::resolve {
                     }
                 },
                 [&](ast::Expr::LocalVar&) { ALVO_UNREACHABLE(); },
+                [&](ast::Expr::FuncArg&) { ALVO_UNREACHABLE(); },
                 [&](ast::Expr::ResolvedDecl&) { ALVO_UNREACHABLE(); },
                 [&](ast::Expr::ResolvedTypeMemberAccess&) {
                     ALVO_UNREACHABLE();

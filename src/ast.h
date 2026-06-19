@@ -421,6 +421,13 @@ namespace alvo::ast {
                 id(id) { }
         };
 
+        struct FuncArg {
+            std::string_view name;
+
+            FuncArg(const std::string_view& name) :
+                name(name) { }
+        };
+
         struct ResolvedDecl {
             Id decl_id;
             util::List<Type> generic_params;
@@ -455,7 +462,7 @@ namespace alvo::ast {
 
         using Val = std::variant<Invalid, Literal, Unop, Binop, Index, Call,
             Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess,
-            LocalVar, ResolvedDecl, ResolvedTypeMemberAccess,
+            LocalVar, FuncArg, ResolvedDecl, ResolvedTypeMemberAccess,
             ResolvedMemberAccess>;
         Val val;
 
@@ -594,8 +601,17 @@ namespace alvo::ast {
 
         struct Break { };
 
+        struct Print {
+            bool is_invalid;
+            util::List<Expr> exprs;
+
+            Print(const bool& is_invalid, const util::List<Expr>& exprs) :
+                is_invalid(is_invalid),
+                exprs(exprs) { }
+        };
+
         using Val = std::variant<Invalid, Expr, Let, If, Switch, Loop, For,
-            While, Return, Defer, Block, Continue, Break>;
+            While, Return, Defer, Block, Continue, Break, Print>;
         Val val;
 
         Stmt(const Val& val) :
@@ -854,6 +870,7 @@ namespace alvo::ast {
         const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r);
     bool operator==(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
     bool operator==(const Expr::LocalVar& l, const Expr::LocalVar& r);
+    bool operator==(const Expr::FuncArg& l, const Expr::FuncArg& r);
     bool operator==(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
     bool operator==(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r);
@@ -875,6 +892,7 @@ namespace alvo::ast {
         [[maybe_unused]] const Stmt::Continue& r);
     bool operator==([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r);
+    bool operator==(const Stmt::Print& l, const Stmt::Print& r);
     bool operator==(const Func& l, const Func& r);
     bool operator==(const Func::Signature& l, const Func::Signature& r);
     bool operator==(
@@ -963,6 +981,7 @@ namespace alvo::ast {
         const Expr::TypeMemberAccess& l, const Expr::TypeMemberAccess& r);
     bool operator!=(const Expr::MemberAccess& l, const Expr::MemberAccess& r);
     bool operator!=(const Expr::LocalVar& l, const Expr::LocalVar& r);
+    bool operator!=(const Expr::FuncArg& l, const Expr::FuncArg& r);
     bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r);
     bool operator!=(const Expr::ResolvedTypeMemberAccess& l,
         const Expr::ResolvedTypeMemberAccess& r);
@@ -984,6 +1003,7 @@ namespace alvo::ast {
         [[maybe_unused]] const Stmt::Continue& r);
     bool operator!=([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r);
+    bool operator!=(const Stmt::Print& l, const Stmt::Print& r);
     bool operator!=(const Func& l, const Func& r);
     bool operator!=(const Func::Signature& l, const Func::Signature& r);
     bool operator!=(
@@ -1063,6 +1083,7 @@ namespace alvo::ast {
         void print_node(const Expr::TypeMemberAccess& n);
         void print_node(const Expr::MemberAccess& n);
         void print_node(const Expr::LocalVar& n);
+        void print_node(const Expr::FuncArg& n);
         void print_node(const Expr::ResolvedDecl& n);
         void print_node(const Expr::ResolvedTypeMemberAccess& n);
         void print_node(const Expr::ResolvedMemberAccess& n);
@@ -1080,6 +1101,7 @@ namespace alvo::ast {
         void print_node(const Stmt::Defer& n);
         void print_node(const Stmt::Continue& n);
         void print_node(const Stmt::Break& n);
+        void print_node(const Stmt::Print& n);
         void print_node(const Func& n);
         void print_node(const Func::Signature& n);
         void print_node(const Func::Signature::Param& n);
@@ -1554,6 +1576,13 @@ namespace alvo::ast {
     }
 
     template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Expr::FuncArg& n) {
+        node_begin("FuncArg");
+        field("name", n.name);
+        node_end();
+    }
+
+    template<print::PrinterSink Sink>
     void Printer<Sink>::print_node(const Expr::ResolvedDecl& n) {
         node_begin("ResolvedDecl");
         field("decl_id", n.decl_id);
@@ -1691,6 +1720,14 @@ namespace alvo::ast {
     template<print::PrinterSink Sink>
     void Printer<Sink>::print_node([[maybe_unused]] const Stmt::Break& n) {
         node("Break");
+    }
+
+    template<print::PrinterSink Sink>
+    void Printer<Sink>::print_node(const Stmt::Print& n) {
+        node_begin("Print");
+        field("is_invalid", n.is_invalid);
+        field("exprs", n.exprs);
+        node_end();
     }
 
     template<print::PrinterSink Sink>
@@ -2121,6 +2158,12 @@ namespace alvo::ast {
     };
 
     template<>
+    struct util::Clone<alvo::ast::Expr::FuncArg> {
+        alvo::ast::Expr::FuncArg operator()(
+            const alvo::ast::Expr::FuncArg& n, mem::Arena& arena);
+    };
+
+    template<>
     struct util::Clone<alvo::ast::Expr::ResolvedDecl> {
         alvo::ast::Expr::ResolvedDecl operator()(
             const alvo::ast::Expr::ResolvedDecl& n, mem::Arena& arena);
@@ -2220,6 +2263,12 @@ namespace alvo::ast {
     struct util::Clone<alvo::ast::Stmt::Break> {
         alvo::ast::Stmt::Break operator()(
             const alvo::ast::Stmt::Break& n, mem::Arena& arena);
+    };
+
+    template<>
+    struct util::Clone<alvo::ast::Stmt::Print> {
+        alvo::ast::Stmt::Print operator()(
+            const alvo::ast::Stmt::Print& n, mem::Arena& arena);
     };
 
     template<>
@@ -2585,6 +2634,12 @@ namespace std {
     };
 
     template<>
+    struct hash<alvo::ast::Expr::FuncArg> {
+        std::size_t operator()(
+            const alvo::ast::Expr::FuncArg& n) const noexcept;
+    };
+
+    template<>
     struct hash<alvo::ast::Expr::ResolvedDecl> {
         std::size_t operator()(
             const alvo::ast::Expr::ResolvedDecl& n) const noexcept;
@@ -2673,6 +2728,11 @@ namespace std {
     template<>
     struct hash<alvo::ast::Stmt::Break> {
         std::size_t operator()(const alvo::ast::Stmt::Break& n) const noexcept;
+    };
+
+    template<>
+    struct hash<alvo::ast::Stmt::Print> {
+        std::size_t operator()(const alvo::ast::Stmt::Print& n) const noexcept;
     };
 
     template<>

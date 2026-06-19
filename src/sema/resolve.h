@@ -178,7 +178,8 @@ namespace alvo::sema::resolve {
         std::vector<ast::Id> m_frames;
     };
 
-    template<typename StoredType, bool AllowShadowing>
+    template<typename StoredType, bool AllowShadowing,
+        bool OnlySearchTop = false>
     class ScopeStack {
     public:
         struct Entry {
@@ -217,34 +218,54 @@ namespace alvo::sema::resolve {
         }
 
         bool has(std::string_view name) {
-            for (auto& scope : m_scopes) {
-                if (scope.has(name)) {
-                    return true;
+            if constexpr (OnlySearchTop) {
+                return m_scopes.back().has(name);
+            } else {
+                for (auto& scope : m_scopes) {
+                    if (scope.has(name)) {
+                        return true;
+                    }
                 }
+                return false;
             }
-            return false;
         }
 
         Entry get(std::string_view name) {
-            for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
-                auto& scope = *it;
-                if (scope.has(name)) {
-                    return scope.get(name);
+            if constexpr (OnlySearchTop) {
+                if (m_scopes.back().has(name)) {
+                    return m_scopes.back().get(name);
+                }
+            } else {
+                for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
+                    auto& scope = *it;
+                    if (scope.has(name)) {
+                        return scope.get(name);
+                    }
                 }
             }
+
             throw std::out_of_range("name not found in scope stack");
         }
 
         bool has_id(ast::Id id) {
-            for (auto& scope : m_scopes) {
-                if (scope.has_id(id)) {
-                    return true;
+            if constexpr (OnlySearchTop) {
+                return m_scopes.back().has_id(id);
+            } else {
+                for (auto& scope : m_scopes) {
+                    if (scope.has_id(id)) {
+                        return true;
+                    }
                 }
             }
             return false;
         }
 
         Entry get_by_id(ast::Id id) {
+            if constexpr (OnlySearchTop) {
+                if (m_scopes.back().has_id(id)) {
+                    return m_scopes.back().get_by_id(id);
+                }
+            }
             for (auto it = m_scopes.rbegin(); it != m_scopes.rend(); ++it) {
                 auto& scope = *it;
                 if (scope.has_id(id)) {
@@ -397,6 +418,7 @@ namespace alvo::sema::resolve {
         diag::DiagEmitter m_diag_emitter;
         ScopeStack<std::string_view, true> m_scope_stack;
         ScopeStack<GenericParam, false> m_generic_scope_stack;
+        ScopeStack<std::string_view, true> m_arg_stack;
 
         void collect_declarations(ast::Module& module);
 

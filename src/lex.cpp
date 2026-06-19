@@ -38,6 +38,7 @@ namespace alvo::lex {
             { "let", KwLet },
             { "loop", KwLoop },
             { "null", KwNull },
+            { "print", KwPrint },
             { "return", KwReturn },
             { "root", KwRoot },
             { "self", KwSelf },

@@ -15,6 +15,7 @@
 #include "args.h"
 #include "sema/resolve.h"
 #include "sema/typecheck.h"
+#include "eval.h"
 
 class Handler {
 public:
@@ -170,6 +171,19 @@ int main(int argc, char** argv) {
         fmt::println("Arena allocated: {} B", fmt::group_digits(alloced));
         fmt::println("Arena block count: {}", fmt::group_digits(block_count));
         fmt::println("Used for AST: {} B", fmt::group_digits(used));
+    }
+
+    if (diag_sink.is_err()) {
+        fmt::println(std::cerr, "error: compilation failed");
+        return 1;
+    } else {
+        eval::Interpreter interpreter(name_index);
+        if (!name_index.decls.has("main")) {
+            fmt::println("error: `main` function not found");
+            return 1;
+        }
+        ast::Id main_id = name_index.decls.get_id("main");
+        interpreter.call_function(main_id, {});
     }
 
     return 0;

@@ -97,6 +97,7 @@ namespace alvo::tok {
         KwReturn,
         // Special Keywords
         KwBuiltin,
+        KwPrint,
         // Symbols
         LParen, // (
         RParen, // )
@@ -290,6 +291,7 @@ namespace alvo::tok {
             case TokKind::KwContinue:
             case TokKind::KwReturn:
             case TokKind::KwBuiltin:
+            case TokKind::KwPrint:
             case TokKind::LParen:
             case TokKind::RParen:
             case TokKind::LBrace:
@@ -502,6 +504,9 @@ struct fmt::formatter<alvo::tok::TokKind> {
             break;
         case KwBuiltin:
             res = "KwBuiltin";
+            break;
+        case KwPrint:
+            res = "KwPrint";
             break;
         case LParen:
             res = "LParen";

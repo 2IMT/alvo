@@ -66,6 +66,7 @@ set(ALVO_SOURCES
     "src/util.cpp"
     "src/sema/resolve.cpp"
     "src/sema/typecheck.cpp"
+    "src/eval.cpp"
 )
 
 add_executable(alvo "src/main.cpp" ${ALVO_SOURCES})

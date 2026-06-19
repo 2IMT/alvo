@@ -69,30 +69,35 @@ namespace alvo::sema::typecheck {
             return TYPE_INVALID;
         }
 
-        m_scope_stack.push();
+        m_arg_stack.push();
         for (auto& param : func.signature.params) {
-            if (param.is_invalid)
+            if (param.is_invalid) {
+                m_arg_stack.pop();
                 return TYPE_INVALID;
-            m_scope_stack.put(param.name, param.type);
+            }
+            m_arg_stack.put(param.name, param.type);
         }
 
         auto block_ret = typecheck_ast_block(func.block, func.signature.ret);
 
         if (!block_ret) {
             err(diag::Err::NotAllPathsReturn {});
+            m_arg_stack.pop();
             return TYPE_INVALID;
         }
 
         if (type_is_invalid(*block_ret)) {
+            m_arg_stack.pop();
             return TYPE_INVALID;
         }
 
         if (*block_ret != func.signature.ret) {
             err(diag::Err::UnexpectedReturnType {});
+            m_arg_stack.pop();
             return TYPE_INVALID;
         }
 
-        m_scope_stack.pop();
+        m_arg_stack.pop();
 
         // TODO: Return function type
         return TYPE_INVALID;
@@ -160,6 +165,14 @@ namespace alvo::sema::typecheck {
                 },
                 [&](ast::Stmt::Continue&) { },
                 [&](ast::Stmt::Break&) { },
+                [&](ast::Stmt::Print& print) {
+                    if (print.is_invalid) {
+                        return;
+                    }
+                    for (auto& expr : print.exprs) {
+                        typecheck_ast_expr(expr);
+                    }
+                },
             },
             stmt.val);
         return returned;
@@ -307,16 +320,20 @@ namespace alvo::sema::typecheck {
 
         auto iterable_type = typecheck_ast_expr(for_.expr);
         if (type_is_invalid(iterable_type.type)) {
+            m_scope_stack.pop();
             return;
         }
         ast::Type element_type = TYPE_INVALID;
         if (auto array =
                 std::get_if<ast::Type::Array>(&iterable_type.type.val)) {
-            if (array->is_invalid)
+            if (array->is_invalid) {
+                m_scope_stack.pop();
                 return;
+            }
             element_type = *array->type;
         } else {
             err_expected("array");
+            m_scope_stack.pop();
             return;
         }
 
@@ -392,6 +409,9 @@ namespace alvo::sema::typecheck {
                 [&](ast::Expr::LocalVar& local_var) {
                     return typecheck_ast_expr_local_var(
                         local_var, expected_type);
+                },
+                [&](ast::Expr::FuncArg& func_arg) {
+                    return typecheck_ast_expr_func_arg(func_arg, expected_type);
                 },
                 [&](ast::Expr::ResolvedDecl& resolved_decl) {
                     return typecheck_ast_expr_resolved_decl(
@@ -807,6 +827,8 @@ namespace alvo::sema::typecheck {
         case ast::Expr::Binop::Op::Divide:
         case ast::Expr::Binop::Op::Mod: {
             std::unordered_set<ast::Type> allowed_types;
+            ast::Type res_type = l_type.type;
+
             switch (binop.op) {
             case ast::Expr::Binop::Op::Or:
             case ast::Expr::Binop::Op::And:
@@ -822,6 +844,7 @@ namespace alvo::sema::typecheck {
             case ast::Expr::Binop::Op::Equal:
             case ast::Expr::Binop::Op::NotEqual:
                 allowed_types = {};
+                res_type = TYPE_BOOL;
                 break;
 
             case ast::Expr::Binop::Op::Less:
@@ -829,6 +852,7 @@ namespace alvo::sema::typecheck {
             case ast::Expr::Binop::Op::Greater:
             case ast::Expr::Binop::Op::GreaterEqual:
                 allowed_types = { TYPE_INT, TYPE_BYTE, TYPE_FLOAT };
+                res_type = TYPE_BOOL;
                 break;
 
             case ast::Expr::Binop::Op::ShiftLeft:
@@ -857,7 +881,7 @@ namespace alvo::sema::typecheck {
                 return TYPE_INVALID;
             }
 
-            return Value(l_type.type);
+            return Value(res_type);
         } break;
         }
     }
@@ -1013,8 +1037,13 @@ namespace alvo::sema::typecheck {
                 if (auto field =
                         std::get_if<UserDefinedType::Struct::Member::Field>(
                             &member.val)) {
-                    return { field->type, ast::Expr::ResolvedMemberAccess(
-                                              member_access.expr, id) };
+
+                    Value res_val = field->type;
+                    if (expr_type.is_assignable) {
+                        res_val.is_assignable = true;
+                    }
+                    return { res_val, ast::Expr::ResolvedMemberAccess(
+                                          member_access.expr, id) };
                 } else {
                     err(diag::Err::NoMemberFound {});
                     return INVALID;
@@ -1033,6 +1062,12 @@ namespace alvo::sema::typecheck {
         ast::Expr::LocalVar& local_var,
         [[maybe_unused]] std::optional<ast::Type> expected_type) {
         auto entry = m_scope_stack.get_by_id(local_var.id);
+        return Value(entry.element, true);
+    }
+
+    Value Typechecker::typecheck_ast_expr_func_arg(ast::Expr::FuncArg& func_arg,
+        [[maybe_unused]] std::optional<ast::Type> expected_type) {
+        auto entry = m_arg_stack.get(func_arg.name);
         return Value(entry.element, true);
     }
 

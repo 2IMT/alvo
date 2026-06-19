@@ -202,7 +202,10 @@ namespace alvo::diag {
             },
             err.val);
         fmt::print("\n");
+        m_err = true;
     }
+
+    bool OstreamSink::is_err() const { return m_err; }
 
     DiagEmitter::DiagEmitter() :
         m_sink(nullptr) { }

@@ -188,6 +188,9 @@
       "LocalVar": {
         "id": "Id"
       },
+      "FuncArg": {
+        "name": "std::string_view"
+      },
       "ResolvedDecl": {
         "decl_id": "Id",
         "generic_params": "util::List<Type>"
@@ -201,7 +204,7 @@
         "expr": "util::Ptr<Expr>",
         "member_id": "Id"
       },
-      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, ResolvedDecl, ResolvedTypeMemberAccess,  ResolvedMemberAccess>",
+      "@Val": "std::variant<Invalid, Literal, Unop, Binop, Index, Call, Cast, TryCast, Builtin, Name, TypeMemberAccess, MemberAccess, LocalVar, FuncArg, ResolvedDecl, ResolvedTypeMemberAccess,  ResolvedMemberAccess>",
       "val": "Val"
     },
     "Block": {
@@ -261,7 +264,11 @@
       },
       "Continue": {},
       "Break": {},
-      "@Val": "std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return, Defer, Block, Continue, Break>",
+      "Print": {
+        "is_invalid": "bool",
+        "exprs": "util::List<Expr>"
+      },
+      "@Val": "std::variant<Invalid, Expr, Let, If, Switch, Loop, For, While, Return, Defer, Block, Continue, Break, Print>",
       "val": "Val"
     },
     "Func": {

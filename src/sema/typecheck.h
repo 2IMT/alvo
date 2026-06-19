@@ -115,6 +115,9 @@ namespace alvo::sema::typecheck {
         Value typecheck_ast_expr_local_var(ast::Expr::LocalVar& local_var,
             std::optional<ast::Type> expected_type = std::nullopt);
 
+        Value typecheck_ast_expr_func_arg(ast::Expr::FuncArg& func_arg,
+            std::optional<ast::Type> expected_type = std::nullopt);
+
         Value typecheck_ast_expr_resolved_decl(
             ast::Expr::ResolvedDecl& resolved_decl,
             std::optional<ast::Type> expected_type = std::nullopt);
@@ -130,6 +133,7 @@ namespace alvo::sema::typecheck {
         diag::DiagEmitter m_diag_emitter;
         resolve::ScopeStack<ast::Type, true> m_scope_stack;
         resolve::ScopeStack<resolve::GenericParam, false> m_generic_scope_stack;
+        resolve::ScopeStack<ast::Type, true> m_arg_stack;
 
         void put_generic_params(const resolve::GenericParams& generic_params);
 

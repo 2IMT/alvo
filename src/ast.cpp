@@ -222,6 +222,10 @@ namespace alvo::ast {
         return l.id == r.id;
     }
 
+    bool operator==(const Expr::FuncArg& l, const Expr::FuncArg& r) {
+        return l.name == r.name;
+    }
+
     bool operator==(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r) {
         return l.decl_id == r.decl_id && l.generic_params == r.generic_params;
     }
@@ -297,6 +301,10 @@ namespace alvo::ast {
     bool operator==([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r) {
         return true;
+    }
+
+    bool operator==(const Stmt::Print& l, const Stmt::Print& r) {
+        return l.is_invalid == r.is_invalid && l.exprs == r.exprs;
     }
 
     bool operator==(const Func& l, const Func& r) {
@@ -590,6 +598,10 @@ namespace alvo::ast {
         return l.id != r.id;
     }
 
+    bool operator!=(const Expr::FuncArg& l, const Expr::FuncArg& r) {
+        return l.name != r.name;
+    }
+
     bool operator!=(const Expr::ResolvedDecl& l, const Expr::ResolvedDecl& r) {
         return l.decl_id != r.decl_id || l.generic_params != r.generic_params;
     }
@@ -665,6 +677,10 @@ namespace alvo::ast {
     bool operator!=([[maybe_unused]] const Stmt::Break& l,
         [[maybe_unused]] const Stmt::Break& r) {
         return false;
+    }
+
+    bool operator!=(const Stmt::Print& l, const Stmt::Print& r) {
+        return l.is_invalid != r.is_invalid || l.exprs != r.exprs;
     }
 
     bool operator!=(const Func& l, const Func& r) {
@@ -1114,6 +1130,12 @@ namespace alvo::ast {
             util::Clone<decltype(n.id)>()(n.id, arena));
     }
 
+    alvo::ast::Expr::FuncArg util::Clone<alvo::ast::Expr::FuncArg>::operator()(
+        const alvo::ast::Expr::FuncArg& n, mem::Arena& arena) {
+        return alvo::ast::Expr::FuncArg(
+            util::Clone<decltype(n.name)>()(n.name, arena));
+    }
+
     alvo::ast::Expr::ResolvedDecl
     util::Clone<alvo::ast::Expr::ResolvedDecl>::operator()(
         const alvo::ast::Expr::ResolvedDecl& n, mem::Arena& arena) {
@@ -1248,6 +1270,13 @@ namespace alvo::ast {
         return alvo::ast::Stmt::Break(
 
         );
+    }
+
+    alvo::ast::Stmt::Print util::Clone<alvo::ast::Stmt::Print>::operator()(
+        const alvo::ast::Stmt::Print& n, mem::Arena& arena) {
+        return alvo::ast::Stmt::Print(
+            util::Clone<decltype(n.is_invalid)>()(n.is_invalid, arena),
+            util::Clone<decltype(n.exprs)>()(n.exprs, arena));
     }
 
     alvo::ast::Func util::Clone<alvo::ast::Func>::operator()(
@@ -1762,6 +1791,11 @@ namespace std {
         return std::hash<decltype(n.id)>()(n.id);
     }
 
+    std::size_t hash<alvo::ast::Expr::FuncArg>::operator()(
+        const alvo::ast::Expr::FuncArg& n) const noexcept {
+        return std::hash<decltype(n.name)>()(n.name);
+    }
+
     std::size_t hash<alvo::ast::Expr::ResolvedDecl>::operator()(
         const alvo::ast::Expr::ResolvedDecl& n) const noexcept {
         std::size_t decl_id_hash = std::hash<decltype(n.decl_id)>()(n.decl_id);
@@ -1939,6 +1973,16 @@ namespace std {
     std::size_t hash<alvo::ast::Stmt::Break>::operator()(
         [[maybe_unused]] const alvo::ast::Stmt::Break& n) const noexcept {
         return 0;
+    }
+
+    std::size_t hash<alvo::ast::Stmt::Print>::operator()(
+        const alvo::ast::Stmt::Print& n) const noexcept {
+        std::size_t is_invalid_hash =
+            std::hash<decltype(n.is_invalid)>()(n.is_invalid);
+        std::size_t exprs_hash = std::hash<decltype(n.exprs)>()(n.exprs);
+        std::size_t res = is_invalid_hash;
+        res ^= exprs_hash + 0x9e3779b97f4a7c15ull + (res << 6) + (res >> 2);
+        return res;
     }
 
     std::size_t hash<alvo::ast::Func>::operator()(

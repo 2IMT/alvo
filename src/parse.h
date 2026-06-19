@@ -92,6 +92,8 @@ namespace alvo::parse {
 
         ast::Stmt::Defer parse_stmt_defer();
 
+        ast::Stmt::Print parse_stmt_print();
+
         ast::Func parse_func();
 
         ast::Func::Signature parse_func_signature();
